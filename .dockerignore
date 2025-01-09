@@ -1,0 +1,27 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies
+node_modules
+
+# Build output
+dist
+
+# Environment files
+.env
+.env.*
+
+# Development files
+.vscode
+.eslintrc.json
+.prettierrc.json
+
+# Repository folder (will be created in container)
+repos
+
+# Kubernetes files
+.kontinuous
+
+# Logs
+*.log
