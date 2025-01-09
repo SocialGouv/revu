@@ -2,20 +2,23 @@
   "name": "revu",
   "version": "1.0.0",
   "description": "Automated PR reviews using Claude Sonnet API",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc-watch --onSuccess \"node dist/index.js\"",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "probot": "^12.3.1",
-    "@anthropic-ai/sdk": "^0.10.2",
-    "simple-git": "^3.21.0",
+    "@anthropic-ai/sdk": "^0.33.1",
+    "dotenv": "^16.3.1",
     "handlebars": "^4.7.8",
-    "dotenv": "^16.3.1"
+    "probot": "^12.3.1",
+    "simple-git": "^3.21.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "tsc-watch": "^6.2.1"
   }
 }
