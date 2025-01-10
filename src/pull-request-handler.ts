@@ -57,14 +57,13 @@ export default async function handlePullRequest(
 
     // Get source tree using ai-digest
     console.log('📊 Generating source tree...')
-    const sourceTree = execSync(`ai-digest ${tmpDir}`, { encoding: 'utf8' })
-
+    const sourceTree = execSync(`cd ${tmpDir} && npx ai-digest .`, { encoding: 'utf8' })
     console.log('✅ Source tree generated')
 
     // Get diff using code2prompt
     console.log('🔍 Generating diff...')
     const diffOutput = execSync(
-      `cd ${tmpDir} && code2prompt diff ${baseBranch} ${headBranch}`,
+      `cd ${tmpDir} && code2prompt . --git-diff-branch '${baseBranch}, ${headBranch}'`,
       {
         encoding: 'utf8',
       }

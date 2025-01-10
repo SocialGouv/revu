@@ -19,11 +19,17 @@ RUN npm run build
 # Production stage
 FROM node:18-slim
 
-# Install git (needed for cloning repositories)
+# Install git and Rust dependencies
 RUN apt-get update && \
-    apt-get install -y git && \
+    apt-get install -y git curl build-essential && \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+    . $HOME/.cargo/env && \
+    cargo install code2prompt && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Add cargo bin to PATH
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Create app directory
 WORKDIR /app
