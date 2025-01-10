@@ -1,5 +1,6 @@
 # Build stage
-FROM node:18-slim AS builder
+# Using Node.js 20 since ai-digest requires Node.js >= 20.0.0
+FROM node:20-slim AS builder
 
 # Create app directory
 WORKDIR /app
@@ -17,7 +18,8 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-slim
+# Using Node.js 20 since ai-digest requires Node.js >= 20.0.0
+FROM node:20-slim
 
 # Install git and Rust dependencies
 RUN apt-get update && \
