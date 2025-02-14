@@ -10,3 +10,4 @@ node_modules
 .aidigestignore
 seeds.sql
 CHANGELOG.md
+__tests__

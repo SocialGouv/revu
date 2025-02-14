@@ -2,41 +2,54 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import * as os from 'os';
 
 const execAsync = promisify(exec);
 
-async function main() {
-  try {
-    // First, clone the repository
-    console.log('Cloning repository...');
-    await execAsync('git clone --branch ai-digest https://github.com/SocialGouv/carnets.git temp-carnets');
-    
-    // Create output directory if it doesn't exist
-    await fs.mkdir('output', { recursive: true });
-    
-    // Copy the .aidigestignore file to the cloned repository
-    console.log('Copying .aidigestignore file...');
-    await fs.copyFile('.aidigestignore', 'temp-carnets/.aidigestignore');
-    
-    // Run ai-digest on the cloned repository
-    console.log('Running ai-digest...');
-    const { stdout, stderr } = await execAsync(
-      'npx ai-digest --input temp-carnets --output output/codebase.md --show-output-files'
-    );
-    
-    console.log('ai-digest output:', stdout);
-    if (stderr) console.error('ai-digest errors:', stderr);
-    
-    // Clean up the temporary repository
-    console.log('Cleaning up...');
-    await fs.rm('temp-carnets', { recursive: true, force: true });
-    
-    console.log('Extraction completed!');
-    console.log('Output saved to: output/codebase.md');
-  } catch (error) {
-    console.error('Error during extraction:', error);
-    process.exit(1);
-  }
+interface ExtractCodebaseOptions {
+  repositoryUrl: string;
+  branch: string;
+  tempFolder?: string;
 }
 
-main();
+export async function extractCodebase({
+  repositoryUrl,
+  branch,
+  tempFolder = path.join(os.tmpdir(), 'ai-digest-' + Date.now())
+}: ExtractCodebaseOptions): Promise<string> {
+  try {
+    // Create temporary directory
+    await fs.mkdir(tempFolder, { recursive: true });
+    
+    // Clone the repository
+    await execAsync(`git clone --branch ${branch} ${repositoryUrl} ${tempFolder}`);
+    
+    // Copy the .aidigestignore file to the cloned repository
+    await fs.copyFile('.aidigestignore', path.join(tempFolder, '.aidigestignore'));
+    
+    // Create a temporary file for the output
+    const tempOutputFile = path.join(tempFolder, 'codebase.md');
+    
+    // Run ai-digest on the cloned repository
+    await execAsync(
+      `npx ai-digest --input ${tempFolder} --output ${tempOutputFile}`
+    );
+    
+    // Read the generated file
+    const codebase = await fs.readFile(tempOutputFile, 'utf-8');
+    
+    // Clean up
+    await fs.rm(tempFolder, { recursive: true, force: true });
+    
+    return codebase;
+  } catch (error) {
+    // Clean up on error
+    try {
+      await fs.rm(tempFolder, { recursive: true, force: true });
+    } catch (cleanupError) {
+      console.error('Error during cleanup:', cleanupError);
+    }
+    
+    throw error;
+  }
+}

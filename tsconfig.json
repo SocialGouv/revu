@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "target": "ESNext",
-    "strict": true
-  },
-  "include": ["src/**/*.ts"]
+     "target": "esnext",
+     "module": "nodenext",
+     "verbatimModuleSyntax": true,
+     "allowImportingTsExtensions": true,
+     "rewriteRelativeImportExtensions": true
+  }
 }
