@@ -20,10 +20,10 @@ describe('extractCodebase', () => {
     // Verify markdown formatting
     expect(result).toMatch(/```[a-z]*\n[\s\S]*?\n```/); // Should contain code blocks
     
-    // Verify it respects .aidigestignore
-    expect(result).not.toContain('node_modules/');
-    expect(result).not.toContain('.next/');
-    expect(result).not.toContain('coverage/');
+    // Verify it respects .aidigestignore by checking no files from ignored directories are included
+    expect(result).not.toMatch(/^# node_modules\//m);
+    expect(result).not.toMatch(/^# \.next\//m);
+    expect(result).not.toMatch(/^# coverage\//m);
   }, 30000); // Increase timeout to 30s since we're doing actual cloning
 
   it('should write codebase to a file in temp directory', async () => {
