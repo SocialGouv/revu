@@ -6,14 +6,10 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=23"
+    "node": ">=23.7"
   },
-  "scripts": {
-    
-  },
-  "dependencies": {
-    
-  },
+  "scripts": {},
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "22.13.1"
   }
