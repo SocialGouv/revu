@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractCodebase } from './extract-codebase.ts';
+import { extractCodebase } from '../src/extract-codebase.ts';
 import * as path from 'path';
 import * as os from 'os';
 

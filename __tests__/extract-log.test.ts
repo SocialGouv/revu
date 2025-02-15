@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractLog } from './extract-log.ts';
+import { extractLog } from '../src/extract-log.ts';
 import * as path from 'path';
 import * as os from 'os';
 

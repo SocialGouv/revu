@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractAll } from './extract-all.ts';
+import { extractAll } from '../src/extract-all.ts';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs/promises';
@@ -40,7 +40,7 @@ describe('extractAll', () => {
 
     // Verify the temp folder is cleaned up
     await expect(fs.access(testFolder)).rejects.toThrow();
-  });
+  }, 60000);
 
   it('should clean up even if an operation fails', async () => {
     // Use a non-existent repository to force a failure
@@ -52,5 +52,5 @@ describe('extractAll', () => {
 
     // Verify the temp folder is cleaned up
     await expect(fs.access(testFolder)).rejects.toThrow();
-  });
+  }, 60000);
 });

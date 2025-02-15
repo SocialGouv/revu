@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractDiff } from './extract-diff.ts';
+import { extractDiff } from '../src/extract-diff.ts';
 import * as path from 'path';
 import * as os from 'os';
 

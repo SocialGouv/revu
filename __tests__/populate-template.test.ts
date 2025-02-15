@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { populateTemplate } from './populate-template.ts';
+import { populateTemplate } from '../src/populate-template.ts';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
