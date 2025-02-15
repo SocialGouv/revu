@@ -12,7 +12,9 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage"
   },
-  "dependencies": {},
+  "dependencies": {
+    "handlebars": "^4.7.8"
+  },
   "devDependencies": {
     "@types/node": "22.13.1",
     "@vitest/coverage-v8": "^3.0.5",
