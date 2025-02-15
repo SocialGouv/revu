@@ -12,6 +12,11 @@ interface ExtractDiffOptions {
   tempFolder?: string;
 }
 
+interface ExtractDiffFromRepoOptions {
+  branch: string;
+  repoPath: string;
+}
+
 async function getDefaultBranch(repoPath: string): Promise<string> {
   try {
     // Try to get the default branch from the remote
@@ -31,6 +36,23 @@ async function getDefaultBranch(repoPath: string): Promise<string> {
   }
 }
 
+export async function extractDiffFromRepo({
+  branch,
+  repoPath
+}: ExtractDiffFromRepoOptions): Promise<string> {
+  // Get the default branch name
+  const defaultBranch = await getDefaultBranch(repoPath);
+  
+  // Generate and return the diff between the default branch and the specified branch
+  const { stdout } = await execAsync(`git diff origin/${defaultBranch}...origin/${branch}`, { 
+    cwd: repoPath,
+    maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large diffs
+  });
+  
+  return stdout;
+}
+
+// Keep original function for backward compatibility
 export async function extractDiff({
   repositoryUrl,
   branch,
@@ -43,19 +65,16 @@ export async function extractDiff({
     // Clone the repository with all branches
     await execAsync(`git clone ${repositoryUrl} ${tempFolder}`);
     
-    // Get the default branch name
-    const defaultBranch = await getDefaultBranch(tempFolder);
-    
-    // Generate and return the diff between the default branch and the specified branch
-    const { stdout } = await execAsync(`git diff origin/${defaultBranch}...origin/${branch}`, { 
-      cwd: tempFolder,
-      maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large diffs
+    // Extract diff using the new function
+    const diff = await extractDiffFromRepo({
+      branch,
+      repoPath: tempFolder
     });
     
     // Clean up
     await fs.rm(tempFolder, { recursive: true, force: true });
     
-    return stdout;
+    return diff;
   } catch (error) {
     // Clean up on error
     try {

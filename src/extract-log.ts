@@ -12,6 +12,28 @@ interface ExtractLogOptions {
   tempFolder?: string;
 }
 
+interface ExtractLogFromRepoOptions {
+  branch: string;
+  repoPath: string;
+}
+
+export async function extractLogFromRepo({
+  branch,
+  repoPath
+}: ExtractLogFromRepoOptions): Promise<string> {
+  // Generate and return the git log for the specified branch
+  const { stdout } = await execAsync(
+    `git log origin/${branch} --pretty=format:"%h - %an, %ar : %s"`, 
+    { 
+      cwd: repoPath,
+      maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large logs
+    }
+  );
+  
+  return stdout;
+}
+
+// Keep original function for backward compatibility
 export async function extractLog({
   repositoryUrl,
   branch,
@@ -27,19 +49,16 @@ export async function extractLog({
     // Fetch all branches
     await execAsync('git fetch --all', { cwd: tempFolder });
     
-    // Generate and return the git log for the specified branch
-    const { stdout } = await execAsync(
-      `git log origin/${branch} --pretty=format:"%h - %an, %ar : %s"`, 
-      { 
-        cwd: tempFolder,
-        maxBuffer: 10 * 1024 * 1024 // 10MB buffer for large logs
-      }
-    );
+    // Extract log using the new function
+    const log = await extractLogFromRepo({
+      branch,
+      repoPath: tempFolder
+    });
     
     // Clean up
     await fs.rm(tempFolder, { recursive: true, force: true });
     
-    return stdout;
+    return log;
   } catch (error) {
     // Clean up on error
     try {
