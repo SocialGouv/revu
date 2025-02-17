@@ -28,11 +28,12 @@ export default async (app: Probot) => {
           branch
         })
 
-        // Post the analysis as a PR comment
-        await context.octokit.issues.createComment({
+        // Post the analysis as a PR review
+        await context.octokit.pulls.createReview({
           ...repo,
-          issue_number: pr.number,
-          body: analysis
+          pull_number: pr.number,
+          body: analysis,
+          event: 'COMMENT' // Using COMMENT as default since we're not making approval decisions
         })
 
         app.log.info(`Successfully analyzed PR #${pr.number}`)
