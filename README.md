@@ -68,7 +68,9 @@ nvm use v23.7.0
 yarn dev
 ```
 
-## Production
+## Deployment
+
+### Local Production
 
 1. Build the app:
 ```bash
@@ -80,6 +82,24 @@ yarn build
 ```bash
 yarn start
 ```
+
+### Docker Deployment
+
+1. Build the Docker image:
+```bash
+docker build -t revu .
+```
+
+2. Run the container:
+```bash
+docker run -d \
+  -p 3000:3000 \
+  --env-file .env \
+  -v /path/to/local/repos:/app/repos \
+  revu
+```
+
+Note: Replace `/path/to/local/repos` with the path where you want the repositories to be cloned.
 
 ## How It Works
 
