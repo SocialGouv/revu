@@ -1,136 +1,267 @@
-# Revu - Automated PR Reviews with Claude
+# Revu - AI-Powered Code Review Assistant
 
-Revu is a GitHub bot that automatically generates high-quality pull request reviews using Anthropic's Claude Sonnet API. The bot analyzes your pull requests using AI-powered code understanding tools and provides detailed, contextual feedback.
+Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent, context-aware code reviews for pull requests. By analyzing the entire codebase, changes, and commit history, Revu offers comprehensive feedback that goes beyond simple style checks.
 
 ## Features
 
-- Automatically triggers on PR open and updates
-- Clones repositories and analyzes changes
-- Uses ai-digest for codebase understanding
-- Uses code2prompt for PR diff analysis
-- Generates comprehensive PR reviews using Claude Sonnet
-- Posts reviews directly as PR comments
-
-## Prerequisites
-
-- Node.js 18+
-- [ai-digest](https://github.com/ai-digest) tool installed globally
-- [code2prompt](https://github.com/code2prompt) tool installed globally
-- GitHub App credentials
-- Anthropic API key
-
-## Setup
-
-### Local Development with Smee.io
-
-For local development, you'll need to use a webhook proxy to forward GitHub webhooks to your local machine:
-
-1. Install smee-client globally:
-   ```bash
-   npm install -g smee-client
-   ```
-
-2. Create a new Smee channel at https://smee.io/new
-   - Copy the URL - this will be your WEBHOOK_PROXY_URL
-
-3. Start the Smee client:
-   ```bash
-   smee -u WEBHOOK_PROXY_URL -t http://localhost:3000/api/github/webhooks
-   ```
-
-4. Add the Smee URL to your GitHub App's webhook URL during development
-
-### Production Setup
-
-1. Create a GitHub App:
-   - Go to your GitHub Settings > Developer Settings > GitHub Apps
-   - Create a new app with the following permissions:
-     - Pull requests: Read & Write
-     - Contents: Read
-   - Generate and download a private key
-   - Note the App ID
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Configure environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-   Edit .env and add:
-   - Your Anthropic API key
-   - GitHub App credentials (APP_ID and PRIVATE_KEY)
-   - Webhook secret
-
-4. Start the bot:
-   ```bash
-   npm start
-   ```
-
-For local development:
-   ```bash
-   npm run dev
-   ```
-
-## Docker Deployment
-
-1. Build the Docker image:
-   ```bash
-   docker build -t revu .
-   ```
-
-2. Create a .env file with your configuration:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your credentials
-   ```
-
-3. Run the container:
-   ```bash
-   docker run -d \
-     --name revu \
-     -p 3000:3000 \
-     --env-file .env \
-     revu
-   ```
-
-4. View logs:
-   ```bash
-   docker logs -f revu
-   ```
+- **Contextual Analysis**: Understands code changes in the context of the entire codebase
+- **Intelligent Feedback**: Provides detailed explanations and suggestions for improvements
+- **Git-Aware**: Considers commit history and branch differences
+- **GitHub Integration**: Seamlessly integrates with GitHub's PR workflow
+- **Customizable**: Configurable through environment variables and templates
 
 ## How It Works
 
-1. When a pull request is opened or updated, the bot:
-   - Clones the repository
-   - Uses ai-digest to generate a markdown representation of the codebase
-   - Uses code2prompt to analyze the PR diff
-   - Extracts the git log for context
-   
-2. This information is formatted into a prompt using the template in `templates/prompt.hbs`
+```mermaid
+graph TD
+    A[PR Created/Updated] --> B[Extract Data]
+    B --> C[Codebase Analysis]
+    B --> D[PR Diff]
+    B --> E[Git History]
+    C --> F[Generate Prompt]
+    D --> F
+    E --> F
+    F --> G[Claude Analysis]
+    G --> H[Post PR Comment]
+```
 
-3. The prompt is sent to Claude Sonnet API, which generates a comprehensive PR review
+1. **Trigger**: When a PR is opened or updated
+2. **Data Collection**: 
+   - Extracts full codebase for context
+   - Generates diff to focus on changes
+   - Retrieves git history for background
+3. **Analysis**: 
+   - Combines data into a structured prompt
+   - Sends to Claude for intelligent analysis
+4. **Feedback**: Posts detailed review comments on the PR
 
-4. The review is automatically posted as a comment on the PR
+## Setup and Installation
 
-## Environment Variables
+### Prerequisites and Installation
 
-- `ANTHROPIC_API_KEY`: Your Anthropic API key for Claude
-- `APP_ID`: GitHub App ID
-- `PRIVATE_KEY`: GitHub App private key (the actual key, not the path)
-- `WEBHOOK_SECRET`: Secret for GitHub webhooks
-- `WEBHOOK_PROXY_URL`: (Optional) URL for local development webhook proxy
+```bash
+# Ensure correct Node.js version
+nvm use v23.7.0
+
+# Install dependencies
+yarn install
+
+# Install development tools
+npm install -g smee-client  # For local webhook testing
+```
+
+Requirements:
+- Node.js v23.7.0 (managed via nvm)
+- GitHub account with admin access
+- Anthropic API key
+
+### GitHub App Configuration
+
+1. Create a new GitHub App at `Settings > Developer settings > GitHub Apps`
+2. Configure the app:
+   ```yaml
+   Name: Revu (or your preferred name)
+   Webhook URL: Your server URL or smee.io proxy
+   Permissions:
+     - Pull requests: Read & write
+     - Contents: Read
+   Events: Pull request
+   ```
+3. Generate and save:
+   - Private key
+   - App ID
+   - Webhook secret
+
+### Environment Configuration
+
+| Variable | Type | Description |
+|----------|------|-------------|
+| `ANTHROPIC_API_KEY` | string | Your Anthropic API key for accessing Claude API |
+| `APP_ID` | number | GitHub App ID obtained after registering the app |
+| `PRIVATE_KEY` | string | RSA private key generated for the GitHub App (including BEGIN/END markers) |
+| `WEBHOOK_SECRET` | string | Secret string used to verify GitHub webhook payloads |
+| `WEBHOOK_PROXY_URL` | string | (Optional) Smee.io URL for local development webhook forwarding |
+| `REPOSITORY_FOLDER` | string | Absolute path where repositories will be cloned |
+
+## Running the App
+
+### Local Development
+
+```bash
+# Start webhook proxy (in a separate terminal)
+smee -u https://smee.io/your-smee-url -t http://localhost:3000/api/github/webhooks
+
+# Start the app
+yarn dev
+```
+
+### Production Deployment
+
+Choose one of the following methods:
+
+**Local Machine**
+```bash
+yarn build
+yarn start
+```
+
+**Docker**
+```bash
+docker build -t revu .
+docker run -d \
+  -p 3000:3000 \
+  --env-file .env \
+  -v /path/to/local/repos:/app/repos \
+  revu
+```
+
+## API Reference
+
+The API is organized in layers, with each function calling the next layer down:
+
+```mermaid
+graph TD
+    A[sendToAnthropic] --> B[populateTemplate]
+    B --> C[extractAll]
+    C --> D[extractCodebaseFromRepo]
+    C --> E[extractDiffFromRepo]
+    C --> F[extractLogFromRepo]
+```
+
+### Core Functions
+
+```typescript
+// Main entry point - initiates the review process
+sendToAnthropic({
+  repositoryUrl: string,  // GitHub repository URL
+  branch: string         // Branch to analyze
+}): Promise<string>      // Returns Claude's analysis
+
+// Combines repository data with template
+populateTemplate({
+  repositoryUrl: string,
+  branch: string,
+  templatePath?: string  // Default: templates/prompt.hbs
+}): Promise<string>
+
+// Coordinates data extraction
+extractAll({
+  repositoryUrl: string,
+  branch: string,
+  tempFolder?: string
+}): Promise<{
+  codebase: string,     // Processed repository content
+  diff: string,         // Git diff output
+  log: string          // Commit history
+}>
+```
+
+### Utility Functions
+
+```typescript
+// Extract and process repository content
+extractCodebaseFromRepo({
+  branch: string,
+  repoPath: string
+}): Promise<string>
+
+// Generate git diff against default branch
+extractDiffFromRepo({
+  branch: string,
+  repoPath: string
+}): Promise<string>
+
+// Get formatted commit history
+extractLogFromRepo({
+  branch: string,
+  repoPath: string
+}): Promise<string>
+```
+
+### Configuration
+
+- Model: Claude 3 Sonnet
+- Max tokens: 4096
+- Temperature: 0.7
+- Required env: `ANTHROPIC_API_KEY`
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Webhook Not Receiving Events**
+   - Verify smee.io proxy is running
+   - Check webhook URL in GitHub App settings
+   - Ensure correct port forwarding
+
+2. **Authentication Errors**
+   - Validate ANTHROPIC_API_KEY
+   - Check GitHub App credentials
+   - Verify private key format
+
+3. **Repository Access Issues**
+   - Confirm GitHub App installation
+   - Check repository permissions
+   - Verify REPOSITORY_FOLDER path exists
+
+### Debug Mode
+
+Enable debug logging:
+```bash
+DEBUG=revu:* yarn dev
+```
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+1. **Development Setup**
+   ```bash
+   git clone https://github.com/your-username/revu.git
+   cd revu
+   yarn install
+   ```
+
+2. **Testing**
+   ```bash
+   yarn test        # Run all tests
+   yarn test:watch  # Watch mode
+   ```
+
+3. **Code Style**
+   - Use TypeScript
+   - Follow existing patterns
+   - Add JSDoc comments
+   - Include tests
+
+4. **Pull Requests**
+   - Create feature branch
+   - Add tests
+   - Update documentation
+   - Submit PR with description
 
 ## License
 
-MIT
+This project is licensed under the MIT License.
+
+```
+MIT License
+
+Copyright (c) 2025 Revu
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```

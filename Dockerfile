@@ -1,32 +1,35 @@
-# Use Node.js 18 as base image
-FROM node:18-slim
+# Single stage build
+FROM node:23.7.0-slim
 
 # Install git and other dependencies
 RUN apt-get update && \
-    apt-get install -y git && \
+    apt-get install -y \
+    git \
+    curl \
+    build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Install global tools
-RUN npm install -g ai-digest code2prompt
-
 # Create app directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json yarn.lock ./
 
 # Install dependencies
-RUN npm install
+RUN yarn install
 
-# Copy app source
+# Copy source code
 COPY . .
 
-# Create tmp directory for cloning repositories
-RUN mkdir -p tmp && chmod 777 tmp
+# Copy templates (needed for PR review prompts)
+COPY templates ./templates
+
+# Create repository directory for cloning
+RUN mkdir -p /app/repos && chmod 777 /app/repos
 
 # Expose port for webhook server
 EXPOSE 3000
 
-# Start the bot
-CMD ["npm", "start"]
+# Start the bot using TypeScript directly
+CMD ["node", "src/index.ts"]
