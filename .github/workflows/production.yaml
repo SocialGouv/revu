@@ -1,0 +1,16 @@
+name: 🚀 Production
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - v*
+
+concurrency:
+  group: production
+  cancel-in-progress: true
+
+jobs:
+  kontinuous:
+    name: "Deploy on Kubernetes 🐳"
+    uses: socialgouv/workflows/.github/workflows/use-ks-gh-production.yaml@v1
+    secrets: inherit
