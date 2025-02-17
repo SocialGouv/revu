@@ -28,9 +28,6 @@ describe('sendToAnthropic', () => {
       branch: 'ai-digest'
     });
 
-    expect(result).toEqual({
-      type: 'text',
-      text: 'Mocked API response'
-    });
+    expect(result).toEqual('Mocked API response');
   });
 });

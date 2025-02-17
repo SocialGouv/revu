@@ -1,136 +1,116 @@
-# Revu - Automated PR Reviews with Claude
+# Revu - AI-Powered PR Reviews
 
-Revu is a GitHub bot that automatically generates high-quality pull request reviews using Anthropic's Claude Sonnet API. The bot analyzes your pull requests using AI-powered code understanding tools and provides detailed, contextual feedback.
-
-## Features
-
-- Automatically triggers on PR open and updates
-- Clones repositories and analyzes changes
-- Uses ai-digest for codebase understanding
-- Uses code2prompt for PR diff analysis
-- Generates comprehensive PR reviews using Claude Sonnet
-- Posts reviews directly as PR comments
+Revu is a GitHub App that provides automated code reviews for pull requests using Anthropic's Claude API. It analyzes the codebase, PR changes, and repository history to provide insightful feedback.
 
 ## Prerequisites
 
-- Node.js 18+
-- [ai-digest](https://github.com/ai-digest) tool installed globally
-- [code2prompt](https://github.com/code2prompt) tool installed globally
-- GitHub App credentials
-- Anthropic API key
+- Node.js v23.7.0 (use nvm to manage Node versions)
+- A GitHub account with permissions to create GitHub Apps
+- An Anthropic API key
 
-## Setup
+## Installation
 
-### Local Development with Smee.io
-
-For local development, you'll need to use a webhook proxy to forward GitHub webhooks to your local machine:
-
-1. Install smee-client globally:
-   ```bash
-   npm install -g smee-client
-   ```
-
-2. Create a new Smee channel at https://smee.io/new
-   - Copy the URL - this will be your WEBHOOK_PROXY_URL
-
-3. Start the Smee client:
-   ```bash
-   smee -u WEBHOOK_PROXY_URL -t http://localhost:3000/api/github/webhooks
-   ```
-
-4. Add the Smee URL to your GitHub App's webhook URL during development
-
-### Production Setup
-
-1. Create a GitHub App:
-   - Go to your GitHub Settings > Developer Settings > GitHub Apps
-   - Create a new app with the following permissions:
-     - Pull requests: Read & Write
-     - Contents: Read
-   - Generate and download a private key
-   - Note the App ID
-
+1. Clone the repository
 2. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+nvm use v23.7.0
+yarn install
+```
 
-3. Configure environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-   Edit .env and add:
-   - Your Anthropic API key
-   - GitHub App credentials (APP_ID and PRIVATE_KEY)
-   - Webhook secret
+## GitHub App Setup
 
-4. Start the bot:
-   ```bash
-   npm start
-   ```
-
-For local development:
-   ```bash
-   npm run dev
-   ```
-
-## Docker Deployment
-
-1. Build the Docker image:
-   ```bash
-   docker build -t revu .
-   ```
-
-2. Create a .env file with your configuration:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your credentials
-   ```
-
-3. Run the container:
-   ```bash
-   docker run -d \
-     --name revu \
-     -p 3000:3000 \
-     --env-file .env \
-     revu
-   ```
-
-4. View logs:
-   ```bash
-   docker logs -f revu
-   ```
-
-## How It Works
-
-1. When a pull request is opened or updated, the bot:
-   - Clones the repository
-   - Uses ai-digest to generate a markdown representation of the codebase
-   - Uses code2prompt to analyze the PR diff
-   - Extracts the git log for context
-   
-2. This information is formatted into a prompt using the template in `templates/prompt.hbs`
-
-3. The prompt is sent to Claude Sonnet API, which generates a comprehensive PR review
-
-4. The review is automatically posted as a comment on the PR
+1. Go to your GitHub account Settings > Developer settings > GitHub Apps
+2. Click "New GitHub App"
+3. Fill in the following details:
+   - **Name**: Your app name (e.g., "Revu")
+   - **Homepage URL**: Your app's homepage or repository URL
+   - **Webhook URL**: Your app's webhook URL (use [smee.io](https://smee.io) for local development)
+   - **Webhook secret**: Generate a random string
+   - **Repository permissions**:
+     - **Pull requests**: Read & write (to post review comments)
+     - **Contents**: Read (to access repository content)
+   - **Subscribe to events**:
+     - Pull request
+4. Generate and download a private key
+5. Note down the App ID
 
 ## Environment Variables
 
-- `ANTHROPIC_API_KEY`: Your Anthropic API key for Claude
-- `APP_ID`: GitHub App ID
-- `PRIVATE_KEY`: GitHub App private key (the actual key, not the path)
-- `WEBHOOK_SECRET`: Secret for GitHub webhooks
-- `WEBHOOK_PROXY_URL`: (Optional) URL for local development webhook proxy
+Copy `.env.example` to `.env` and fill in the following variables:
 
-## Contributing
+```env
+# Anthropic API Key
+ANTHROPIC_API_KEY=your_api_key
 
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+# GitHub App Configuration
+APP_ID=your_app_id
+PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\nyour_private_key\n-----END RSA PRIVATE KEY-----"
+WEBHOOK_SECRET=your_webhook_secret
+
+# Optional: Webhook Proxy URL for local development
+WEBHOOK_PROXY_URL=https://smee.io/your-smee-url
+
+# App Configuration
+REPOSITORY_FOLDER=/path/to/repos
+```
+
+## Development
+
+1. Start the webhook proxy (for local development):
+```bash
+npm install -g smee-client
+smee -u https://smee.io/your-smee-url -t http://localhost:3000/api/github/webhooks
+```
+
+2. Run the app in development mode:
+```bash
+nvm use v23.7.0
+yarn dev
+```
+
+## Deployment
+
+### Local Production
+
+1. Build the app:
+```bash
+nvm use v23.7.0
+yarn build
+```
+
+2. Start the app:
+```bash
+yarn start
+```
+
+### Docker Deployment
+
+1. Build the Docker image:
+```bash
+docker build -t revu .
+```
+
+2. Run the container:
+```bash
+docker run -d \
+  -p 3000:3000 \
+  --env-file .env \
+  -v /path/to/local/repos:/app/repos \
+  revu
+```
+
+Note: Replace `/path/to/local/repos` with the path where you want the repositories to be cloned.
+
+## How It Works
+
+1. When a PR is opened or updated, the app:
+   - Extracts the repository codebase
+   - Gets the PR diff
+   - Retrieves relevant git logs
+2. This information is used to create a prompt for Claude
+3. Claude analyzes the changes and provides feedback
+4. The feedback is posted as a comment on the PR
 
 ## License
 
-MIT
+Private - All rights reserved

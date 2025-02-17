@@ -38,5 +38,9 @@ export async function sendToAnthropic({
     ]
   });
 
-  return message.content[0];
+  // Extract text from the content block
+  if (message.content[0].type !== 'text') {
+    throw new Error('Unexpected response type from Anthropic');
+  }
+  return message.content[0].text;
 }

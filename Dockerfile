@@ -1,49 +1,26 @@
-# Build stage
-# Using Node.js 20 since ai-digest requires Node.js >= 20.0.0
-FROM node:20-slim AS builder
+# Single stage build
+FROM node:23.7.0-slim
 
-# Create app directory
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm install
-
-# Copy source code
-COPY . .
-
-# Build TypeScript code
-RUN npm run build
-
-# Production stage
-# Using Node.js 20 since ai-digest requires Node.js >= 20.0.0
-FROM node:20-slim
-
-# Install git and Rust dependencies
+# Install git and other dependencies
 RUN apt-get update && \
-    apt-get install -y git curl build-essential && \
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
-    . $HOME/.cargo/env && \
-    cargo install code2prompt && \
+    apt-get install -y \
+    git \
+    curl \
+    build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Add cargo bin to PATH
-ENV PATH="/root/.cargo/bin:${PATH}"
-
 # Create app directory
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json yarn.lock ./
 
-# Install production dependencies only
-RUN npm ci --only=production
+# Install dependencies
+RUN yarn install
 
-# Copy built files from builder stage
-COPY --from=builder /app/dist ./dist
+# Copy source code
+COPY . .
 
 # Copy templates (needed for PR review prompts)
 COPY templates ./templates
@@ -54,5 +31,5 @@ RUN mkdir -p /app/repos && chmod 777 /app/repos
 # Expose port for webhook server
 EXPOSE 3000
 
-# Start the bot
-CMD ["npm", "start"]
+# Start the bot using TypeScript directly
+CMD ["node", "src/index.ts"]
