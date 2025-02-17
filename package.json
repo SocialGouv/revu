@@ -12,7 +12,9 @@
     "start": "probot run ./src/index.ts",
     "dev": "probot run ./src/index.ts",
     "test": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepare": "husky",
+    "lint": "eslint \"**/*.ts\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",
@@ -22,7 +24,15 @@
   },
   "devDependencies": {
     "@types/node": "22.13.1",
+    "@typescript-eslint/eslint-plugin": "^8.24.1",
+    "@typescript-eslint/parser": "^8.24.1",
     "@vitest/coverage-v8": "^3.0.5",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "husky": "^9.1.7",
+    "prettier": "^3.5.1",
+    "typescript": "5.3.3",
     "vitest": "^3.0.5"
   }
 }

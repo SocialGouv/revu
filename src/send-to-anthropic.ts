@@ -1,13 +1,13 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { populateTemplate } from './populate-template.ts';
-import * as dotenv from 'dotenv';
+import Anthropic from '@anthropic-ai/sdk'
+import { populateTemplate } from './populate-template.ts'
+import * as dotenv from 'dotenv'
 
 // Load environment variables
-dotenv.config();
+dotenv.config()
 
 interface SendToAnthropicOptions {
-  repositoryUrl: string;
-  branch: string;
+  repositoryUrl: string
+  branch: string
 }
 
 /**
@@ -17,7 +17,7 @@ interface SendToAnthropicOptions {
  * 2. Gets populated template with repository data
  * 3. Sends the data to Anthropic's API for analysis
  * 4. Processes and returns the analysis response
- * 
+ *
  * @param {Object} options - The options for Anthropic analysis
  * @param {string} options.repositoryUrl - The URL of the GitHub repository
  * @param {string} options.branch - The branch to analyze
@@ -32,13 +32,13 @@ export async function sendToAnthropic({
   // Initialize Anthropic client
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY
-  });
+  })
 
   // Get the populated template
   const prompt = await populateTemplate({
     repositoryUrl,
     branch
-  });
+  })
 
   // Send to Anthropic API
   const message = await anthropic.messages.create({
@@ -51,11 +51,11 @@ export async function sendToAnthropic({
         content: prompt
       }
     ]
-  });
+  })
 
   // Extract text from the content block
   if (message.content[0].type !== 'text') {
-    throw new Error('Unexpected response type from Anthropic');
+    throw new Error('Unexpected response type from Anthropic')
   }
-  return message.content[0].text;
+  return message.content[0].text
 }

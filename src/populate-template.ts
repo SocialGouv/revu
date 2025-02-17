@@ -1,12 +1,12 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import Handlebars from 'handlebars';
-import { extractAll } from './extract-all.ts';
+import * as fs from 'fs/promises'
+import * as path from 'path'
+import Handlebars from 'handlebars'
+import { extractAll } from './extract-all.ts'
 
 interface PopulateTemplateOptions {
-  repositoryUrl: string;
-  branch: string;
-  templatePath?: string;
+  repositoryUrl: string
+  branch: string
+  templatePath?: string
 }
 
 /**
@@ -15,7 +15,7 @@ interface PopulateTemplateOptions {
  * 1. Reads and compiles the Handlebars template
  * 2. Extracts repository data (codebase, diff, log)
  * 3. Combines the data with the template
- * 
+ *
  * @param {Object} options - The options for template population
  * @param {string} options.repositoryUrl - The URL of the GitHub repository
  * @param {string} options.branch - The branch to analyze
@@ -29,18 +29,18 @@ export async function populateTemplate({
   templatePath = path.join(process.cwd(), 'templates', 'prompt.hbs')
 }: PopulateTemplateOptions): Promise<string> {
   // Read and compile the template
-  const templateContent = await fs.readFile(templatePath, 'utf-8');
-  const template = Handlebars.compile(templateContent);
+  const templateContent = await fs.readFile(templatePath, 'utf-8')
+  const template = Handlebars.compile(templateContent)
 
   // Extract all the required data
   const { codebase, diff, log } = await extractAll({
     repositoryUrl,
     branch
-  });
+  })
 
   // Get the absolute path of the repository
-  const repoName = repositoryUrl.split('/').pop()?.replace('.git', '') || '';
-  const absolutePath = path.join(process.cwd(), repoName);
+  const repoName = repositoryUrl.split('/').pop()?.replace('.git', '') || ''
+  const absolutePath = path.join(process.cwd(), repoName)
 
   // Populate the template with the data
   const result = template({
@@ -48,7 +48,7 @@ export async function populateTemplate({
     source_tree: codebase,
     git_diff_branch: diff,
     git_log_branch: log
-  });
+  })
 
-  return result;
+  return result
 }
