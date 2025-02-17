@@ -1,22 +1,4 @@
-# Build stage
-FROM node:23.7.0-slim AS builder
-
-# Create app directory
-WORKDIR /app
-
-# Copy package files
-COPY package.json yarn.lock ./
-
-# Install dependencies
-RUN yarn install
-
-# Copy source code
-COPY . .
-
-# Build TypeScript code
-RUN yarn build
-
-# Production stage
+# Single stage build
 FROM node:23.7.0-slim
 
 # Install git and other dependencies
@@ -34,11 +16,11 @@ WORKDIR /app
 # Copy package files
 COPY package.json yarn.lock ./
 
-# Install production dependencies only
-RUN yarn install --production
+# Install dependencies
+RUN yarn install
 
-# Copy built files from builder stage
-COPY --from=builder /app/dist ./dist
+# Copy source code
+COPY . .
 
 # Copy templates (needed for PR review prompts)
 COPY templates ./templates
@@ -49,5 +31,5 @@ RUN mkdir -p /app/repos && chmod 777 /app/repos
 # Expose port for webhook server
 EXPOSE 3000
 
-# Start the bot
-CMD ["yarn", "start"]
+# Start the bot using TypeScript directly
+CMD ["node", "src/index.ts"]
