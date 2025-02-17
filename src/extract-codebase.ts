@@ -17,6 +17,19 @@ interface ExtractCodebaseFromRepoOptions {
   repoPath: string;
 }
 
+/**
+ * Extracts codebase content from an already cloned repository.
+ * This function:
+ * 1. Checks out the specified branch
+ * 2. Uses ai-digest to process the repository content
+ * 3. Handles temporary file management
+ * 
+ * @param {Object} options - The options for extraction
+ * @param {string} options.branch - The branch to extract from
+ * @param {string} options.repoPath - Path to the cloned repository
+ * @returns {Promise<string>} The processed codebase content
+ * @throws {Error} If extraction or file operations fail
+ */
 export async function extractCodebaseFromRepo({
   branch,
   repoPath
@@ -50,6 +63,18 @@ export async function extractCodebaseFromRepo({
 }
 
 // Keep original function for backward compatibility
+/**
+ * Legacy function that extracts codebase content from a GitHub repository.
+ * Creates a temporary clone of the repository and delegates to extractCodebaseFromRepo.
+ * 
+ * @param {Object} options - The options for extraction
+ * @param {string} options.repositoryUrl - The URL of the GitHub repository
+ * @param {string} options.branch - The branch to extract from
+ * @param {string} [options.tempFolder] - Optional temporary folder path for cloning
+ * @returns {Promise<string>} The processed codebase content
+ * @throws {Error} If cloning or extraction fails
+ * @deprecated Use extractCodebaseFromRepo when repository is already cloned
+ */
 export async function extractCodebase({
   repositoryUrl,
   branch,

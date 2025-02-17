@@ -17,6 +17,15 @@ interface ExtractDiffFromRepoOptions {
   repoPath: string;
 }
 
+/**
+ * Attempts to determine the default branch of a repository.
+ * First tries to get it from the remote HEAD reference, then falls back to checking common names.
+ * 
+ * @param {string} repoPath - Path to the cloned repository
+ * @returns {Promise<string>} The name of the default branch
+ * @throws {Error} If the default branch cannot be determined
+ * @private
+ */
 async function getDefaultBranch(repoPath: string): Promise<string> {
   try {
     // Try to get the default branch from the remote
@@ -36,6 +45,16 @@ async function getDefaultBranch(repoPath: string): Promise<string> {
   }
 }
 
+/**
+ * Extracts git diff from an already cloned repository.
+ * Compares the specified branch against the repository's default branch.
+ * 
+ * @param {Object} options - The options for diff extraction
+ * @param {string} options.branch - The branch to compare
+ * @param {string} options.repoPath - Path to the cloned repository
+ * @returns {Promise<string>} The git diff output
+ * @throws {Error} If diff generation fails
+ */
 export async function extractDiffFromRepo({
   branch,
   repoPath
@@ -53,6 +72,18 @@ export async function extractDiffFromRepo({
 }
 
 // Keep original function for backward compatibility
+/**
+ * Legacy function that extracts git diff from a GitHub repository.
+ * Creates a temporary clone of the repository and delegates to extractDiffFromRepo.
+ * 
+ * @param {Object} options - The options for diff extraction
+ * @param {string} options.repositoryUrl - The URL of the GitHub repository
+ * @param {string} options.branch - The branch to compare
+ * @param {string} [options.tempFolder] - Optional temporary folder path for cloning
+ * @returns {Promise<string>} The git diff output
+ * @throws {Error} If cloning or diff generation fails
+ * @deprecated Use extractDiffFromRepo when repository is already cloned
+ */
 export async function extractDiff({
   repositoryUrl,
   branch,
