@@ -3,9 +3,4 @@ apiVersion: v1
 metadata:
   name: app
 data:
-  PROJECT_NUMBER: "109"
-  ORGANIZATION: "SocialGouv"
-  BOT_NAME: "socialgouv[bot]"
   REPOSITORY_FOLDER: "/app/repos"
-  ISSUE_TITLE: "SRE Maintenance Issue"
-  WORKFLOWS_REPOSITORY: "socialgouv-app"
