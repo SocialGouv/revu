@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/SocialGouv/revu/compare/v1.0.3...v1.0.4) (2025-02-18)
+
+
+### Bug Fixes
+
+* add healthz probe ([e56b731](https://github.com/SocialGouv/revu/commit/e56b731f6b5c3896972061d7ffb375e344297a9e))
+
 ## [1.0.3](https://github.com/SocialGouv/revu/compare/v1.0.2...v1.0.3) (2025-02-18)
 
 
