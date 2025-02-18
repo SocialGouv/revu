@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/SocialGouv/revu/compare/v1.0.4...v1.0.5) (2025-02-18)
+
+
+### Bug Fixes
+
+* dockerfile cleaning ([6b6dc37](https://github.com/SocialGouv/revu/commit/6b6dc37559aee92fc50ccce5eea9cf7335ddc64c))
+
 ## [1.0.4](https://github.com/SocialGouv/revu/compare/v1.0.3...v1.0.4) (2025-02-18)
 
 
