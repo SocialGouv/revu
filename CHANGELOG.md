@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/SocialGouv/revu/compare/v1.0.2...v1.0.3) (2025-02-18)
+
+
+### Bug Fixes
+
+* start app with probot ([35ca84a](https://github.com/SocialGouv/revu/commit/35ca84ab4e60d8597e71d2099e5733fc05d4fae7))
+
 ## [1.0.2](https://github.com/SocialGouv/revu/compare/v1.0.1...v1.0.2) (2025-02-18)
 
 
