@@ -5,8 +5,14 @@ import { config } from 'dotenv'
 // Load environment variables
 config()
 
-export default async (app: Probot) => {
+export default async (app: Probot, { getRouter }) => {
   app.log.info('Revu GitHub App started!')
+
+  // Container health check route
+  const router = getRouter('/my-app')
+  router.get('/healthz', (req, res) => {
+    res.end('OK')
+  })
 
   // Listen for PR opens and updates
   app.on(

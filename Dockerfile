@@ -40,4 +40,5 @@ RUN mkdir -p /app/repos && chmod 755 /app/repos
 EXPOSE 3000
 
 # Start the bot using TypeScript directly
-CMD ["node", "src/index.ts"]
+# CMD ["node", "src/index.ts"]
+CMD ["yarn", "start"]
