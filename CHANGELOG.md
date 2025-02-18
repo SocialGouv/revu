@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/SocialGouv/revu/compare/v1.0.0...v1.0.1) (2025-02-18)
+
+
+### Bug Fixes
+
+* update secrets ([7b166a1](https://github.com/SocialGouv/revu/commit/7b166a1fd9d06e1892df55db52216056ff86df7a))
+
 # 1.0.0 (2025-02-17)
 
 
