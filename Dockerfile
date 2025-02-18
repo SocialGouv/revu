@@ -27,11 +27,8 @@ COPY --chown=1001:1001 package.json yarn.lock ./
 # Install dependencies
 RUN yarn install
 
-# Copy source code
+# Copy source code (including templates needed for PR review prompts)
 COPY --chown=1001:1001 . .
-
-# Copy templates (needed for PR review prompts)
-COPY --chown=1001:1001 templates ./templates
 
 # Create repository directory for cloning with appropriate permissions
 RUN mkdir -p /app/repos && chmod 755 /app/repos
