@@ -1,3 +1,10 @@
+## [1.0.6](https://github.com/SocialGouv/revu/compare/v1.0.5...v1.0.6) (2025-02-20)
+
+
+### Bug Fixes
+
+* private key to base64 ([14bf987](https://github.com/SocialGouv/revu/commit/14bf987a02c27a615661ab4d799b37b151796ef4))
+
 ## [1.0.5](https://github.com/SocialGouv/revu/compare/v1.0.4...v1.0.5) (2025-02-18)
 
 
