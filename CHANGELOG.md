@@ -1,3 +1,10 @@
+## [1.0.7](https://github.com/SocialGouv/revu/compare/v1.0.6...v1.0.7) (2025-02-20)
+
+
+### Bug Fixes
+
+* add WEBHOOK_SECRET ([37fb6f4](https://github.com/SocialGouv/revu/commit/37fb6f4eff6d3aae284a83d1d85be21e107dfe2e))
+
 ## [1.0.6](https://github.com/SocialGouv/revu/compare/v1.0.5...v1.0.6) (2025-02-20)
 
 
