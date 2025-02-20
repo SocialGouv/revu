@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/SocialGouv/revu/compare/v1.0.7...v1.1.0) (2025-02-20)
+
+
+### Features
+
+* udpate prompt to perform quality pr analysis ([02aa9d2](https://github.com/SocialGouv/revu/commit/02aa9d286ff4673735143de127c2b23353520f1e))
+
 ## [1.0.7](https://github.com/SocialGouv/revu/compare/v1.0.6...v1.0.7) (2025-02-20)
 
 
