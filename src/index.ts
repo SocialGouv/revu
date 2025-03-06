@@ -1,6 +1,6 @@
+import { config } from 'dotenv'
 import { Probot } from 'probot'
 import { sendToAnthropic } from './send-to-anthropic.ts'
-import { config } from 'dotenv'
 
 // Load environment variables
 config()

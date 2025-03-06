@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises'
-import * as path from 'path'
 import Handlebars from 'handlebars'
+import * as path from 'path'
 import { extractAll } from './extract-all.ts'
 
 interface PopulateTemplateOptions {

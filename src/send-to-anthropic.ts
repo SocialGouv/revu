@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { populateTemplate } from './populate-template.ts'
 import * as dotenv from 'dotenv'
+import { populateTemplate } from './populate-template.ts'
 
 // Load environment variables
 dotenv.config()
