@@ -1,7 +1,8 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import { defaultPromptStrategy } from './default-strategy.js'
-import type { PromptStrategy } from './prompt-strategy.js'
+import { defaultPromptStrategy } from './default-strategy.ts'
+import { modifiedFilesPromptStrategy } from './modified-files-strategy.ts'
+import type { PromptStrategy } from './prompt-strategy.ts'
 
 /**
  * Maps a strategy name to its implementation.
@@ -13,6 +14,8 @@ export function getStrategyByName(strategyName: string): PromptStrategy {
   // Currently only the default strategy is implemented
   // Additional strategies can be added here in the future
   switch (strategyName.toLowerCase()) {
+    case 'modified-files':
+      return modifiedFilesPromptStrategy
     case 'default':
     default:
       return defaultPromptStrategy
