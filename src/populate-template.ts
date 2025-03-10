@@ -1,4 +1,4 @@
-import { getStrategyFromConfig } from './prompt-strategies/index.js'
+import { getStrategyFromConfig } from './prompt-strategies/index.ts'
 
 interface PopulateTemplateOptions {
   repositoryUrl: string
