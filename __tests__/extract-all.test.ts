@@ -1,19 +1,20 @@
-import { describe, it, expect } from 'vitest'
-import { extractAll } from '../src/extract-all.ts'
-import * as path from 'path'
-import * as os from 'os'
 import * as fs from 'fs/promises'
+import * as os from 'os'
+import * as path from 'path'
+import { describe, expect, it } from 'vitest'
+import { extractAll } from '../src/extract-all.ts'
+import { prepareRepository } from '../src/prepare-repository.ts'
 
-describe('extractAll', () => {
+describe('extractAll', async () => {
   const testRepo = 'https://github.com/SocialGouv/carnets.git'
   const testBranch = 'ai-digest'
   const testFolder = path.join(os.tmpdir(), 'carnets-all-test')
 
   it('should extract all information from a single clone', async () => {
+    const repoPath = await prepareRepository(testRepo, testBranch)
     const result = await extractAll({
-      repositoryUrl: testRepo,
       branch: testBranch,
-      tempFolder: testFolder
+      repoPath: repoPath
     })
 
     // Verify codebase contains expected content
@@ -32,10 +33,10 @@ describe('extractAll', () => {
   }, 60000) // Increase timeout to 60s since we're doing three operations
 
   it('should clean up the temporary directory', async () => {
+    const repoPath = await prepareRepository(testRepo, testBranch)
     await extractAll({
-      repositoryUrl: testRepo,
       branch: testBranch,
-      tempFolder: testFolder
+      repoPath: repoPath
     })
 
     // Verify the temp folder is cleaned up
@@ -46,9 +47,8 @@ describe('extractAll', () => {
     // Use a non-existent repository to force a failure
     await expect(
       extractAll({
-        repositoryUrl: 'https://github.com/nonexistent/repo.git',
-        branch: 'main',
-        tempFolder: testFolder
+        branch: testBranch,
+        repoPath: 'https://github.com/nonexistent/repo.git'
       })
     ).rejects.toThrow()
 

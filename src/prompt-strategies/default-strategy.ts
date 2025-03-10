@@ -1,8 +1,9 @@
 import * as fs from 'fs/promises'
 import Handlebars from 'handlebars'
 import * as path from 'path'
-import { extractAll } from '../extract-all.js'
-import type { PromptStrategy } from './prompt-strategy.js'
+import { extractAll } from '../extract-all.ts'
+import { prepareRepository } from '../prepare-repository.ts'
+import type { PromptStrategy } from './prompt-strategy.ts'
 
 /**
  * Default prompt generation strategy.
@@ -19,10 +20,12 @@ export const defaultPromptStrategy: PromptStrategy = async (
   branch: string,
   templatePath?: string
 ): Promise<string> => {
+  // Prepare the repository for extraction
+  const repoPath = await prepareRepository(repositoryUrl, branch)
   // Extract all the required data
   const { codebase, diff, log } = await extractAll({
-    repositoryUrl,
-    branch
+    branch,
+    repoPath
   })
 
   // Get the absolute path of the repository

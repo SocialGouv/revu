@@ -1,8 +1,8 @@
 import { exec } from 'child_process'
-import { promisify } from 'util'
 import * as fs from 'fs/promises'
-import * as path from 'path'
 import * as os from 'os'
+import * as path from 'path'
+import { promisify } from 'util'
 
 const execAsync = promisify(exec)
 
@@ -13,7 +13,6 @@ interface ExtractCodebaseOptions {
 }
 
 interface ExtractCodebaseFromRepoOptions {
-  branch: string
   repoPath: string
 }
 
@@ -31,15 +30,8 @@ interface ExtractCodebaseFromRepoOptions {
  * @throws {Error} If extraction or file operations fail
  */
 export async function extractCodebaseFromRepo({
-  branch,
   repoPath
 }: ExtractCodebaseFromRepoOptions): Promise<string> {
-  // Checkout the branch
-  await execAsync(`git checkout ${branch}`, { cwd: repoPath })
-
-  // Copy the .aidigestignore file to the repository
-  await fs.copyFile('.aidigestignore', path.join(repoPath, '.aidigestignore'))
-
   // Create a temporary file for the output
   const tempOutputFile = path.join(repoPath, 'codebase.md')
 
@@ -87,7 +79,6 @@ export async function extractCodebase({
 
     // Extract codebase using the new function
     const codebase = await extractCodebaseFromRepo({
-      branch,
       repoPath: tempFolder
     })
 
