@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { sendToAnthropic } from '../src/send-to-anthropic.ts'
 
 // Mock the Anthropic SDK
