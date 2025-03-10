@@ -1,18 +1,11 @@
-import { exec } from 'child_process'
-import { promisify } from 'util'
 import * as fs from 'fs/promises'
-import * as path from 'path'
-import * as os from 'os'
 import { extractCodebaseFromRepo } from './extract-codebase.ts'
 import { extractDiffFromRepo } from './extract-diff.ts'
 import { extractLogFromRepo } from './extract-log.ts'
 
-const execAsync = promisify(exec)
-
 interface ExtractAllOptions {
-  repositoryUrl: string
   branch: string
-  tempFolder?: string
+  repoPath: string
 }
 
 interface ExtractAllResult {
@@ -30,40 +23,28 @@ interface ExtractAllResult {
  * 4. Cleaning up temporary files after extraction
  *
  * @param {Object} options - The options for extraction
- * @param {string} options.repositoryUrl - The URL of the GitHub repository
  * @param {string} options.branch - The branch name to analyze
- * @param {string} [options.tempFolder] - Optional temporary folder path for cloning
+ * @param {string} options.repoPath - The path to the locally cloned repo
  * @returns {Promise<{codebase: string, diff: string, log: string}>} Object containing extracted data
  * @throws {Error} If any extraction step fails
  */
 export async function extractAll({
-  repositoryUrl,
   branch,
-  tempFolder = path.join(os.tmpdir(), 'revu-all-' + Date.now())
+  repoPath
 }: ExtractAllOptions): Promise<ExtractAllResult> {
   try {
-    // Create temporary directory
-    await fs.mkdir(tempFolder, { recursive: true })
-
-    // Clone the repository with all branches
-    await execAsync(`git clone ${repositoryUrl} ${tempFolder}`)
-
-    // Fetch all branches
-    await execAsync('git fetch --all', { cwd: tempFolder })
-
     // Extract all information concurrently using the same directory
     const [codebase, diff, log] = await Promise.all([
       extractCodebaseFromRepo({
-        branch,
-        repoPath: tempFolder
+        repoPath: repoPath
       }),
       extractDiffFromRepo({
         branch,
-        repoPath: tempFolder
+        repoPath: repoPath
       }),
       extractLogFromRepo({
         branch,
-        repoPath: tempFolder
+        repoPath: repoPath
       })
     ])
 
@@ -75,7 +56,7 @@ export async function extractAll({
   } finally {
     // Clean up
     try {
-      await fs.rm(tempFolder, { recursive: true, force: true })
+      await fs.rm(repoPath, { recursive: true, force: true })
     } catch (cleanupError) {
       console.error('Error during cleanup:', cleanupError)
     }
