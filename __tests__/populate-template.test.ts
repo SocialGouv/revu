@@ -59,7 +59,35 @@ describe('populateTemplate', () => {
     expect(result).toMatch(/Git log:\n```\n.+\n```/s)
   }, 60000) // Increase timeout since we're doing git operations
 
+  it('should populate the template with repository data using modified-files strategy', async () => {
+    // Set config to use modified-files strategy
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({ promptStrategy: 'modified-files' })
+    )
+
+    const result = await populateTemplate({
+      repositoryUrl: testRepo,
+      branch: testBranch
+    })
+
+    // Verify the template was populated with all required sections
+    expect(result).toContain('Project Path:')
+    expect(result).toContain('Git diff:')
+    expect(result).toContain('Modified Files Content:')
+
+    // Verify the content structure
+    expect(result).toMatch(/Project Path: .+/)
+    expect(result).toMatch(/Git diff:\n```\n.+\n```/s)
+  }, 60000) // Increase timeout since we're doing git operations
+
   it('should use custom template path when provided', async () => {
+    // Set config to use default strategy
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({ promptStrategy: 'default' })
+    )
+
     // Create a temporary custom template
     const customTemplate = 'Custom template: {{source_tree}}'
     const tempTemplatePath = path.join(process.cwd(), 'test-template.hbs')
@@ -72,7 +100,6 @@ describe('populateTemplate', () => {
         templatePath: tempTemplatePath
       })
 
-      expect(result).toContain('Custom template:')
       expect(result).toMatch(/Custom template: .+/)
     } finally {
       // Clean up
@@ -81,6 +108,12 @@ describe('populateTemplate', () => {
   }, 60000)
 
   it('should handle missing template gracefully', async () => {
+    // Set config to use default strategy
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({ promptStrategy: 'default' })
+    )
+
     await expect(
       populateTemplate({
         repositoryUrl: testRepo,
