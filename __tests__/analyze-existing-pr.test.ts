@@ -1,6 +1,6 @@
-import { sendToAnthropic } from '../src/send-to-anthropic.js'
-import { describe, it, expect } from 'vitest'
 import * as dotenv from 'dotenv'
+import { describe, expect, it } from 'vitest'
+import { sendToAnthropic } from '../src/send-to-anthropic.ts'
 
 dotenv.config()
 

@@ -1,13 +1,12 @@
-.vscode
-.github
-.kontinuous
-.next
-.yarn
+# Ignore all hidden files
+.*
+# Except these specific files
+!.gitignore
+!.dockerignore
 coverage
 node_modules
 *.svg
 *.png
-.aidigestignore
 seeds.sql
 CHANGELOG.md
 __tests__
