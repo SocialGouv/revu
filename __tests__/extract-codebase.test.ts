@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { extractCodebaseFromRepo } from '../src/extract-codebase.ts'
-import { prepareRepository } from '../src/prepare-repository.ts'
+import { prepareRepository } from '../src/repo-utils.ts'
 
 describe('extractCodebaseFromRepo', () => {
   const testRepo = 'https://github.com/SocialGouv/carnets.git'

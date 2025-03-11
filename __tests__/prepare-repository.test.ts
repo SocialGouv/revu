@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'
 import * as os from 'os'
 import path from 'path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { prepareRepository } from '../src/prepare-repository.ts'
+import { prepareRepository } from '../src/repo-utils.ts'
 import {
   directoryExists,
   fileExists,

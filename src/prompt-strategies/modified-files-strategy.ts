@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'
 import Handlebars from 'handlebars'
 import * as path from 'path'
 import { extractDiffFromRepo } from '../extract-diff.ts'
-import { prepareRepository } from '../prepare-repository.ts'
+import { cleanUpRepository, prepareRepository } from '../repo-utils.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
 /**
@@ -29,10 +29,9 @@ export const modifiedFilesPromptStrategy: PromptStrategy = async (
   const modifiedFiles = extractModifiedFilePaths(diff)
 
   // Get content of modified files - use repoPath where the files actually are
-  const modifiedFilesContent = await getModifiedFilesContent(
-    modifiedFiles,
-    repoPath
-  )
+  const modifiedFilesContent = await getFilesContent(modifiedFiles, repoPath)
+
+  await cleanUpRepository(repoPath)
 
   // Read and compile the template
   const defaultTemplatePath = path.join(
@@ -84,7 +83,7 @@ function extractModifiedFilePaths(diff: string): string[] {
  * @param repoPath - Absolute path to the repository
  * @returns Object mapping file paths to their content
  */
-async function getModifiedFilesContent(
+async function getFilesContent(
   filePaths: string[],
   repoPath: string
 ): Promise<Record<string, string>> {

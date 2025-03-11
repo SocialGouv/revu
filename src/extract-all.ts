@@ -1,4 +1,3 @@
-import * as fs from 'fs/promises'
 import { extractCodebaseFromRepo } from './extract-codebase.ts'
 import { extractDiffFromRepo } from './extract-diff.ts'
 import { extractLogFromRepo } from './extract-log.ts'
@@ -32,33 +31,24 @@ export async function extractAll({
   branch,
   repoPath
 }: ExtractAllOptions): Promise<ExtractAllResult> {
-  try {
-    // Extract all information concurrently using the same directory
-    const [codebase, diff, log] = await Promise.all([
-      extractCodebaseFromRepo({
-        repoPath: repoPath
-      }),
-      extractDiffFromRepo({
-        branch,
-        repoPath: repoPath
-      }),
-      extractLogFromRepo({
-        branch,
-        repoPath: repoPath
-      })
-    ])
+  // Extract all information concurrently using the same directory
+  const [codebase, diff, log] = await Promise.all([
+    extractCodebaseFromRepo({
+      repoPath: repoPath
+    }),
+    extractDiffFromRepo({
+      branch,
+      repoPath: repoPath
+    }),
+    extractLogFromRepo({
+      branch,
+      repoPath: repoPath
+    })
+  ])
 
-    return {
-      codebase,
-      diff,
-      log
-    }
-  } finally {
-    // Clean up
-    try {
-      await fs.rm(repoPath, { recursive: true, force: true })
-    } catch (cleanupError) {
-      console.error('Error during cleanup:', cleanupError)
-    }
+  return {
+    codebase,
+    diff,
+    log
   }
 }

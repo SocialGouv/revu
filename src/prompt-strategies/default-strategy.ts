@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'
 import Handlebars from 'handlebars'
 import * as path from 'path'
 import { extractAll } from '../extract-all.ts'
-import { prepareRepository } from '../prepare-repository.ts'
+import { cleanUpRepository, prepareRepository } from '../repo-utils.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
 /**
@@ -27,7 +27,7 @@ export const defaultPromptStrategy: PromptStrategy = async (
     branch,
     repoPath
   })
-
+  await cleanUpRepository(repoPath)
   // Get the absolute path of the repository
   const repoName = repositoryUrl.split('/').pop()?.replace('.git', '') || ''
   const absolutePath = path.join(process.cwd(), repoName)

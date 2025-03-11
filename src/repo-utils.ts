@@ -41,3 +41,12 @@ export async function prepareRepository(
 
   return tempFolder
 }
+
+export async function cleanUpRepository(repoPath: string): Promise<void> {
+  // Clean up
+  try {
+    await fs.rm(repoPath, { recursive: true, force: true })
+  } catch (cleanupError) {
+    console.error('Error during cleanup:', cleanupError)
+  }
+}
