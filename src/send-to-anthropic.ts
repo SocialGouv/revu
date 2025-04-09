@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { populateTemplate } from './populate-template.ts'
 import * as dotenv from 'dotenv'
+import { populateTemplate } from './populate-template.ts'
 
 // Load environment variables
 dotenv.config()
@@ -42,7 +42,7 @@ export async function sendToAnthropic({
 
   // Send to Anthropic API
   const message = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-latest',
+    model: 'claude-3-7-sonnet-latest',
     max_tokens: 4096,
     temperature: 0, // Using 0 for consistent, deterministic code review feedback
     messages: [

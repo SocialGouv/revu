@@ -1,14 +1,16 @@
-import { describe, it, expect } from 'vitest'
-import { extractDiff } from '../src/extract-diff.ts'
-import * as path from 'path'
-import * as os from 'os'
+import { describe, expect, it } from 'vitest'
+import { extractDiffFromRepo } from '../src/extract-diff.ts'
+import { prepareRepository } from '../src/repo-utils.ts'
 
-describe('extractDiff', () => {
+describe('extractDiffFromRepo', () => {
+  const testRepo = 'https://github.com/SocialGouv/carnets.git'
+  const testBranch = 'ai-digest'
   it('should extract diff between branches successfully', async () => {
-    const result = await extractDiff({
-      repositoryUrl: 'https://github.com/SocialGouv/carnets.git',
-      branch: 'ai-digest',
-      tempFolder: path.join(os.tmpdir(), 'carnets-diff-test')
+    const repoPath = await prepareRepository(testRepo, testBranch)
+
+    const result = await extractDiffFromRepo({
+      branch: testBranch,
+      repoPath: repoPath
     })
 
     // Verify the result is a git diff
