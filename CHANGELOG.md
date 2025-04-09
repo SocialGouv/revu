@@ -1,3 +1,16 @@
+# [1.2.0](https://github.com/SocialGouv/revu/compare/v1.1.0...v1.2.0) (2025-04-09)
+
+
+### Bug Fixes
+
+* Issues with repo preparation and clean up ([c252430](https://github.com/SocialGouv/revu/commit/c25243095f75691fcc8555aa0e85633cf1defb91))
+
+
+### Features
+
+* Implement modified files strategy ([ef768d0](https://github.com/SocialGouv/revu/commit/ef768d051bab67bc35b110ea3713e5866496957d))
+* Implement prepareRepository function to prepare repos for processing ([6bbe3d3](https://github.com/SocialGouv/revu/commit/6bbe3d3a9f93ce6795a7d8ee790278b08d43b989))
+
 # [1.1.0](https://github.com/SocialGouv/revu/compare/v1.0.7...v1.1.0) (2025-02-20)
 
 
