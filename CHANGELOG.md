@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/SocialGouv/revu/compare/v1.2.0...v1.2.1) (2025-04-10)
+
+
+### Bug Fixes
+
+* add logs ([386286e](https://github.com/SocialGouv/revu/commit/386286e68f216148726019f98fa9fd98b17657c5))
+
 # [1.2.0](https://github.com/SocialGouv/revu/compare/v1.1.0...v1.2.0) (2025-04-09)
 
 
