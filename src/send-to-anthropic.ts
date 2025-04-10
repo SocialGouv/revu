@@ -40,6 +40,10 @@ export async function sendToAnthropic({
     branch
   })
 
+  console.log('PROMPT', prompt)
+  console.log('repositoryUrl', repositoryUrl)
+  console.log('branch', branch)
+
   // Send to Anthropic API
   const message = await anthropic.messages.create({
     model: 'claude-3-7-sonnet-latest',
