@@ -25,10 +25,19 @@ export default async (app: Probot, { getRouter }) => {
         const repositoryUrl = `https://github.com/${repo.owner}/${repo.repo}.git`
         const branch = pr.head.ref
 
+        // Get an installation token for authentication with private repositories
+        const installationId = context.payload.installation.id
+        const installationAccessToken = await context.octokit.apps
+          .createInstallationAccessToken({
+            installation_id: installationId
+          })
+          .then((response) => response.data.token)
+
         // Get the analysis from Anthropic
         const analysis = await sendToAnthropic({
           repositoryUrl,
-          branch
+          branch,
+          token: installationAccessToken
         })
 
         // Post the analysis as a PR review

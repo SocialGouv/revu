@@ -4,6 +4,7 @@ interface PopulateTemplateOptions {
   repositoryUrl: string
   branch: string
   templatePath?: string
+  token?: string
 }
 
 /**
@@ -20,17 +21,19 @@ interface PopulateTemplateOptions {
  * @param {string} options.repositoryUrl - The URL of the GitHub repository
  * @param {string} options.branch - The branch to analyze
  * @param {string} [options.templatePath] - Optional path to the template file
+ * @param {string} [options.token] - Optional GitHub access token for private repositories
  * @returns {Promise<string>} The populated template ready for Anthropic analysis
  * @throws {Error} If template reading or data extraction fails
  */
 export async function populateTemplate({
   repositoryUrl,
   branch,
-  templatePath
+  templatePath,
+  token
 }: PopulateTemplateOptions): Promise<string> {
   // Get the appropriate strategy based on configuration
   const strategy = await getStrategyFromConfig()
 
   // Use the strategy to generate the prompt
-  return strategy(repositoryUrl, branch, templatePath)
+  return strategy(repositoryUrl, branch, templatePath, token)
 }

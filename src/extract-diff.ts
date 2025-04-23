@@ -3,6 +3,7 @@ import { promisify } from 'util'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as os from 'os'
+import { cloneRepository } from './repo-utils'
 
 const execAsync = promisify(exec)
 
@@ -10,6 +11,7 @@ interface ExtractDiffOptions {
   repositoryUrl: string
   branch: string
   tempFolder?: string
+  token?: string
 }
 
 interface ExtractDiffFromRepoOptions {
@@ -88,6 +90,7 @@ export async function extractDiffFromRepo({
  * @param {string} options.repositoryUrl - The URL of the GitHub repository
  * @param {string} options.branch - The branch to compare
  * @param {string} [options.tempFolder] - Optional temporary folder path for cloning
+ * @param {string} [options.token] - Optional access token for authentication with private repos
  * @returns {Promise<string>} The git diff output
  * @throws {Error} If cloning or diff generation fails
  * @deprecated Use extractDiffFromRepo when repository is already cloned
@@ -95,14 +98,19 @@ export async function extractDiffFromRepo({
 export async function extractDiff({
   repositoryUrl,
   branch,
-  tempFolder = path.join(os.tmpdir(), 'revu-diff-' + Date.now())
+  tempFolder = path.join(os.tmpdir(), 'revu-diff-' + Date.now()),
+  token
 }: ExtractDiffOptions): Promise<string> {
   try {
     // Create temporary directory
     await fs.mkdir(tempFolder, { recursive: true })
 
-    // Clone the repository with all branches
-    await execAsync(`git clone ${repositoryUrl} ${tempFolder}`)
+    // Clone the repository with the centralized function
+    await cloneRepository({
+      repositoryUrl,
+      destination: tempFolder,
+      token
+    })
 
     // Extract diff using the new function
     const diff = await extractDiffFromRepo({

@@ -3,6 +3,7 @@ import * as fs from 'fs/promises'
 import * as os from 'os'
 import * as path from 'path'
 import { promisify } from 'util'
+import { cloneRepository } from './repo-utils'
 
 const execAsync = promisify(exec)
 
@@ -10,6 +11,7 @@ interface ExtractCodebaseOptions {
   repositoryUrl: string
   branch: string
   tempFolder?: string
+  token?: string
 }
 
 interface ExtractCodebaseFromRepoOptions {
@@ -59,6 +61,7 @@ export async function extractCodebaseFromRepo({
  * @param {string} options.repositoryUrl - The URL of the GitHub repository
  * @param {string} options.branch - The branch to extract from
  * @param {string} [options.tempFolder] - Optional temporary folder path for cloning
+ * @param {string} [options.token] - Optional access token for authentication with private repos
  * @returns {Promise<string>} The processed codebase content
  * @throws {Error} If cloning or extraction fails
  * @deprecated Use extractCodebaseFromRepo when repository is already cloned
@@ -66,16 +69,20 @@ export async function extractCodebaseFromRepo({
 export async function extractCodebase({
   repositoryUrl,
   branch,
-  tempFolder = path.join(os.tmpdir(), 'ai-digest-' + Date.now())
+  tempFolder = path.join(os.tmpdir(), 'ai-digest-' + Date.now()),
+  token
 }: ExtractCodebaseOptions): Promise<string> {
   try {
     // Create temporary directory
     await fs.mkdir(tempFolder, { recursive: true })
 
-    // Clone the repository
-    await execAsync(
-      `git clone --branch ${branch} ${repositoryUrl} ${tempFolder}`
-    )
+    // Clone the repository with the centralized function
+    await cloneRepository({
+      repositoryUrl,
+      branch,
+      destination: tempFolder,
+      token
+    })
 
     // Extract codebase using the new function
     const codebase = await extractCodebaseFromRepo({
