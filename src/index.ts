@@ -1,5 +1,5 @@
 import { config } from 'dotenv'
-import { Probot } from 'probot'
+import { Probot, type Context } from 'probot'
 import { sendToAnthropic } from './send-to-anthropic.ts'
 
 // Load environment variables
@@ -17,7 +17,7 @@ export default async (app: Probot, { getRouter }) => {
   /**
    * Find existing AI analysis comment by looking for the unique marker
    */
-  async function findExistingAnalysisComment(context, prNumber) {
+  async function findExistingAnalysisComment(context: Context, prNumber) {
     const repo = context.repo()
 
     // Get all comments on the PR
