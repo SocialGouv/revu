@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/SocialGouv/revu/compare/v1.2.1...v1.3.0) (2025-04-23)
+
+
+### Features
+
+* clone private repositories ([#19](https://github.com/SocialGouv/revu/issues/19)) ([804bffc](https://github.com/SocialGouv/revu/commit/804bffc382fa61e2995b48dfcd0c9453a8f7703b))
+
 ## [1.2.1](https://github.com/SocialGouv/revu/compare/v1.2.0...v1.2.1) (2025-04-10)
 
 
