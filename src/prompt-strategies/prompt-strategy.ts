@@ -6,10 +6,12 @@
  * @param repositoryUrl - The URL of the GitHub repository
  * @param branch - The branch to analyze
  * @param templatePath - Optional path to a custom template file
+ * @param token - Optional GitHub access token for private repositories
  * @returns A promise that resolves to the generated prompt string
  */
 export type PromptStrategy = (
   repositoryUrl: string,
   branch: string,
-  templatePath?: string
+  templatePath?: string,
+  token?: string
 ) => Promise<string>

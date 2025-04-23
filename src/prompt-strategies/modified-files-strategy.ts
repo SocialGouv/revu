@@ -9,14 +9,26 @@ import type { PromptStrategy } from './prompt-strategy.ts'
  * Modified files prompt generation strategy.
  * Only includes content of files being modified in the PR diff.
  * This strategy extracts the repository data and focuses on modified files.
+ *
+ * @param repositoryUrl - The URL of the GitHub repository
+ * @param branch - The branch to analyze
+ * @param templatePath - Optional path to a custom template file
+ * @param token - Optional GitHub access token for private repositories
+ * @returns A promise that resolves to the generated prompt string
  */
 export const modifiedFilesPromptStrategy: PromptStrategy = async (
   repositoryUrl: string,
   branch: string,
-  templatePath?: string
+  templatePath?: string,
+  token?: string
 ): Promise<string> => {
-  // Prepare the repository for extraction
-  const repoPath = await prepareRepository(repositoryUrl, branch)
+  // Prepare the repository for extraction with authentication if needed
+  const repoPath = await prepareRepository(
+    repositoryUrl,
+    branch,
+    undefined,
+    token
+  )
   const diff = await extractDiffFromRepo({
     branch,
     repoPath
