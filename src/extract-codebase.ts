@@ -3,7 +3,7 @@ import * as fs from 'fs/promises'
 import * as os from 'os'
 import * as path from 'path'
 import { promisify } from 'util'
-import { cloneRepository } from './repo-utils'
+import { cloneRepository } from './repo-utils.ts'
 
 const execAsync = promisify(exec)
 

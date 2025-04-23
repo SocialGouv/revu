@@ -1,7 +1,7 @@
 import { extractCodebaseFromRepo } from './extract-codebase.ts'
 import { extractDiffFromRepo } from './extract-diff.ts'
 import { extractLogFromRepo } from './extract-log.ts'
-import { prepareRepository, cleanUpRepository } from './repo-utils'
+import { prepareRepository, cleanUpRepository } from './repo-utils.ts'
 import * as os from 'os'
 import * as path from 'path'
 
