@@ -8,6 +8,7 @@ dotenv.config()
 interface SendToAnthropicOptions {
   repositoryUrl: string
   branch: string
+  token?: string
 }
 
 /**
@@ -21,13 +22,15 @@ interface SendToAnthropicOptions {
  * @param {Object} options - The options for Anthropic analysis
  * @param {string} options.repositoryUrl - The URL of the GitHub repository
  * @param {string} options.branch - The branch to analyze
+ * @param {string} [options.token] - Optional GitHub access token for private repositories
  * @returns {Promise<string>} The analysis response from Anthropic
  * @throws {Error} If API communication fails or response is unexpected
  * @requires ANTHROPIC_API_KEY environment variable to be set
  */
 export async function sendToAnthropic({
   repositoryUrl,
-  branch
+  branch,
+  token
 }: SendToAnthropicOptions) {
   // Initialize Anthropic client
   const anthropic = new Anthropic({
@@ -37,7 +40,8 @@ export async function sendToAnthropic({
   // Get the populated template
   const prompt = await populateTemplate({
     repositoryUrl,
-    branch
+    branch,
+    token
   })
 
   console.log('PROMPT', prompt)

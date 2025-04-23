@@ -1,8 +1,7 @@
 import * as fs from 'fs/promises'
 import Handlebars from 'handlebars'
 import * as path from 'path'
-import { extractAll } from '../extract-all.ts'
-import { cleanUpRepository, prepareRepository } from '../repo-utils.ts'
+import { extractAllFromUrl } from '../extract-all.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
 /**
@@ -13,21 +12,22 @@ import type { PromptStrategy } from './prompt-strategy.ts'
  * @param repositoryUrl - The URL of the GitHub repository
  * @param branch - The branch to analyze
  * @param templatePath - Optional path to a custom template file
+ * @param token - Optional GitHub access token for private repositories
  * @returns A promise that resolves to the generated prompt string
  */
 export const defaultPromptStrategy: PromptStrategy = async (
   repositoryUrl: string,
   branch: string,
-  templatePath?: string
+  templatePath?: string,
+  token?: string
 ): Promise<string> => {
-  // Prepare the repository for extraction
-  const repoPath = await prepareRepository(repositoryUrl, branch)
-  // Extract all the required data
-  const { codebase, diff, log } = await extractAll({
+  // Extract all data with token support for private repositories
+  const { codebase, diff, log } = await extractAllFromUrl({
+    repositoryUrl,
     branch,
-    repoPath
+    token
   })
-  await cleanUpRepository(repoPath)
+
   // Get the absolute path of the repository
   const repoName = repositoryUrl.split('/').pop()?.replace('.git', '') || ''
   const absolutePath = path.join(process.cwd(), repoName)

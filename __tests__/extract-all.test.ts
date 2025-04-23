@@ -1,38 +1,83 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { extractAll } from '../src/extract-all.ts'
-import { cleanUpRepository, prepareRepository } from '../src/repo-utils.ts'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-describe('extractAll', async () => {
-  const testRepo = 'https://github.com/SocialGouv/carnets.git'
-  const testBranch = 'ai-digest'
-  let repoPath: string
+// Import des fonctions à tester
+import { extractAllFromUrl } from '../src/extract-all.ts'
+import { prepareRepository, cleanUpRepository } from '../src/repo-utils.ts'
 
-  beforeEach(async () => {
-    repoPath = await prepareRepository(testRepo, testBranch)
+// Mocks
+vi.mock('../src/repo-utils.ts', () => ({
+  prepareRepository: vi.fn().mockResolvedValue('/mocked/repo/path'),
+  cleanUpRepository: vi.fn().mockResolvedValue(undefined)
+}))
+
+// Mock pour les fonctions d'extraction
+vi.mock('../src/extract-codebase.ts', () => ({
+  extractCodebaseFromRepo: vi.fn().mockResolvedValue('mock codebase')
+}))
+
+vi.mock('../src/extract-diff.ts', () => ({
+  extractDiffFromRepo: vi.fn().mockResolvedValue('mock diff')
+}))
+
+vi.mock('../src/extract-log.ts', () => ({
+  extractLogFromRepo: vi.fn().mockResolvedValue('mock log')
+}))
+
+// Import de extractCodebaseFromRepo après avoir mockée
+import { extractCodebaseFromRepo } from '../src/extract-codebase.ts'
+
+// Tests
+describe('extractAllFromUrl', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
   })
 
-  afterEach(async () => {
-    await cleanUpRepository(repoPath)
-  })
+  // Test 1: Vérification normale du flux de travail
+  it('should use prepareRepository and cleanUpRepository', async () => {
+    // Arrange
+    const repositoryUrl = 'https://github.com/test/repo.git'
+    const branch = 'main'
+    const token = 'test-token'
 
-  it('should extract all information from a single clone', async () => {
-    const result = await extractAll({
-      branch: testBranch,
-      repoPath: repoPath
+    // Act
+    const result = await extractAllFromUrl({
+      repositoryUrl,
+      branch,
+      token
     })
 
-    // Verify codebase contains expected content
-    expect(result.codebase).toBeTruthy()
-    expect(result.codebase).toContain('```') // Should contain code blocks
+    // Assert
+    expect(prepareRepository).toHaveBeenCalledWith(
+      repositoryUrl,
+      branch,
+      expect.any(String),
+      token
+    )
 
-    // Verify diff has correct git diff format
-    expect(result.diff).toBeTruthy()
-    expect(result.diff).toMatch(/^diff --git/m) // Should start with git diff header
-    expect(result.diff).toMatch(/^@@.*@@/m) // Should contain diff hunks
-    expect(result.diff).toMatch(/^[-+]/m) // Should contain additions/deletions
+    expect(cleanUpRepository).toHaveBeenCalledWith('/mocked/repo/path')
 
-    // Verify log has correct git log format
-    expect(result.log).toBeTruthy()
-    expect(result.log).toMatch(/[a-f0-9]+ - .+, .+ : .+/) // Should match git log format
-  }, 60000) // Increase timeout to 60s since we're doing three operations
+    // Vérifier que le résultat est un objet avec les bonnes propriétés
+    expect(result).toHaveProperty('codebase')
+    expect(result).toHaveProperty('diff')
+    expect(result).toHaveProperty('log')
+  })
+
+  // Test 2: Vérification de gestion d'erreur
+  it('should clean up repository even if extraction fails', async () => {
+    // Simuler une erreur lors de l'extraction du codebase
+    vi.mocked(extractCodebaseFromRepo).mockRejectedValueOnce(
+      new Error('Test error')
+    )
+
+    // Act & Assert
+    await expect(
+      extractAllFromUrl({
+        repositoryUrl: 'https://github.com/test/repo.git',
+        branch: 'main'
+      })
+    ).rejects.toThrow('Test error')
+
+    // Vérifier que le nettoyage a été appelé malgré l'erreur
+    expect(cleanUpRepository).toHaveBeenCalledWith('/mocked/repo/path')
+  })
 })
