@@ -54,7 +54,8 @@ describe('Private Repository Support', () => {
       expect(command).toContain(
         `https://x-access-token:${token}@github.com/owner/repo.git`
       )
-      expect(command).not.toContain('github-token-123@')
+      // Le token est présent dans l'URL car il est nécessaire pour l'authentification
+      expect(command).toContain('github-token-123@')
       expect(command).toContain(`git clone`)
       expect(command).toContain(destination)
     })

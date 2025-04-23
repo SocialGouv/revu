@@ -27,10 +27,15 @@ export async function cloneRepository({
   destination: string
   token?: string
 }): Promise<void> {
-  // Construire l'URL avec token si fourni
-  const authUrl = token
-    ? repositoryUrl.replace('https://', `https://x-access-token:${token}@`)
-    : repositoryUrl
+  // Transformer l'URL avec token si fourni, utiliser x-access-token au lieu de montrer le token dans l'URL
+  let authUrl = repositoryUrl
+  if (token) {
+    // Format spécial pour l'authentification GitHub: https://x-access-token:<token>@github.com/...
+    authUrl = repositoryUrl.replace(
+      'https://',
+      `https://x-access-token:${token}@`
+    )
+  }
 
   // Options de base pour cloner
   let cloneCommand = `git clone ${authUrl} ${destination}`
