@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/SocialGouv/revu/compare/v1.4.0...v1.4.1) (2025-04-24)
+
+
+### Bug Fixes
+
+* remove error PR comment ([a6cc693](https://github.com/SocialGouv/revu/commit/a6cc69378043ddee2414c3a66612ef1f2ff86df8))
+
 # [1.4.0](https://github.com/SocialGouv/revu/compare/v1.3.0...v1.4.0) (2025-04-23)
 
 
