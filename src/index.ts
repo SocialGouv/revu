@@ -89,13 +89,6 @@ export default async (app: Probot, { getRouter }) => {
         app.log.info(`Successfully analyzed PR #${pr.number}`)
       } catch (error) {
         app.log.error(`Error processing PR #${pr.number}: ${error}`)
-
-        // Post error as a PR comment
-        await context.octokit.issues.createComment({
-          ...repo,
-          issue_number: pr.number,
-          body: `⚠️ Error analyzing this PR:\n\`\`\`\n${error}\n\`\`\``
-        })
       }
     }
   )
