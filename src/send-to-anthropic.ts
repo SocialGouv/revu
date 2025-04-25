@@ -9,6 +9,7 @@ interface SendToAnthropicOptions {
   repositoryUrl: string
   branch: string
   token?: string
+  strategyName?: string
 }
 
 /**
@@ -30,7 +31,8 @@ interface SendToAnthropicOptions {
 export async function sendToAnthropic({
   repositoryUrl,
   branch,
-  token
+  token,
+  strategyName
 }: SendToAnthropicOptions) {
   // Initialize Anthropic client
   const anthropic = new Anthropic({
@@ -41,7 +43,8 @@ export async function sendToAnthropic({
   const prompt = await populateTemplate({
     repositoryUrl,
     branch,
-    token
+    token,
+    strategyName
   })
 
   console.log('PROMPT', prompt)
