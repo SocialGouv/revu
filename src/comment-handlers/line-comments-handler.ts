@@ -1,29 +1,58 @@
 import { type Context } from 'probot'
 import { globalCommentHandler } from './global-comment-handler.ts'
 
-// Marker to identify our AI review comments
-const REVIEW_MARKER = '<!-- REVU-AI-REVIEW -->'
+// Marker for the global summary comment
+const SUMMARY_MARKER = '<!-- REVU-AI-SUMMARY -->'
+
+// Marker pattern for individual comments
+// Each comment gets a unique ID based on file path and line number
+const COMMENT_MARKER_PREFIX = '<!-- REVU-AI-COMMENT '
+const COMMENT_MARKER_SUFFIX = ' -->'
 
 /**
- * Find existing AI review by looking for the unique marker
+ * Creates a unique marker ID for a specific comment
  */
-async function findExistingReview(context: Context, prNumber: number) {
+function createCommentMarkerId(path: string, line: number): string {
+  // Create a deterministic ID based on file path and line number
+  return `${path}:${line}`.replace(/[^a-zA-Z0-9-_:.]/g, '_')
+}
+
+/**
+ * Finds all existing review comments on a PR that have our marker
+ */
+async function findExistingComments(context: Context, prNumber: number) {
   const repo = context.repo()
 
-  // Get all reviews on the PR
-  const { data: reviews } = await context.octokit.pulls.listReviews({
+  // Get all review comments on the PR
+  const { data: comments } = await context.octokit.pulls.listReviewComments({
     ...repo,
     pull_number: prNumber
   })
 
-  // Find the review with our marker
-  return reviews.find(
-    (review) => review.body && review.body.includes(REVIEW_MARKER)
+  // Filter to comments with our marker
+  return comments.filter((comment) =>
+    comment.body.includes(COMMENT_MARKER_PREFIX)
   )
 }
 
 /**
- * Handles the creation of a review with line-specific comments.
+ * Find the existing summary comment
+ */
+async function findExistingSummaryComment(context: Context, prNumber: number) {
+  const repo = context.repo()
+
+  // Get all comments on the PR
+  const { data: comments } = await context.octokit.issues.listComments({
+    ...repo,
+    issue_number: prNumber
+  })
+
+  // Find the comment with our marker
+  return comments.find((comment) => comment.body.includes(SUMMARY_MARKER))
+}
+
+/**
+ * Handles the creation of individual review comments on specific lines.
  * This expects the analysis to be a JSON string with the following structure:
  * {
  *   "summary": "Overall PR summary",
@@ -49,51 +78,83 @@ export async function lineCommentsHandler(
     const parsedAnalysis = JSON.parse(analysis)
 
     // Format the summary with our marker
-    const formattedSummary = `${REVIEW_MARKER}\n\n${parsedAnalysis.summary}`
+    const formattedSummary = `${SUMMARY_MARKER}\n\n${parsedAnalysis.summary}`
 
-    // Prepare comments for the review
-    const reviewComments = parsedAnalysis.comments.map((comment) => {
-      let commentBody = comment.body
+    // Handle the summary comment (global PR comment)
+    const existingSummary = await findExistingSummaryComment(context, prNumber)
+    if (existingSummary) {
+      // Update existing summary
+      await context.octokit.issues.updateComment({
+        ...repo,
+        comment_id: existingSummary.id,
+        body: formattedSummary
+      })
+    } else {
+      // Create new summary
+      await context.octokit.issues.createComment({
+        ...repo,
+        issue_number: prNumber,
+        body: formattedSummary
+      })
+    }
+
+    // Get the commit SHA for the PR head
+    const { data: pullRequest } = await context.octokit.pulls.get({
+      ...repo,
+      pull_number: prNumber
+    })
+    const commitSha = pullRequest.head.sha
+
+    // Get existing review comments
+    const existingComments = await findExistingComments(context, prNumber)
+
+    // Track created/updated comments
+    let createdCount = 0
+    let updatedCount = 0
+
+    // Process each comment
+    for (const comment of parsedAnalysis.comments) {
+      // Generate marker ID for this comment
+      const markerId = createCommentMarkerId(comment.path, comment.line)
+
+      // Format the comment body with marker
+      let commentBody = `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}\n\n${comment.body}`
 
       // Add suggested code if available
       if (comment.suggestion) {
         commentBody += '\n\n```suggestion\n' + comment.suggestion + '\n```'
       }
 
-      return {
-        path: comment.path,
-        line: comment.line,
-        body: commentBody
+      // Check if this comment already exists
+      const existingComment = existingComments.find(
+        (existing) =>
+          existing.body.includes(`${COMMENT_MARKER_PREFIX}${markerId}`) &&
+          existing.path === comment.path
+      )
+
+      if (existingComment) {
+        // Update existing comment
+        await context.octokit.pulls.updateReviewComment({
+          ...repo,
+          comment_id: existingComment.id,
+          body: commentBody
+        })
+        updatedCount++
+      } else {
+        // Create new comment
+        await context.octokit.pulls.createReviewComment({
+          ...repo,
+          pull_number: prNumber,
+          commit_id: commitSha,
+          path: comment.path,
+          line: comment.line,
+          body: commentBody
+        })
+        createdCount++
       }
-    })
-
-    // Check if we already have a review for this PR
-    const existingReview = await findExistingReview(context, prNumber)
-
-    if (existingReview) {
-      // For now, we can't update existing review comments directly with the GitHub API
-      // So we'll create a new review and mention it's an update
-      await context.octokit.pulls.createReview({
-        ...repo,
-        pull_number: prNumber,
-        event: 'COMMENT',
-        body: `${REVIEW_MARKER}\n\n**Updated Review:** ${parsedAnalysis.summary}`,
-        comments: reviewComments
-      })
-
-      return `Updated review with ${reviewComments.length} line comments on PR #${prNumber}`
-    } else {
-      // Create a new review with the summary and comments
-      await context.octokit.pulls.createReview({
-        ...repo,
-        pull_number: prNumber,
-        event: 'COMMENT',
-        body: formattedSummary,
-        comments: reviewComments
-      })
     }
 
-    return `Created review with ${reviewComments.length} line comments on PR #${prNumber}`
+    return `PR #${prNumber}: Created ${createdCount} and updated ${updatedCount} line comments`
   } catch (error) {
     // In case of error, fall back to the global comment handler
     console.error(
