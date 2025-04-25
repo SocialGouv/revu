@@ -1,34 +1,18 @@
 import { config } from 'dotenv'
-import { Probot, type Context } from 'probot'
+import * as fs from 'fs/promises'
+import * as path from 'path'
+import { Probot } from 'probot'
+import { getCommentHandler } from './comment-handlers/index.ts'
 import { sendToAnthropic } from './send-to-anthropic.ts'
 
 // Load environment variables
 config()
-
-// Marker to identify our AI analysis comments
-const COMMENT_MARKER = '<!-- REVU-AI-ANALYSIS -->'
 
 export default async (app: Probot, { getRouter }) => {
   app.log.info('Revu GitHub App started!')
 
   // Container health check route
   getRouter('/healthz').get('/', (req, res) => res.end('OK'))
-
-  /**
-   * Find existing AI analysis comment by looking for the unique marker
-   */
-  async function findExistingAnalysisComment(context: Context, prNumber) {
-    const repo = context.repo()
-
-    // Get all comments on the PR
-    const { data: comments } = await context.octokit.issues.listComments({
-      ...repo,
-      issue_number: prNumber
-    })
-
-    // Find the comment with our marker
-    return comments.find((comment) => comment.body.includes(COMMENT_MARKER))
-  }
 
   // Listen for PR opens and updates
   app.on(
@@ -52,44 +36,43 @@ export default async (app: Probot, { getRouter }) => {
           })
           .then((response) => response.data.token)
 
+        // Get the current strategy from configuration
+        const strategyName = await getStrategyNameFromConfig()
+
         // Get the analysis from Anthropic
         const analysis = await sendToAnthropic({
           repositoryUrl,
           branch,
-          token: installationAccessToken
+          token: installationAccessToken,
+          strategyName
         })
 
-        // Format the analysis with our marker
-        const formattedAnalysis = `${COMMENT_MARKER}\n\n${analysis}`
+        // Get the appropriate comment handler based on the strategy
+        const commentHandler = getCommentHandler(strategyName)
 
-        // Check if we already have an analysis comment
-        const existingComment = await findExistingAnalysisComment(
-          context,
-          pr.number
-        )
+        // Handle the analysis with the appropriate handler
+        const result = await commentHandler(context, pr.number, analysis)
 
-        if (existingComment) {
-          // Update the existing comment
-          await context.octokit.issues.updateComment({
-            ...repo,
-            comment_id: existingComment.id,
-            body: formattedAnalysis
-          })
-          app.log.info(`Updated existing analysis comment on PR #${pr.number}`)
-        } else {
-          // Post a new comment
-          await context.octokit.issues.createComment({
-            ...repo,
-            issue_number: pr.number,
-            body: formattedAnalysis
-          })
-          app.log.info(`Created new analysis comment on PR #${pr.number}`)
-        }
-
+        app.log.info(result)
         app.log.info(`Successfully analyzed PR #${pr.number}`)
       } catch (error) {
         app.log.error(`Error processing PR #${pr.number}: ${error}`)
       }
     }
   )
+
+  /**
+   * Gets the strategy name from the configuration file
+   */
+  async function getStrategyNameFromConfig() {
+    try {
+      const configPath = path.join(process.cwd(), 'config.json')
+      const configContent = await fs.readFile(configPath, 'utf-8')
+      const config = JSON.parse(configContent)
+      return config.promptStrategy || 'default'
+    } catch (error) {
+      console.error('Error reading configuration:', error)
+      return 'default'
+    }
+  }
 }
