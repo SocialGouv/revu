@@ -1,4 +1,5 @@
 import { type Context } from 'probot'
+import { z } from 'zod'
 import { globalCommentHandler } from './global-comment-handler.ts'
 
 // Marker for the global summary comment
@@ -51,6 +52,19 @@ async function findExistingSummaryComment(context: Context, prNumber: number) {
   return comments.find((comment) => comment.body.includes(SUMMARY_MARKER))
 }
 
+// Schémas de validation pour garantir le bon format de la réponse
+const CommentSchema = z.object({
+  path: z.string(),
+  line: z.number().int().positive(),
+  body: z.string(),
+  suggestion: z.string().optional()
+})
+
+const AnalysisSchema = z.object({
+  summary: z.string(),
+  comments: z.array(CommentSchema)
+})
+
 /**
  * Handles the creation of individual review comments on specific lines.
  * This expects the analysis to be a JSON string with the following structure:
@@ -75,7 +89,23 @@ export async function lineCommentsHandler(
 
   try {
     // Parse the JSON response
-    const parsedAnalysis = JSON.parse(analysis)
+    const rawParsedAnalysis = JSON.parse(analysis)
+
+    // Valider la structure avec Zod
+    const validationResult = AnalysisSchema.safeParse(rawParsedAnalysis)
+
+    if (!validationResult.success) {
+      console.error(
+        "Validation de l'analyse échouée:",
+        validationResult.error.format()
+      )
+      throw new Error(
+        "Format d'analyse invalide: " + validationResult.error.message
+      )
+    }
+
+    // Utiliser le résultat validé et typé
+    const parsedAnalysis = validationResult.data
 
     // Format the summary with our marker
     const formattedSummary = `${SUMMARY_MARKER}\n\n${parsedAnalysis.summary}`
