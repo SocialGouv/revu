@@ -1,3 +1,10 @@
+## [1.4.2](https://github.com/SocialGouv/revu/compare/v1.4.1...v1.4.2) (2025-04-28)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @anthropic-ai/sdk to ^0.40.0 ([#14](https://github.com/SocialGouv/revu/issues/14)) ([4bafb59](https://github.com/SocialGouv/revu/commit/4bafb5964c0e57c72b2ae6cc1e6e52f879d7380f))
+
 ## [1.4.1](https://github.com/SocialGouv/revu/compare/v1.4.0...v1.4.1) (2025-04-24)
 
 
