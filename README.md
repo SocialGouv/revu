@@ -8,7 +8,8 @@ Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent
 - **Intelligent Feedback**: Provides detailed explanations and suggestions for improvements
 - **Git-Aware**: Considers commit history and branch differences
 - **GitHub Integration**: Seamlessly integrates with GitHub's PR workflow
-- **Customizable**: Configurable through environment variables and templates
+- **Customizable**: Configurable through environment variables, templates, and coding guidelines
+- **Coding Guidelines**: Enforce custom coding standards through configuration
 
 ## How It Works
 
@@ -185,10 +186,36 @@ extractLogFromRepo({
 
 ### Configuration
 
+#### Model Configuration
+
 - Model: Claude 3 Sonnet
 - Max tokens: 4096
 - Temperature: 0.7
 - Required env: `ANTHROPIC_API_KEY`
+
+#### Coding Guidelines Configuration
+
+Revu supports custom coding guidelines through a `.revu.yml` YAML configuration file in the project root:
+
+```yaml
+# .revu.yml file structure
+codingGuidelines:
+  - "Test coverage: Critical code requires 100% test coverage; non-critical paths require 60% coverage."
+  - "Naming: Use semantically significant names for functions, classes, and parameters."
+  - "Comments: Add comments only for complex code; simple code should be self-explanatory."
+  - "Documentation: Public functions must have concise docstrings explaining purpose and return values."
+
+reviewSettings:
+  # Future configuration options for review behavior
+```
+
+The configuration supports:
+
+- **Hierarchical Structure**: Organized by configuration type
+- **User Overrides**: Repository-specific `.revu.yml` files can override default settings
+- **Extensible Design**: Ready for future configuration options
+
+Guidelines are automatically included in code review comments to ensure consistent standards across your projects.
 
 ## Troubleshooting
 
