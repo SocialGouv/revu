@@ -1,3 +1,17 @@
+## [1.4.1](https://github.com/SocialGouv/revu/compare/v1.4.0...v1.4.1) (2025-04-24)
+
+
+### Bug Fixes
+
+* remove error PR comment ([a6cc693](https://github.com/SocialGouv/revu/commit/a6cc69378043ddee2414c3a66612ef1f2ff86df8))
+
+# [1.4.0](https://github.com/SocialGouv/revu/compare/v1.3.0...v1.4.0) (2025-04-23)
+
+
+### Features
+
+* use comments instead of reviews ([#17](https://github.com/SocialGouv/revu/issues/17)) ([f3ec233](https://github.com/SocialGouv/revu/commit/f3ec23391bee819312eb7dc89da18b51f34dbd29))
+
 # [1.3.0](https://github.com/SocialGouv/revu/compare/v1.2.1...v1.3.0) (2025-04-23)
 
 
