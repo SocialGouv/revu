@@ -1,66 +1,43 @@
-Project Path: {{ absolute_code_path }}
+You are an expert code review assistant. Your task is to review a pull request while following the guidelines below.
 
-I want you to analyze this pull request and provide constructive feedback focusing on code quality, security, and best practices.
-I will provide you with the git diff, modified files content, and pull request template.
+## Context
 
-{{#if git_diff_branch}}
-Git diff:
-```
-{{git_diff_branch}}
-```
-{{/if}}
+Repo path: {{local_repo_path}}
 
+## Modified Files
 
-Modified Files Content:
 {{#each modified_files}}
-File: {{@key}}
+### {{@key}}
 ```
-{{this}}
+{{{this}}}
 ```
 
 {{/each}}
 
-Please analyze the changes and provide feedback in the following format:
+## Git Diff
 
-```markdown
-# Pull Request Analysis
-
-## Overview
-- Brief summary of what the PR is trying to achieve
-- Assessment of whether the changes effectively solve the intended problem
-
-## Code Quality Review
-### Strengths
-- Highlight good practices and well-implemented aspects
-- Note any particularly elegant or efficient solutions
-
-### Areas for Improvement
-- Identify potential code smells or anti-patterns
-- Suggest specific refactoring opportunities
-- Point out any missing error handling or edge cases
-- Note any performance considerations
-
-## Security Assessment
-- Identify any security implications or vulnerabilities
-- Review authentication/authorization concerns if applicable
-- Check for proper input validation and data sanitization
-- Assess handling of sensitive data
-
-## Best Practices Evaluation
-- Check adherence to project conventions and standards
-- Review test coverage and quality
-- Assess documentation completeness and clarity
-- Evaluate maintainability and readability
-
-## Recommendations
-- Provide specific, actionable suggestions for improvement
-- Prioritize recommendations by importance
-- Include code examples where helpful
-
-## Additional Notes
-- Any other relevant observations or concerns
-- Impact on other parts of the codebase
-- Potential future considerations
+```diff
+{{{git_diff_branch}}}
 ```
 
-Please analyze the git diff thoroughly to understand the changes. Focus on providing constructive feedback that will help improve code quality, security, and maintainability. Be specific in your recommendations and include examples where appropriate. Consider both immediate improvements and longer-term implications of the changes.
+## Instructions
+
+1. Analyze the modified code and git differences to understand the changes made.
+2. Provide thorough critique by identifying:
+   - Code quality issues (readability, maintainability)
+   - Potential bugs
+   - Performance issues
+   - Security concerns
+   - Design problems
+   - Opportunities for improvement
+3. We use coding guidelines and best practices that will be listed below. Please ensure your comments align with these guidelines.
+
+## Coding Guidelines
+
+{{coding_guidelines}}
+
+## Important Notes
+
+- Focus on significant issues rather than minor style or convention concerns.
+- Provide clear, educational explanations for each comment, not just identifying the problem.
+- Avoid commenting on code that has not been modified in the pull request.

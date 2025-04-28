@@ -72,13 +72,16 @@ describe('populateTemplate', () => {
     })
 
     // Verify the template was populated with all required sections
-    expect(result).toContain('Project Path:')
-    expect(result).toContain('Git diff:')
-    expect(result).toContain('Modified Files Content:')
+    expect(result).toContain('Repo path:')
+    expect(result).toContain('## Modified Files')
+    expect(result).toContain('## Git Diff')
+    expect(result).toContain('## Coding Guidelines')
 
     // Verify the content structure
-    expect(result).toMatch(/Project Path: .+/)
-    expect(result).toMatch(/Git diff:\n```\n.+\n```/s)
+    expect(result).toMatch(/Repo path: .+/)
+    expect(result).toMatch(/## Modified Files\n\n###.+\n```\n.+\n```/s)
+    expect(result).toMatch(/## Git Diff\n\n```diff\n.+\n```/s)
+    expect(result).toMatch(/## Coding Guidelines\n\n(\d+\..+\n)+/s)
   }, 60000) // Increase timeout since we're doing git operations
 
   it('should use custom template path when provided', async () => {
