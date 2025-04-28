@@ -26,11 +26,11 @@ graph TD
 ```
 
 1. **Trigger**: When a PR is opened or updated
-2. **Data Collection**: 
+2. **Data Collection**:
    - Extracts full codebase for context
    - Generates diff to focus on changes
    - Retrieves git history for background
-3. **Analysis**: 
+3. **Analysis**:
    - Combines data into a structured prompt
    - Sends to Claude for intelligent analysis
 4. **Feedback**: Posts detailed review comments on the PR
@@ -51,6 +51,7 @@ npm install -g smee-client  # For local webhook testing
 ```
 
 Requirements:
+
 - Node.js v23.7.0 (managed via nvm)
 - GitHub account with admin access
 - Anthropic API key
@@ -59,6 +60,7 @@ Requirements:
 
 1. Create a new GitHub App at `Settings > Developer settings > GitHub Apps`
 2. Configure the app:
+
    ```yaml
    Name: Revu (or your preferred name)
    Webhook URL: Your server URL or smee.io proxy
@@ -67,6 +69,7 @@ Requirements:
      - Contents: Read
    Events: Pull request
    ```
+
 3. Generate and save:
    - Private key
    - App ID
@@ -74,14 +77,14 @@ Requirements:
 
 ### Environment Configuration
 
-| Variable | Type | Description |
-|----------|------|-------------|
-| `ANTHROPIC_API_KEY` | string | Your Anthropic API key for accessing Claude API |
-| `APP_ID` | number | GitHub App ID obtained after registering the app |
-| `PRIVATE_KEY` | string | RSA private key generated for the GitHub App (including BEGIN/END markers) |
-| `WEBHOOK_SECRET` | string | Secret string used to verify GitHub webhook payloads |
-| `WEBHOOK_PROXY_URL` | string | (Optional) Smee.io URL for local development webhook forwarding |
-| `REPOSITORY_FOLDER` | string | Absolute path where repositories will be cloned |
+| Variable            | Type   | Description                                                                |
+| ------------------- | ------ | -------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY` | string | Your Anthropic API key for accessing Claude API                            |
+| `APP_ID`            | number | GitHub App ID obtained after registering the app                           |
+| `PRIVATE_KEY`       | string | RSA private key generated for the GitHub App (including BEGIN/END markers) |
+| `WEBHOOK_SECRET`    | string | Secret string used to verify GitHub webhook payloads                       |
+| `WEBHOOK_PROXY_URL` | string | (Optional) Smee.io URL for local development webhook forwarding            |
+| `REPOSITORY_FOLDER` | string | Absolute path where repositories will be cloned                            |
 
 ## Running the App
 
@@ -99,13 +102,15 @@ yarn dev
 
 Choose one of the following methods:
 
-**Local Machine**
+#### Local Machine
+
 ```bash
 yarn build
 yarn start
 ```
 
-**Docker**
+#### Docker
+
 ```bash
 docker build -t revu .
 docker run -d \
@@ -207,6 +212,7 @@ extractLogFromRepo({
 ### Debug Mode
 
 Enable debug logging:
+
 ```bash
 DEBUG=revu:* yarn dev
 ```
@@ -214,6 +220,7 @@ DEBUG=revu:* yarn dev
 ## Contributing
 
 1. **Development Setup**
+
    ```bash
    git clone https://github.com/your-username/revu.git
    cd revu
@@ -221,6 +228,7 @@ DEBUG=revu:* yarn dev
    ```
 
 2. **Testing**
+
    ```bash
    yarn test        # Run all tests
    yarn test:watch  # Watch mode
@@ -242,7 +250,7 @@ DEBUG=revu:* yarn dev
 
 This project is licensed under the MIT License.
 
-```
+```text
 MIT License
 
 Copyright (c) 2025 Revu
