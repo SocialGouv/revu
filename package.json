@@ -17,7 +17,7 @@
     "lint": "eslint \"**/*.ts\""
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.36.3",
+    "@anthropic-ai/sdk": "^0.40.0",
     "dotenv": "^16.4.7",
     "handlebars": "^4.7.8",
     "probot": "^13.4.3"
