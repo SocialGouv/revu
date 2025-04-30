@@ -9,7 +9,7 @@ Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent
 - **Git-Aware**: Considers commit history and branch differences
 - **GitHub Integration**: Seamlessly integrates with GitHub's PR workflow
 - **Customizable**: Configurable through environment variables, templates, and coding guidelines
-- **Coding Guidelines**: Enforce custom coding standards through configuration
+- **Coding Guidelines**: Enforce custom coding standards through configuration.
 
 ## How It Works
 
