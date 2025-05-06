@@ -96,11 +96,11 @@ export async function lineCommentsHandler(
 
     if (!validationResult.success) {
       console.error(
-        "Validation de l'analyse échouée:",
+        "Validation de l'analyse échouée :",
         validationResult.error.format()
       )
       throw new Error(
-        "Format d'analyse invalide: " + validationResult.error.message
+        "Format d'analyse invalide : " + validationResult.error.message
       )
     }
 
