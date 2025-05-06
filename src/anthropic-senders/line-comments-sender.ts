@@ -87,29 +87,31 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
       if (content.name === 'provide_code_review' && content.input) {
         // Return the structured response as a JSON string
         return JSON.stringify(content.input as CodeReviewResponse)
+      } else {
+        console.log('Input:', content.input)
+        console.log('Tool name:', content.name)
+        throw new Error('Tool name or input incorect')
       }
-    }
-  }
+    } else {
+      // Fallback if tool use failed or returned unexpected format
+      if (content.type === 'text') {
+        // Try to parse any JSON that might be in the response
+        try {
+          const text = content.text
+          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/)
+          if (jsonMatch && jsonMatch[1]) {
+            return jsonMatch[1].trim()
+          }
+          // If the whole response is potentially JSON
+          if (text.trim().startsWith('{') && text.trim().endsWith('}')) {
+            return text
+          }
 
-  // Fallback if tool use failed or returned unexpected format
-  for (const content of message.content) {
-    if (content.type === 'text') {
-      // Try to parse any JSON that might be in the response
-      try {
-        const text = content.text
-        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/)
-        if (jsonMatch && jsonMatch[1]) {
-          return jsonMatch[1].trim()
-        }
-        // If the whole response is potentially JSON
-        if (text.trim().startsWith('{') && text.trim().endsWith('}')) {
+          // Just return the text as is
           return text
+        } catch {
+          // Silent catch - continue to next content block or error
         }
-
-        // Just return the text as is
-        return text
-      } catch {
-        // Silent catch - continue to next content block or error
       }
     }
   }
