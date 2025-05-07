@@ -1,6 +1,9 @@
 import { type Context } from 'probot'
 import { z } from 'zod'
-import { globalCommentHandler } from './global-comment-handler.ts'
+import {
+  globalCommentHandler,
+  upsertComment
+} from './global-comment-handler.ts'
 
 // Marker for the global summary comment
 const SUMMARY_MARKER = '<!-- REVU-AI-SUMMARY -->'
@@ -112,21 +115,8 @@ export async function lineCommentsHandler(
 
     // Handle the summary comment (global PR comment)
     const existingSummary = await findExistingSummaryComment(context, prNumber)
-    if (existingSummary) {
-      // Update existing summary
-      await context.octokit.issues.updateComment({
-        ...repo,
-        comment_id: existingSummary.id,
-        body: formattedSummary
-      })
-    } else {
-      // Create new summary
-      await context.octokit.issues.createComment({
-        ...repo,
-        issue_number: prNumber,
-        body: formattedSummary
-      })
-    }
+
+    await upsertComment(context, existingSummary, formattedSummary, prNumber)
 
     // Get the commit SHA for the PR head
     const { data: pullRequest } = await context.octokit.pulls.get({
