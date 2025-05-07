@@ -15,21 +15,21 @@ import type { PromptStrategy } from './prompt-strategy.ts'
  * @param repositoryUrl - The URL of the GitHub repository
  * @param branch - The branch to analyze
  * @param templatePath - Optional path to a custom template file
- * @param token - Optional GitHub access token for private repositories
+ * @param githubAccessToken - Optional GitHub access token for private repositories
  * @returns A promise that resolves to the generated prompt string
  */
 export const lineCommentsPromptStrategy: PromptStrategy = async (
   repositoryUrl: string,
   branch: string,
   templatePath?: string,
-  token?: string
+  githubAccessToken?: string
 ): Promise<string> => {
   // Prepare the repository for extraction with authentication if needed
   const repoPath = await prepareRepository(
     repositoryUrl,
     branch,
     undefined,
-    token
+    githubAccessToken
   )
   const diff = await extractDiffFromRepo({
     branch,
