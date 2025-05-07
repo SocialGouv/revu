@@ -1,4 +1,10 @@
-import { type Context } from 'probot'
+import { type Context, ProbotOctokit } from 'probot'
+
+type ListCommentsResponse = Awaited<
+  ReturnType<ProbotOctokit['rest']['issues']['listComments']>
+>
+
+type SingleComment = ListCommentsResponse['data'][number]
 
 // Marker to identify our AI analysis comments
 const COMMENT_MARKER = '<!-- REVU-AI-ANALYSIS -->'
@@ -28,13 +34,22 @@ export async function globalCommentHandler(
   prNumber: number,
   analysis: string
 ) {
-  const repo = context.repo()
-
   // Format the analysis with our marker
   const formattedAnalysis = `${COMMENT_MARKER}\n\n${analysis}`
 
   // Check if we already have an analysis comment
   const existingComment = await findExistingAnalysisComment(context, prNumber)
+
+  await upsertComment(context, existingComment, formattedAnalysis, prNumber)
+}
+
+export async function upsertComment(
+  context: Context,
+  existingComment: SingleComment,
+  formattedAnalysis: string,
+  prNumber: number
+) {
+  const repo = context.repo()
 
   if (existingComment) {
     // Update the existing comment
