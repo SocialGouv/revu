@@ -98,7 +98,8 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
         // Try to parse any JSON that might be in the response
         try {
           const text = content.text
-          const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/)
+          // const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/)
+          const jsonMatch = text.match(/```json\n([\s\S]{1,10000}?)\n```/)
           if (jsonMatch && jsonMatch[1]) {
             return jsonMatch[1].trim()
           }
