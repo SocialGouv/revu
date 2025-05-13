@@ -1,10 +1,14 @@
-import { getStrategyFromConfig } from './prompt-strategies/index.ts'
+import {
+  getStrategyByName,
+  getStrategyFromConfig
+} from './prompt-strategies/index.ts'
 
 interface PopulateTemplateOptions {
   repositoryUrl: string
   branch: string
   templatePath?: string
   token?: string
+  strategyName?: string
 }
 
 /**
@@ -29,10 +33,13 @@ export async function populateTemplate({
   repositoryUrl,
   branch,
   templatePath,
-  token
+  token,
+  strategyName
 }: PopulateTemplateOptions): Promise<string> {
-  // Get the appropriate strategy based on configuration
-  const strategy = await getStrategyFromConfig()
+  // Get the appropriate strategy based on provided strategy name or configuration
+  const strategy = strategyName
+    ? getStrategyByName(strategyName)
+    : await getStrategyFromConfig()
 
   // Use the strategy to generate the prompt
   return strategy(repositoryUrl, branch, templatePath, token)

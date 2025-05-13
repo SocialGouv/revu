@@ -1,6 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk'
 import * as dotenv from 'dotenv'
 import { populateTemplate } from './populate-template.ts'
+import { getSender } from './anthropic-senders/index.ts'
 
 // Load environment variables
 dotenv.config()
@@ -9,20 +9,22 @@ interface SendToAnthropicOptions {
   repositoryUrl: string
   branch: string
   token?: string
+  strategyName?: string
 }
 
 /**
  * Sends repository data to Anthropic's API for analysis.
  * This function:
- * 1. Initializes the Anthropic client with API key from environment
- * 2. Gets populated template with repository data
- * 3. Sends the data to Anthropic's API for analysis
- * 4. Processes and returns the analysis response
+ * 1. Gets populated template with repository data
+ * 2. Selects the appropriate sender based on the strategy
+ * 3. Sends the data to Anthropic's API for analysis with the selected sender
+ * 4. Returns the analysis response
  *
  * @param {Object} options - The options for Anthropic analysis
  * @param {string} options.repositoryUrl - The URL of the GitHub repository
  * @param {string} options.branch - The branch to analyze
  * @param {string} [options.token] - Optional GitHub access token for private repositories
+ * @param {string} [options.strategyName] - Optional strategy name to use
  * @returns {Promise<string>} The analysis response from Anthropic
  * @throws {Error} If API communication fails or response is unexpected
  * @requires ANTHROPIC_API_KEY environment variable to be set
@@ -30,40 +32,25 @@ interface SendToAnthropicOptions {
 export async function sendToAnthropic({
   repositoryUrl,
   branch,
-  token
+  token,
+  strategyName
 }: SendToAnthropicOptions) {
-  // Initialize Anthropic client
-  const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY
-  })
-
   // Get the populated template
   const prompt = await populateTemplate({
     repositoryUrl,
     branch,
-    token
+    token,
+    strategyName
   })
 
   console.log('PROMPT', prompt)
   console.log('repositoryUrl', repositoryUrl)
   console.log('branch', branch)
+  console.log('strategy', strategyName || 'default')
 
-  // Send to Anthropic API
-  const message = await anthropic.messages.create({
-    model: 'claude-3-7-sonnet-latest',
-    max_tokens: 4096,
-    temperature: 0, // Using 0 for consistent, deterministic code review feedback
-    messages: [
-      {
-        role: 'user',
-        content: prompt
-      }
-    ]
-  })
+  // Get the appropriate sender based on the strategy
+  const sender = getSender(strategyName)
 
-  // Extract text from the content block
-  if (message.content[0].type !== 'text') {
-    throw new Error('Unexpected response type from Anthropic')
-  }
-  return message.content[0].text
+  // Send to Anthropic API using the selected sender
+  return sender(prompt)
 }

@@ -1,35 +1,66 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import { ChildProcess } from 'child_process'
+import type { ExecOptions, ExecException } from 'child_process'
+
+// Définir les mocks avant d'importer quoi que ce soit
+vi.mock('child_process', () => ({
+  exec: vi.fn()
+}))
+
+vi.mock('util', () => ({
+  promisify: vi.fn().mockImplementation((fn) => fn)
+}))
+
+// Importer après avoir configuré les mocks
 import { cloneRepository } from '../src/repo-utils.ts'
 import * as childProcess from 'child_process'
 
-// Mock the execAsync function to test URL transformation with tokens
-vi.mock('child_process', () => {
-  return {
-    exec: vi.fn((command, options, callback) => {
-      if (callback) {
-        callback(null, { stdout: '', stderr: '' })
-      }
-      return {
-        stdout: '',
-        stderr: ''
-      }
-    })
-  }
-})
-
-vi.mock('util', () => {
-  return {
-    promisify: vi.fn().mockImplementation((fn) => {
-      return fn
-    })
-  }
-})
+/**
+ * Type exact pour la fonction callback d'exec
+ */
+type ExecCallback = (
+  error: ExecException | null,
+  stdout: string,
+  stderr: string
+) => void
 
 describe('Private Repository Support', () => {
-  const mockExec = vi.spyOn(childProcess, 'exec')
+  const mockExec = vi.mocked(childProcess.exec)
 
   beforeEach(() => {
-    mockExec.mockClear()
+    // Reset the mock implementation for each test
+    mockExec.mockReset()
+
+    /**
+     * Implémentation du mock qui respecte le format de l'API Node.js
+     * en utilisant un cast nécessaire mais explicite
+     */
+    mockExec.mockImplementation(
+      (
+        command: string,
+        optionsOrCallback?: ExecOptions | ExecCallback,
+        callback?: ExecCallback
+      ) => {
+        // Gérer le cas où options est en fait le callback
+        if (typeof optionsOrCallback === 'function') {
+          callback = optionsOrCallback
+        }
+
+        // Appeler le callback si fourni
+        if (callback && typeof callback === 'function') {
+          callback(null, '', '')
+        }
+
+        // Retourner un objet minimal qui simule un ChildProcess
+        // Le cast est nécessaire ici car nous ne pouvons pas implémenter
+        // toutes les propriétés de ChildProcess dans ce contexte de test
+        return {
+          stdout: { on: vi.fn(), pipe: vi.fn() },
+          stderr: { on: vi.fn(), pipe: vi.fn() },
+          stdin: { on: vi.fn(), pipe: vi.fn() }
+        } as unknown as ChildProcess
+      }
+    )
   })
 
   afterEach(() => {

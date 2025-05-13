@@ -20,7 +20,8 @@
     "@anthropic-ai/sdk": "^0.40.0",
     "dotenv": "^16.4.7",
     "handlebars": "^4.7.8",
-    "probot": "^13.4.3"
+    "probot": "^13.4.3",
+    "zod": "^3.24.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
