@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/SocialGouv/revu/compare/v1.4.2...v1.5.0) (2025-05-13)
+
+
+### Features
+
+* Add line-specific comments functionality ([#21](https://github.com/SocialGouv/revu/issues/21)) ([5a75a6c](https://github.com/SocialGouv/revu/commit/5a75a6c3dd4121ba07cd7c285cf5000459798023))
+
 ## [1.4.2](https://github.com/SocialGouv/revu/compare/v1.4.1...v1.4.2) (2025-04-28)
 
 
