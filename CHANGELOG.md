@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/SocialGouv/revu/compare/v1.5.0...v1.6.0) (2025-05-13)
+
+
+### Features
+
+* **config:** Add .revu.yml config file and its loader ([5d0704d](https://github.com/SocialGouv/revu/commit/5d0704da29d71afbcff60e49b9d4c58eb6209395))
+
 # [1.5.0](https://github.com/SocialGouv/revu/compare/v1.4.2...v1.5.0) (2025-05-13)
 
 
