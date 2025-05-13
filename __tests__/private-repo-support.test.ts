@@ -1,35 +1,39 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { cloneRepository } from '../src/repo-utils.ts'
-import * as childProcess from 'child_process'
 
-// Mock the execAsync function to test URL transformation with tokens
+// Le mock doit être déclaré avant les imports
 vi.mock('child_process', () => {
   return {
-    exec: vi.fn((command, options, callback) => {
-      if (callback) {
-        callback(null, { stdout: '', stderr: '' })
-      }
-      return {
-        stdout: '',
-        stderr: ''
-      }
-    })
+    exec: vi.fn()
   }
 })
 
 vi.mock('util', () => {
   return {
     promisify: vi.fn().mockImplementation((fn) => {
-      return fn
+      return fn // Retourne simplement la fonction d'origine
     })
   }
 })
 
+// Importer après avoir configuré les mocks
+import { cloneRepository } from '../src/repo-utils.ts'
+import * as childProcess from 'child_process'
+
 describe('Private Repository Support', () => {
-  const mockExec = vi.spyOn(childProcess, 'exec')
+  // Récupérer le mock après l'import
+  const mockExec = vi.mocked(childProcess.exec)
 
   beforeEach(() => {
-    mockExec.mockClear()
+    // Configurer le mock avant chaque test
+    mockExec.mockImplementation((command, options, callback) => {
+      if (callback) {
+        callback(null, { stdout: '', stderr: '' })
+      }
+      return {
+        stdout: { on: vi.fn(), pipe: vi.fn() },
+        stderr: { on: vi.fn(), pipe: vi.fn() }
+      }
+    })
   })
 
   afterEach(() => {
