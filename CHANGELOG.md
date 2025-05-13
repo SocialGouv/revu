@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/SocialGouv/revu/compare/v1.7.1...v1.7.2) (2025-05-13)
+
+
+### Bug Fixes
+
+* dockerfile ([6c6f1ca](https://github.com/SocialGouv/revu/commit/6c6f1ca02ad2a1c6be51911cf76ff2de28634b19))
+
 ## [1.7.1](https://github.com/SocialGouv/revu/compare/v1.7.0...v1.7.1) (2025-05-13)
 
 
