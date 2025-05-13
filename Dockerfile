@@ -16,13 +16,17 @@ RUN apt-get update && \
 
 # Create app directory and set ownership
 WORKDIR /app
-RUN chown 1001:1001 /app
+
+# Copy package files and Yarn configuration, including the .yarn directory
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn .yarn/
+
+# Setup permissions
+RUN chmod -R 755 .yarn && \
+    chown -R 1001:1001 /app
 
 # Switch to non-root user
 USER 1001:1001
-
-# Copy package files
-COPY --chown=1001:1001 package.json yarn.lock ./
 
 # Install dependencies
 RUN yarn install
