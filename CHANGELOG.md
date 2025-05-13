@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/SocialGouv/revu/compare/v1.7.0...v1.7.1) (2025-05-13)
+
+
+### Bug Fixes
+
+* remove packageManager ([a7f6c3b](https://github.com/SocialGouv/revu/commit/a7f6c3b34fbfee01a2830d984612c298a3325ec9))
+
 # [1.7.0](https://github.com/SocialGouv/revu/compare/v1.6.0...v1.7.0) (2025-05-13)
 
 
