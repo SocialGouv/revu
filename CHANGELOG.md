@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/SocialGouv/revu/compare/v1.6.0...v1.7.0) (2025-05-13)
+
+
+### Features
+
+* **config:** Add support for coding guidelines from config in modified-files ([5273de5](https://github.com/SocialGouv/revu/commit/5273de58cd4e3d8741e8298788c898bbbed50bd8))
+
 # [1.6.0](https://github.com/SocialGouv/revu/compare/v1.5.0...v1.6.0) (2025-05-13)
 
 
