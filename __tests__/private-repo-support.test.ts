@@ -1,39 +1,54 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 
-// Le mock doit être déclaré avant les imports
-vi.mock('child_process', () => {
-  return {
-    exec: vi.fn()
-  }
-})
+// Définir les mocks avant d'importer quoi que ce soit
+vi.mock('child_process', () => ({
+  exec: vi.fn()
+}))
 
-vi.mock('util', () => {
-  return {
-    promisify: vi.fn().mockImplementation((fn) => {
-      return fn // Retourne simplement la fonction d'origine
-    })
-  }
-})
+vi.mock('util', () => ({
+  promisify: vi.fn().mockImplementation((fn) => fn)
+}))
 
 // Importer après avoir configuré les mocks
 import { cloneRepository } from '../src/repo-utils.ts'
 import * as childProcess from 'child_process'
 
+// Type de callback simplifié pour les tests
+type ExecCallback = (
+  error: Error | null,
+  stdout: string,
+  stderr: string
+) => void
+
 describe('Private Repository Support', () => {
-  // Récupérer le mock après l'import
   const mockExec = vi.mocked(childProcess.exec)
 
   beforeEach(() => {
-    // Configurer le mock avant chaque test
-    mockExec.mockImplementation((command, options, callback) => {
-      if (callback) {
-        callback(null, { stdout: '', stderr: '' })
+    // Reset the mock implementation for each test
+    mockExec.mockReset()
+
+    // Implémentation du mock avec des types plus génériques
+    // @ts-expect-error - Le mock ne retourne pas un ChildProcess complet, mais c'est suffisant pour nos tests
+    mockExec.mockImplementation(
+      (command: string, options?: unknown, callback?: unknown) => {
+        // Handle case where options is actually the callback
+        if (typeof options === 'function') {
+          callback = options
+        }
+
+        // Call the callback if provided
+        if (callback && typeof callback === 'function') {
+          ;(callback as ExecCallback)(null, '', '')
+        }
+
+        // Retourner un objet simple qui simule le minimum nécessaire
+        return {
+          stdout: { on: vi.fn(), pipe: vi.fn() },
+          stderr: { on: vi.fn(), pipe: vi.fn() },
+          stdin: { on: vi.fn(), pipe: vi.fn() }
+        }
       }
-      return {
-        stdout: { on: vi.fn(), pipe: vi.fn() },
-        stderr: { on: vi.fn(), pipe: vi.fn() }
-      }
-    })
+    )
   })
 
   afterEach(() => {
