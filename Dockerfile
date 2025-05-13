@@ -1,5 +1,5 @@
 # Single stage build
-FROM node:23.7.0-slim
+FROM node:23.11.0-slim
 
 # Create non-root user with explicit IDs
 RUN groupadd -g 1001 nonroot && \
