@@ -14,7 +14,7 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "prepare": "husky",
-    "lint": "eslint \"**/*.ts\""
+    "lint": "eslint --config eslint.config.mjs \"**/*.ts\" --fix"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",
