@@ -21,9 +21,29 @@ export async function getFilesContent(
       result[filePath] = content
     } catch (error) {
       console.error(`Error reading file ${filePath}:`, error)
-      result[filePath] = `Error reading file: ${error}`
     }
   }
 
   return result
+}
+
+/**
+ * Extracts modified file paths from the git diff.
+ *
+ * @param diff - Git diff output
+ * @returns Array of modified file paths
+ */
+export function extractModifiedFilePaths(diff: string): string[] {
+  const modifiedFiles = new Set<string>()
+
+  // Regular expression to match file paths in diff
+  const filePathRegex = /^diff --git a\/(.*?) b\/(.*?)$/gm
+  let match
+
+  while ((match = filePathRegex.exec(diff)) !== null) {
+    // Use the 'b' path (new file path)
+    modifiedFiles.add(match[2])
+  }
+
+  return Array.from(modifiedFiles)
 }

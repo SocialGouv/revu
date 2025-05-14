@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'
 import Handlebars from 'handlebars'
 import * as path from 'path'
 import { extractDiffFromRepo } from '../extract-diff.ts'
-import { getFilesContent } from '../file-utils.ts'
+import { extractModifiedFilePaths, getFilesContent } from '../file-utils.ts'
 import { cleanUpRepository, prepareRepository } from '../repo-utils.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
@@ -66,25 +66,4 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
   })
 
   return result
-}
-
-/**
- * Extracts modified file paths from the git diff.
- *
- * @param diff - Git diff output
- * @returns Array of modified file paths
- */
-function extractModifiedFilePaths(diff: string): string[] {
-  const modifiedFiles = new Set<string>()
-
-  // Regular expression to match file paths in diff
-  const filePathRegex = /^diff --git a\/(.*?) b\/(.*?)$/gm
-  let match
-
-  while ((match = filePathRegex.exec(diff)) !== null) {
-    // Use the 'b' path (new file path)
-    modifiedFiles.add(match[2])
-  }
-
-  return Array.from(modifiedFiles)
 }

@@ -3,7 +3,7 @@ import Handlebars from 'handlebars'
 import * as path from 'path'
 import { getCodingGuidelines } from '../config-handler.ts'
 import { extractDiffFromRepo } from '../extract-diff.ts'
-import { getFilesContent } from '../file-utils.ts'
+import { extractModifiedFilePaths, getFilesContent } from '../file-utils.ts'
 import { cleanUpRepository, prepareRepository } from '../repo-utils.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
@@ -39,7 +39,7 @@ export const modifiedFilesPromptStrategy: PromptStrategy = async (
   // Extract repository name from URL (keeping for clarity)
   // const repoName = repositoryUrl.split('/').pop()?.replace('.git', '') || ''
 
-  // Extract modified file paths from the diff
+  // Extract modified file paths from the diff (excluding deleted files)
   const modifiedFiles = extractModifiedFilePaths(diff)
 
   // Get content of modified files - use repoPath where the files actually are
@@ -72,25 +72,4 @@ export const modifiedFilesPromptStrategy: PromptStrategy = async (
   })
 
   return result
-}
-
-/**
- * Extracts modified file paths from the git diff.
- *
- * @param diff - Git diff output
- * @returns Array of modified file paths
- */
-function extractModifiedFilePaths(diff: string): string[] {
-  const modifiedFiles = new Set<string>()
-
-  // Regular expression to match file paths in diff
-  const filePathRegex = /^diff --git a\/(.*?) b\/(.*?)$/gm
-  let match
-
-  while ((match = filePathRegex.exec(diff)) !== null) {
-    // Use the 'b' path (new file path)
-    modifiedFiles.add(match[2])
-  }
-
-  return Array.from(modifiedFiles)
 }
