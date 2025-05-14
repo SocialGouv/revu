@@ -3,6 +3,7 @@ import Handlebars from 'handlebars'
 import * as path from 'path'
 import { getCodingGuidelines } from '../config-handler.ts'
 import { extractDiffFromRepo } from '../extract-diff.ts'
+import { getFilesContent } from '../file-utils.ts'
 import { cleanUpRepository, prepareRepository } from '../repo-utils.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
@@ -92,31 +93,4 @@ function extractModifiedFilePaths(diff: string): string[] {
   }
 
   return Array.from(modifiedFiles)
-}
-
-/**
- * Gets content of modified files.
- *
- * @param filePaths - Array of file paths
- * @param repoPath - Absolute path to the repository
- * @returns Object mapping file paths to their content
- */
-async function getFilesContent(
-  filePaths: string[],
-  repoPath: string
-): Promise<Record<string, string>> {
-  const result: Record<string, string> = {}
-
-  for (const filePath of filePaths) {
-    try {
-      const fullPath = path.join(repoPath, filePath)
-      const content = await fs.readFile(fullPath, 'utf-8')
-      result[filePath] = content
-    } catch (error) {
-      console.error(`Error reading file ${filePath}:`, error)
-      result[filePath] = `Error reading file: ${error}`
-    }
-  }
-
-  return result
 }
