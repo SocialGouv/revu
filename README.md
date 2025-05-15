@@ -36,6 +36,39 @@ graph TD
    - Sends to Claude for intelligent analysis
 4. **Feedback**: Posts detailed review comments on the PR
 
+## CLI Usage for Testing
+
+For testing purposes, you can review closed PRs without waiting for PR events using the CLI:
+
+```bash
+# Install dependencies
+yarn install
+
+# Review a PR by URL (prints analysis to console only)
+yarn review-pr https://github.com/owner/repo/pull/123
+
+# Specify a different review strategy
+yarn review-pr https://github.com/owner/repo/pull/123 --strategy line-comments
+
+# Submit comments to GitHub after analysis
+yarn review-pr https://github.com/owner/repo/pull/123 --submit
+
+# Specify a different review strategy
+yarn review-pr https://github.com/owner/repo/pull/123 --strategy line-comments
+```
+
+### Authentication for Private Repositories
+
+To review private repositories, you need to set up GitHub App (Revu) authentication:
+
+1. Set the following environment variables:
+   - `APP_ID`: Your GitHub App ID
+   - `PRIVATE_KEY`: Revu's private key (including BEGIN/END markers)
+
+2. Make sure your Revu is installed on the repositories you want to review
+
+By default, the CLI will output the analysis results to the console only, making it easy to test and debug the review process. When the `--submit` flag is provided, it will also post comments to GitHub using the appropriate comment handler based on the strategy.
+
 ## Setup and Installation
 
 ### Prerequisites and Installation
