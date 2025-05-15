@@ -1,3 +1,10 @@
+## [1.7.3](https://github.com/SocialGouv/revu/compare/v1.7.2...v1.7.3) (2025-05-15)
+
+
+### Bug Fixes
+
+* **line-comments:** Prioritize returning tool_use result ([#41](https://github.com/SocialGouv/revu/issues/41)) ([cf45eb3](https://github.com/SocialGouv/revu/commit/cf45eb36ee6189c2e1b676b4bd7760cb0fc376bc))
+
 ## [1.7.2](https://github.com/SocialGouv/revu/compare/v1.7.1...v1.7.2) (2025-05-13)
 
 
