@@ -19,8 +19,9 @@ export async function getFilesContent(
       const fullPath = path.join(repoPath, filePath)
       const content = await fs.readFile(fullPath, 'utf-8')
       result[filePath] = content
-    } catch (error) {
-      console.error(`Error reading file ${filePath}:`, error)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_error) {
+      continue // Ignore errors for individual files
     }
   }
 

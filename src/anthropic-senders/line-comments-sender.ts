@@ -80,6 +80,8 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
     ]
   })
 
+  let fallbackResult = ''
+
   // Extract response from tool use
   // Find content blocks that are tool_use type
   for (const content of message.content) {
@@ -101,15 +103,15 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
           // const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/)
           const jsonMatch = text.match(/```json\n([\s\S]{1,10000}?)\n```/)
           if (jsonMatch && jsonMatch[1]) {
-            return jsonMatch[1].trim()
+            fallbackResult = jsonMatch[1].trim()
           }
           // If the whole response is potentially JSON
           if (text.trim().startsWith('{') && text.trim().endsWith('}')) {
-            return text
+            fallbackResult = text
           }
 
           // Just return the text as is
-          return text
+          fallbackResult = text
         } catch {
           // Silent catch - continue to next content block or error
         }
@@ -117,5 +119,9 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
     }
   }
 
+  if (fallbackResult) {
+    // If we have a fallback result, return it
+    return fallbackResult
+  }
   throw new Error('Unexpected response format from Anthropic')
 }

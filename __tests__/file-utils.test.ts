@@ -47,11 +47,6 @@ describe('getFilesContent', () => {
   })
 
   it('should handle file read errors', async () => {
-    // Mock console.error to prevent test output pollution
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {})
-
     // Mock implementation with error
     vi.mocked(fs.readFile).mockImplementation((filePath) => {
       if (String(filePath).includes('file1.txt')) {
@@ -65,12 +60,6 @@ describe('getFilesContent', () => {
 
     // Verify results
     expect(result['file1.txt']).toBe('content of file1')
-
-    // Verify console.error was called
-    expect(consoleErrorSpy).toHaveBeenCalledTimes(1)
-
-    // Restore console.error
-    consoleErrorSpy.mockRestore()
   })
 })
 
