@@ -1,5 +1,6 @@
 import { type Context } from 'probot'
 import { z } from 'zod'
+import { fetchPrDiff } from '../extract-diff.ts'
 import {
   globalCommentHandler,
   upsertComment
@@ -125,12 +126,16 @@ export async function lineCommentsHandler(
     })
     const commitSha = pullRequest.head.sha
 
+    // Fetch PR diff to identify changed lines
+    const diffMap = await fetchPrDiff(context, prNumber)
+
     // Get existing review comments
     const existingComments = await findExistingComments(context, prNumber)
 
     // Track created/updated comments
     let createdCount = 0
     let updatedCount = 0
+    let skippedCount = 0
 
     // Process each comment
     for (const comment of parsedAnalysis.comments) {
@@ -161,6 +166,16 @@ export async function lineCommentsHandler(
         })
         updatedCount++
       } else {
+        // Check if the file and line are part of the diff
+        const fileInfo = diffMap.get(comment.path)
+        if (!fileInfo || !fileInfo.changedLines.has(comment.line)) {
+          console.log(
+            `Skipping comment on ${comment.path}:${comment.line} - not part of the diff`
+          )
+          skippedCount++
+          continue
+        }
+
         // Create new comment
         await context.octokit.pulls.createReviewComment({
           ...repo,
@@ -174,7 +189,7 @@ export async function lineCommentsHandler(
       }
     }
 
-    return `PR #${prNumber}: Created ${createdCount} and updated ${updatedCount} line comments`
+    return `PR #${prNumber}: Created ${createdCount}, updated ${updatedCount}, and skipped ${skippedCount} line comments`
   } catch (error) {
     // In case of error, fall back to the global comment handler
     console.error(

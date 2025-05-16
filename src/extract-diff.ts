@@ -1,22 +1,16 @@
 import { exec } from 'child_process'
-import * as fs from 'fs/promises'
-import * as os from 'os'
-import * as path from 'path'
+import { type Context } from 'probot'
 import { promisify } from 'util'
-import { cloneRepository } from './repo-utils.ts'
 
 const execAsync = promisify(exec)
-
-interface ExtractDiffOptions {
-  repositoryUrl: string
-  branch: string
-  tempFolder?: string
-  token?: string
-}
 
 interface ExtractDiffFromRepoOptions {
   branch: string
   repoPath: string
+}
+
+interface DiffInfo {
+  changedLines: Set<number> // Set of line numbers that were changed in the diff
 }
 
 /**
@@ -81,55 +75,95 @@ export async function extractDiffFromRepo({
   return stdout
 }
 
-// Keep original function for backward compatibility
 /**
- * Legacy function that extracts git diff from a GitHub repository.
- * Creates a temporary clone of the repository and delegates to extractDiffFromRepo.
- *
- * @param {Object} options - The options for diff extraction
- * @param {string} options.repositoryUrl - The URL of the GitHub repository
- * @param {string} options.branch - The branch to compare
- * @param {string} [options.tempFolder] - Optional temporary folder path for cloning
- * @param {string} [options.token] - Optional access token for authentication with private repos
- * @returns {Promise<string>} The git diff output
- * @throws {Error} If cloning or diff generation fails
- * @deprecated Use extractDiffFromRepo when repository is already cloned
+ * Fetches the diff for a PR and parses it to identify changed lines
+ * @param context GitHub API context
+ * @param prNumber PR number
+ * @returns Map of file paths to their diff information
  */
-export async function extractDiff({
-  repositoryUrl,
-  branch,
-  tempFolder = path.join(os.tmpdir(), 'revu-diff-' + Date.now()),
-  token
-}: ExtractDiffOptions): Promise<string> {
-  try {
-    // Create temporary directory
-    await fs.mkdir(tempFolder, { recursive: true })
+export async function fetchPrDiff(
+  context: Context,
+  prNumber: number
+): Promise<Map<string, DiffInfo>> {
+  const repo = context.repo()
 
-    // Clone the repository with the centralized function
-    await cloneRepository({
-      repositoryUrl,
-      destination: tempFolder,
-      token
-    })
+  // Fetch the PR diff with the 'application/vnd.github.v3.diff' media type
+  const response = await context.octokit.request(
+    'GET /repos/{owner}/{repo}/pulls/{pull_number}',
+    {
+      ...repo,
+      pull_number: prNumber,
+      headers: {
+        accept: 'application/vnd.github.v3.diff'
+      }
+    }
+  )
 
-    // Extract diff using the new function
-    const diff = await extractDiffFromRepo({
-      branch,
-      repoPath: tempFolder
-    })
+  // The response will be a string when using the diff media type
+  const diffText = response.data as unknown as string
 
-    // Clean up
-    await fs.rm(tempFolder, { recursive: true, force: true })
+  // Parse the diff to extract changed lines
+  return parseDiff(diffText)
+}
 
-    return diff
-  } catch (error) {
-    // Clean up on error
-    try {
-      await fs.rm(tempFolder, { recursive: true, force: true })
-    } catch (cleanupError) {
-      console.error('Error during cleanup:', cleanupError)
+/**
+ * Parses a git diff to extract changed lines and their hunks
+ * @param diff Git diff string
+ * @returns Map of file paths to their diff information
+ */
+function parseDiff(diff: string): Map<string, DiffInfo> {
+  const fileMap = new Map<string, DiffInfo>()
+
+  // Split the diff into file sections
+  const fileSections = diff.split('diff --git ')
+
+  for (let i = 1; i < fileSections.length; i++) {
+    const section = fileSections[i]
+
+    // Extract file path
+    const filePathMatch = section.match(/a\/(.+?) b\//)
+    if (!filePathMatch) continue
+
+    const filePath = filePathMatch[1]
+    const changedLines = new Set<number>()
+
+    // Extract hunks
+    const hunks = section.split('\n@@').slice(1)
+
+    for (const hunk of hunks) {
+      // Extract hunk header
+      const hunkHeaderMatch = hunk.match(/^[ -+](-\d+,\d+ \+\d+,\d+) @@/)
+      if (!hunkHeaderMatch) continue
+
+      // Split hunk into lines
+      const lines = hunk.split('\n')
+      let lineNumber = parseInt(
+        hunkHeaderMatch[1].match(/\+(\d+)/)?.[1] || '0',
+        10
+      )
+
+      // Process each line in the hunk
+      for (let j = 1; j < lines.length; j++) {
+        const line = lines[j]
+
+        // Skip removed lines (they don't exist in the new file)
+        if (line.startsWith('-')) continue
+
+        // For added lines, track the line number
+        if (line.startsWith('+')) {
+          // This is an added/modified line
+          changedLines.add(lineNumber)
+        }
+
+        // Increment line number for context and added lines
+        if (line.startsWith('+') || !line.startsWith('-')) {
+          lineNumber++
+        }
+      }
     }
 
-    throw error
+    fileMap.set(filePath, { changedLines })
   }
+
+  return fileMap
 }
