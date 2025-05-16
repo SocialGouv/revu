@@ -33,14 +33,19 @@ export async function globalCommentHandler(
   context: Context,
   prNumber: number,
   analysis: string
-) {
+): Promise<string> {
   // Format the analysis with our marker
   const formattedAnalysis = `${COMMENT_MARKER}\n\n${analysis}`
 
   // Check if we already have an analysis comment
   const existingComment = await findExistingAnalysisComment(context, prNumber)
 
-  await upsertComment(context, existingComment, formattedAnalysis, prNumber)
+  return await upsertComment(
+    context,
+    existingComment,
+    formattedAnalysis,
+    prNumber
+  )
 }
 
 export async function upsertComment(

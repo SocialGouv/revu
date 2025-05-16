@@ -9,7 +9,7 @@ export type CommentHandler = (
   context: Context,
   prNumber: number,
   analysis: string
-) => Promise<string>
+) => Promise<string | void>
 
 /**
  * Gets the appropriate comment handler based on the strategy name.
