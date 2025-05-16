@@ -17,7 +17,7 @@
     "lint": "eslint --config eslint.config.mjs \"**/*.ts\" --fix"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.40.0",
+    "@anthropic-ai/sdk": "^0.51.0",
     "dotenv": "^16.4.7",
     "handlebars": "^4.7.8",
     "js-yaml": "^4.1.0",
