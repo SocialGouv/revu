@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/SocialGouv/revu/compare/v1.7.3...v1.8.0) (2025-05-16)
+
+
+### Features
+
+* **line-comments:** Skip comments on line outside of diff ([7cfce9c](https://github.com/SocialGouv/revu/commit/7cfce9cf2fa3bab83d792d1d75968f633025eb54))
+
 ## [1.7.3](https://github.com/SocialGouv/revu/compare/v1.7.2...v1.7.3) (2025-05-15)
 
 
