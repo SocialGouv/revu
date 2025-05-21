@@ -61,7 +61,7 @@ const CommentSchema = z.object({
   path: z.string(),
   line: z.number().int().positive(),
   body: z.string(),
-  suggestion: z.string().optional()
+  suggestion: z.string().optional().nullable()
 })
 
 const AnalysisSchema = z.object({
