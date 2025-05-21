@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/SocialGouv/revu/compare/v1.8.1...v1.9.0) (2025-05-21)
+
+
+### Features
+
+* Add review-pr CLI tool for local testing ([fb9f8d8](https://github.com/SocialGouv/revu/commit/fb9f8d8e05cf97b5e440ad96945ef039d8a9fa81))
+
 ## [1.8.1](https://github.com/SocialGouv/revu/compare/v1.8.0...v1.8.1) (2025-05-16)
 
 
