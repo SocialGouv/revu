@@ -2513,6 +2513,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"commander@npm:^14.0.0":
+  version: 14.0.0
+  resolution: "commander@npm:14.0.0"
+  checksum: 10c0/73c4babfa558077868d84522b11ef56834165d472b9e86a634cd4c3ae7fc72d59af6377d8878e06bd570fe8f3161eced3cbe383c38f7093272bb65bd242b595b
+  languageName: node
+  linkType: hard
+
 "concat-map@npm:0.0.1":
   version: 0.0.1
   resolution: "concat-map@npm:0.0.1"
@@ -5011,7 +5018,7 @@ __metadata:
     "@vitest/coverage-v8": "npm:^3.0.5"
     axios: "npm:^1.9.0"
     chalk: "npm:^5.3.0"
-    commander: "npm:^12.0.0"
+    commander: "npm:^14.0.0"
     dotenv: "npm:^16.4.7"
     eslint: "npm:^9.0.0"
     eslint-config-prettier: "npm:^10.0.1"
