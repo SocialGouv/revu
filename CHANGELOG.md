@@ -3694,6 +3694,14 @@
 * **deps:** update dependency @octokit/auth-app to v8 ([0bdf507](https://github.com/SocialGouv/revu/commit/0bdf507d23ebff6729150f9c779dfde94ccdc905))
 * **validation:** Make suggestion field nullable for comments ([b6a81b4](https://github.com/SocialGouv/revu/commit/b6a81b4bb02296d9b5400c4e425546cb753e9c14))
 
+## [1.9.2](https://github.com/SocialGouv/revu/compare/v1.9.1...v1.9.2) (2025-05-21)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @octokit/auth-app to v8 ([0bdf507](https://github.com/SocialGouv/revu/commit/0bdf507d23ebff6729150f9c779dfde94ccdc905))
+* **validation:** Make suggestion field nullable for comments ([b6a81b4](https://github.com/SocialGouv/revu/commit/b6a81b4bb02296d9b5400c4e425546cb753e9c14))
+
 ## [1.9.1](https://github.com/SocialGouv/revu/compare/v1.9.0...v1.9.1) (2025-05-21)
 
 
