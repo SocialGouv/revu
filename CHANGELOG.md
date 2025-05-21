@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/SocialGouv/revu/compare/v1.9.0...v1.9.1) (2025-05-21)
+
+
+### Bug Fixes
+
+* **deps:** update dependency commander to v14 ([c67fd2e](https://github.com/SocialGouv/revu/commit/c67fd2ec75a6814ae5e0126257cf6127053cf61a))
+
 # [1.9.0](https://github.com/SocialGouv/revu/compare/v1.8.1...v1.9.0) (2025-05-21)
 
 
