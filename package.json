@@ -18,7 +18,7 @@
     "review-pr": "tsx src/cli/review-pr.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.51.0",
+    "@anthropic-ai/sdk": "^0.54.0",
     "@octokit/auth-app": "^8.0.0",
     "@octokit/rest": "^22.0.0",
     "axios": "^1.9.0",
