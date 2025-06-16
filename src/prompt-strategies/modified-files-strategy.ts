@@ -3,7 +3,11 @@ import Handlebars from 'handlebars'
 import * as path from 'path'
 import { getCodingGuidelines } from '../config-handler.ts'
 import { extractDiffFromRepo } from '../extract-diff.ts'
-import { extractModifiedFilePaths, getFilesContent } from '../file-utils.ts'
+import {
+  extractModifiedFilePaths,
+  getFilesContent,
+  filterIgnoredFiles
+} from '../file-utils.ts'
 import { cleanUpRepository, prepareRepository } from '../repo-utils.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
@@ -42,8 +46,11 @@ export const modifiedFilesPromptStrategy: PromptStrategy = async (
   // Extract modified file paths from the diff (excluding deleted files)
   const modifiedFiles = extractModifiedFilePaths(diff)
 
+  // Filter out ignored files
+  const filteredFiles = await filterIgnoredFiles(modifiedFiles, repoPath)
+
   // Get content of modified files - use repoPath where the files actually are
-  const modifiedFilesContent = await getFilesContent(modifiedFiles, repoPath)
+  const modifiedFilesContent = await getFilesContent(filteredFiles, repoPath)
 
   await cleanUpRepository(repoPath)
 

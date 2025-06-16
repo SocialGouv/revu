@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
+import { getIgnoreInstance } from './ignore-utils.ts'
 
 /**
  * Gets content of files.
@@ -47,4 +48,27 @@ export function extractModifiedFilePaths(diff: string): string[] {
   }
 
   return Array.from(modifiedFiles)
+}
+
+/**
+ * Filters out files that match patterns in .revuignore.
+ * Uses the ignore library for robust gitignore-style pattern matching.
+ *
+ * @param filePaths - Array of file paths to filter
+ * @param repoPath - Path to the repository being reviewed
+ * @returns Promise resolving to filtered array of file paths
+ */
+export async function filterIgnoredFiles(
+  filePaths: string[],
+  repoPath: string
+): Promise<string[]> {
+  try {
+    const ig = await getIgnoreInstance(repoPath)
+    // Use the ignore library's filter method to remove ignored files
+    return ig.filter(filePaths)
+  } catch (error) {
+    console.warn(`Error filtering ignored files: ${error.message}`)
+    // Return original files if filtering fails
+    return filePaths
+  }
 }

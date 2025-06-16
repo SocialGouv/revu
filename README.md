@@ -250,6 +250,83 @@ The configuration supports:
 
 Guidelines are automatically included in code review comments to ensure consistent standards across your projects.
 
+## File Filtering with .revuignore
+
+Revu supports intelligent file filtering to exclude irrelevant files from code review analysis, improving both performance and review quality. This is accomplished through `.revuignore` files that work similarly to `.gitignore` files.
+
+### How It Works
+
+When analyzing a repository, Revu automatically filters out files that match patterns in `.revuignore` files before sending them to the AI for review. This ensures that:
+
+- Lock files (`yarn.lock`, `package-lock.json`) are ignored
+- Generated files (`dist/`, `build/`, `*.min.js`) are skipped
+- Dependencies (`node_modules/`) are excluded
+- Temporary and cache files are filtered out
+
+### Default Filtering
+
+Revu includes a comprehensive default `.revuignore` file that covers common patterns:
+
+```gitignore
+# Lock files
+*.lock
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+
+# Generated files
+dist/
+build/
+*.min.js
+*.map
+
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build artifacts
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Logs
+*.log
+logs/
+
+# Coverage reports
+coverage/
+*.lcov
+```
+
+### Custom Repository Filtering
+
+To customize file filtering for a specific repository, create a `.revuignore` file in the repository root
+
+### Priority System
+
+Revu prioritizes a repository's own `.revuignore` file over its built-in defaults when filtering files.
+
+### Best Practices
+
+1. **Include generated files**: Always exclude files that are automatically generated
+2. **Filter dependencies**: Exclude third-party code that doesn't need review
+3. **Skip build artifacts**: Don't review compiled or minified files
+4. **Exclude test fixtures**: Large test data files rarely need AI review
+5. **Document patterns**: Use comments to explain complex exclusion patterns
+
 ## Troubleshooting
 
 ### Common Issues
