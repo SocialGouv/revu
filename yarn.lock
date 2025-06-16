@@ -1843,21 +1843,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*":
-  version: 22.15.29
-  resolution: "@types/node@npm:22.15.29"
+"@types/node@npm:*, @types/node@npm:22.15.32":
+  version: 22.15.32
+  resolution: "@types/node@npm:22.15.32"
   dependencies:
     undici-types: "npm:~6.21.0"
-  checksum: 10c0/602cc88c6150780cd9b5b44604754e0ce13983ae876a538861d6ecfb1511dff289e5576fffd26c841cde2142418d4bb76e2a72a382b81c04557ccb17cff29e1d
-  languageName: node
-  linkType: hard
-
-"@types/node@npm:22.15.21":
-  version: 22.15.21
-  resolution: "@types/node@npm:22.15.21"
-  dependencies:
-    undici-types: "npm:~6.21.0"
-  checksum: 10c0/f092bbccda2131c2b2c8f720338080aa0ef1d928f5f1062c03954a4f7dafa7ee3ed29bc3e51bd4e2584473b3d943c637a2b39ad7174898970818270187cf10c1
+  checksum: 10c0/63a2fa52adf1134d1b3bee8b1862d4b8e4550fffc190551068d3d41a41d9e5c0c8f1cb81faa18767b260637360f662115c26c5e4e7718868ead40c4a57cbc0e3
   languageName: node
   linkType: hard
 
@@ -5106,7 +5097,7 @@ __metadata:
     "@octokit/auth-app": "npm:^8.0.0"
     "@octokit/rest": "npm:^21.1.1"
     "@types/js-yaml": "npm:^4.0.9"
-    "@types/node": "npm:22.15.21"
+    "@types/node": "npm:22.15.32"
     "@typescript-eslint/eslint-plugin": "npm:^8.24.1"
     "@typescript-eslint/parser": "npm:^8.24.1"
     "@vitest/coverage-v8": "npm:^3.0.5"
