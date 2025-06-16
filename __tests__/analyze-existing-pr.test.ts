@@ -16,11 +16,6 @@ describe('Analyze Existing PR', () => {
       branch
     })
 
-    // Log the analysis
-    console.log('PR Analysis Result:')
-    console.log('==================')
-    console.log(analysis)
-
     // Basic assertions
     expect(analysis).toBeDefined()
     expect(typeof analysis).toBe('string')

@@ -1,0 +1,45 @@
+# Default .revuignore file for revu
+# This file contains patterns for files that should be ignored during code review
+# Individual repositories can override this by creating their own .revuignore file
+
+# Lock files
+*.lock
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+
+# Generated files
+dist/
+build/
+*.min.js
+*.map
+
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build artifacts
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Logs
+*.log
+logs/
+
+# Coverage reports
+coverage/
+*.lcov
