@@ -2,9 +2,8 @@
 
 # Coding guidelines for code reviews
 codingGuidelines:
-  - "Test coverage: Critical code requires 100% test coverage; non-critical paths require 60% coverage."
   - "Naming: Use semantically significant names for functions, classes, and parameters."
-  - "Comments: Add comments only for complex code; simple code should be self-explanatory."
+  - "Comments: Add comments only for complex code; simple code should be self-explanatory if clean code principles are followed."
   - "Documentation: Public functions must have concise docstrings explaining purpose and return values."
 
 # Review settings (for future use)
