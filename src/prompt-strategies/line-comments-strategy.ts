@@ -1,11 +1,12 @@
 import * as fs from 'fs/promises'
 import Handlebars from 'handlebars'
 import * as path from 'path'
+import { getCodingGuidelines } from '../config-handler.ts'
 import { extractDiffFromRepo } from '../extract-diff.ts'
 import {
   extractModifiedFilePaths,
-  getFilesContent,
-  filterIgnoredFiles
+  filterIgnoredFiles,
+  getFilesContent
 } from '../file-utils.ts'
 import { cleanUpRepository, prepareRepository } from '../repo-utils.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
@@ -65,11 +66,20 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
   const repoName = repositoryUrl.split('/').pop()?.replace('.git', '') || ''
   const absolutePath = path.join(process.cwd(), repoName)
 
+  // Get coding guidelines from configuration
+  let codingGuidelines = ''
+  try {
+    codingGuidelines = await getCodingGuidelines(repoPath)
+  } catch (error) {
+    console.warn(`Failed to load coding guidelines: ${error.message}`)
+  }
+
   // Populate the template with the data
   const result = template({
     absolute_code_path: absolutePath,
     git_diff_branch: diff,
-    modified_files: modifiedFilesContent
+    modified_files: modifiedFilesContent,
+    coding_guidelines: codingGuidelines
   })
 
   return result
