@@ -23,6 +23,65 @@ function createCommentMarkerId(path: string, line: number): string {
 }
 
 /**
+ * Extracts the marker ID from a comment body
+ */
+function extractMarkerIdFromComment(commentBody: string): string | null {
+  const match = commentBody.match(
+    new RegExp(
+      `${COMMENT_MARKER_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(.+?)${COMMENT_MARKER_SUFFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`
+    )
+  )
+  return match ? match[1] : null
+}
+
+/**
+ * Cleans up obsolete comments that are no longer relevant in the current diff
+ */
+async function cleanupObsoleteComments(
+  context: Context,
+  prNumber: number,
+  diffMap: Map<string, { changedLines: Set<number> }>,
+  existingComments: Array<{ id: number; body: string; path?: string }>
+): Promise<number> {
+  const repo = context.repo()
+  let deletedCount = 0
+
+  for (const comment of existingComments) {
+    // Extract the marker ID from the comment
+    const markerId = extractMarkerIdFromComment(comment.body)
+    if (!markerId) {
+      continue // Skip comments without our marker format
+    }
+
+    // Parse the marker ID to get path and line
+    const [path, lineStr] = markerId.split(':')
+    const line = parseInt(lineStr, 10)
+
+    if (isNaN(line)) {
+      continue // Skip if we can't parse the line number
+    }
+
+    // Check if this line is still in the current diff
+    const fileInfo = diffMap.get(path)
+    if (!fileInfo || !fileInfo.changedLines.has(line)) {
+      try {
+        // Delete the obsolete comment
+        await context.octokit.pulls.deleteReviewComment({
+          ...repo,
+          comment_id: comment.id
+        })
+        deletedCount++
+      } catch (error) {
+        console.error(`Failed to delete comment ${comment.id}:`, error)
+        // Continue processing other comments even if one fails
+      }
+    }
+  }
+
+  return deletedCount
+}
+
+/**
  * Finds all existing review comments on a PR that have our marker
  */
 async function findExistingComments(context: Context, prNumber: number) {
@@ -132,6 +191,14 @@ export async function lineCommentsHandler(
     // Get existing review comments
     const existingComments = await findExistingComments(context, prNumber)
 
+    // Clean up obsolete comments first
+    const deletedCount = await cleanupObsoleteComments(
+      context,
+      prNumber,
+      diffMap,
+      existingComments
+    )
+
     // Track created/updated comments
     let createdCount = 0
     let updatedCount = 0
@@ -189,7 +256,7 @@ export async function lineCommentsHandler(
       }
     }
 
-    return `PR #${prNumber}: Created ${createdCount}, updated ${updatedCount}, and skipped ${skippedCount} line comments`
+    return `PR #${prNumber}: Created ${createdCount}, updated ${updatedCount}, deleted ${deletedCount}, and skipped ${skippedCount} line comments`
   } catch (error) {
     // In case of error, fall back to the global comment handler
     console.error(
