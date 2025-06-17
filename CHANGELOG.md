@@ -1728,6 +1728,16 @@
 * **deps:** update dependency @octokit/rest to v22 ([0fa4294](https://github.com/SocialGouv/revu/commit/0fa4294725441cba0a30a5de140b7ebf5af607a6))
 * **validation:** Make suggestion field nullable for comments ([b6a81b4](https://github.com/SocialGouv/revu/commit/b6a81b4bb02296d9b5400c4e425546cb753e9c14))
 
+## [1.9.2](https://github.com/SocialGouv/revu/compare/v1.9.1...v1.9.2) (2025-06-17)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @anthropic-ai/sdk to ^0.54.0 ([d08fc48](https://github.com/SocialGouv/revu/commit/d08fc48cd59642c5528afd0b36de97b7e3eeb785))
+* **deps:** update dependency @octokit/auth-app to v8 ([0bdf507](https://github.com/SocialGouv/revu/commit/0bdf507d23ebff6729150f9c779dfde94ccdc905))
+* **deps:** update dependency @octokit/rest to v22 ([0fa4294](https://github.com/SocialGouv/revu/commit/0fa4294725441cba0a30a5de140b7ebf5af607a6))
+* **validation:** Make suggestion field nullable for comments ([b6a81b4](https://github.com/SocialGouv/revu/commit/b6a81b4bb02296d9b5400c4e425546cb753e9c14))
+
 ## [1.9.2](https://github.com/SocialGouv/revu/compare/v1.9.1...v1.9.2) (2025-06-16)
 
 
