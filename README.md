@@ -52,9 +52,6 @@ yarn review-pr https://github.com/owner/repo/pull/123 --strategy line-comments
 
 # Submit comments to GitHub after analysis
 yarn review-pr https://github.com/owner/repo/pull/123 --submit
-
-# Specify a different review strategy
-yarn review-pr https://github.com/owner/repo/pull/123 --strategy line-comments
 ```
 
 ### Authentication for Private Repositories
@@ -154,69 +151,6 @@ docker run -d \
   revu
 ```
 
-## API Reference
-
-The API is organized in layers, with each function calling the next layer down:
-
-```mermaid
-graph TD
-    A[sendToAnthropic] --> B[populateTemplate]
-    B --> C[extractAll]
-    C --> D[extractCodebaseFromRepo]
-    C --> E[extractDiffFromRepo]
-    C --> F[extractLogFromRepo]
-```
-
-### Core Functions
-
-```typescript
-// Main entry point - initiates the review process
-sendToAnthropic({
-  repositoryUrl: string,  // GitHub repository URL
-  branch: string         // Branch to analyze
-}): Promise<string>      // Returns Claude's analysis
-
-// Combines repository data with template
-populateTemplate({
-  repositoryUrl: string,
-  branch: string,
-  templatePath?: string  // Default: templates/prompt.hbs
-}): Promise<string>
-
-// Coordinates data extraction
-extractAll({
-  repositoryUrl: string,
-  branch: string,
-  tempFolder?: string
-}): Promise<{
-  codebase: string,     // Processed repository content
-  diff: string,         // Git diff output
-  log: string          // Commit history
-}>
-```
-
-### Utility Functions
-
-```typescript
-// Extract and process repository content
-extractCodebaseFromRepo({
-  branch: string,
-  repoPath: string
-}): Promise<string>
-
-// Generate git diff against default branch
-extractDiffFromRepo({
-  branch: string,
-  repoPath: string
-}): Promise<string>
-
-// Get formatted commit history
-extractLogFromRepo({
-  branch: string,
-  repoPath: string
-}): Promise<string>
-```
-
 ### Configuration
 
 #### Model Configuration
@@ -233,7 +167,6 @@ Revu supports custom coding guidelines through a `.revu.yml` YAML configuration 
 ```yaml
 # .revu.yml file structure
 codingGuidelines:
-  - "Test coverage: Critical code requires 100% test coverage; non-critical paths require 60% coverage."
   - "Naming: Use semantically significant names for functions, classes, and parameters."
   - "Comments: Add comments only for complex code; simple code should be self-explanatory."
   - "Documentation: Public functions must have concise docstrings explaining purpose and return values."
