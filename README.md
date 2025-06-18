@@ -190,6 +190,7 @@ Requirements:
 | Variable            | Type   | Description                                                                |
 | ------------------- | ------ | -------------------------------------------------------------------------- |
 | `ANTHROPIC_API_KEY` | string | Your Anthropic API key for accessing Claude API                            |
+| `ANTHROPIC_MODEL`   | string | (Optional) Anthropic model to use (default: claude-sonnet-4-20250514)     |
 | `APP_ID`            | number | GitHub App ID obtained after registering the app                           |
 | `PRIVATE_KEY`       | string | RSA private key generated for the GitHub App (including BEGIN/END markers) |
 | `WEBHOOK_SECRET`    | string | Secret string used to verify GitHub webhook payloads                       |
@@ -234,10 +235,15 @@ docker run -d \
 
 #### Model Configuration
 
-- Model: Claude 3 Sonnet
+- Model: Claude Sonnet 4 (configurable via `ANTHROPIC_MODEL`)
+- Available models: 
+  - `claude-sonnet-4-20250514` (default, recommended)
+  - `claude-opus-4-20250514` (more powerful, higher cost)
+  - `claude-3-7-sonnet-latest` (legacy)
 - Max tokens: 4096
-- Temperature: 0.7
+- Temperature: 0 (deterministic for consistent code reviews)
 - Required env: `ANTHROPIC_API_KEY`
+- Optional env: `ANTHROPIC_MODEL`
 
 #### Coding Guidelines Configuration
 
