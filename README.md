@@ -10,6 +10,7 @@ Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent
 - **GitHub Integration**: Seamlessly integrates with GitHub's PR workflow
 - **Customizable**: Configurable through environment variables, templates, and coding guidelines
 - **Coding Guidelines**: Enforce custom coding standards through configuration
+- **Smart Comment Management**: Automatically cleans up obsolete comments to prevent accumulation across commits
 
 ## How It Works
 
@@ -35,6 +36,84 @@ graph TD
    - Combines data into a structured prompt
    - Sends to Claude for intelligent analysis
 4. **Feedback**: Posts detailed review comments on the PR
+
+## Smart Comment Management
+
+Revu features intelligent comment management that prevents comment accumulation across commits, ensuring PR pages remain fast and readable.
+
+### How It Works
+
+- **Automatic Cleanup**: When a new commit is pushed, Revu analyzes which existing comments are still relevant
+- **Diff-Based Logic**: Comments are only kept if they refer to lines that are still part of the current diff
+- **Safe Deletion**: Only removes comments created by Revu (identified by unique markers)
+- **Performance Optimization**: Prevents GitHub PR pages from becoming slow or unresponsive due to comment overload
+
+### Benefits
+
+- **Faster PR Pages**: No more slow-loading PR pages due to accumulated comments
+- **Relevant Feedback**: Only shows comments that are still applicable to the current code
+- **Clean Interface**: Maintains a clean, focused review experience
+- **Backward Compatible**: Existing functionality remains unchanged
+
+### Technical Details
+
+The cleanup process runs automatically before creating new comments and:
+
+1. Fetches all existing review comments with Revu markers
+2. Compares comment locations with the current diff
+3. Removes comments on lines no longer in the diff
+4. Preserves comments that are still relevant
+5. Reports cleanup actions in the response
+
+## Multi-line Comment Support
+
+Revu supports both single-line and multi-line code review comments, allowing for more contextual and precise feedback on code blocks.
+
+### Features
+
+- **Single-line Comments**: Target specific lines for focused feedback
+- **Multi-line Comments**: Span multiple consecutive lines for broader context
+- **Intelligent Validation**: Automatically validates that start_line ≤ line
+- **Smart Cleanup**: Multi-line comments are preserved only if ALL lines in the range are still in the diff
+- **GitHub Integration**: Uses GitHub's native multi-line comment API
+
+### Usage Examples
+
+#### Single-line Comment
+```json
+{
+  "path": "src/utils.ts",
+  "line": 42,
+  "body": "Consider using a more descriptive variable name here"
+}
+```
+
+#### Multi-line Comment
+```json
+{
+  "path": "src/auth.ts", 
+  "line": 25,
+  "start_line": 20,
+  "body": "This entire authentication block could be refactored into a separate function for better readability"
+}
+```
+
+### When to Use Multi-line Comments
+
+- **Code Blocks**: When feedback applies to an entire function, loop, or conditional block
+- **Related Lines**: When multiple consecutive lines share the same issue
+- **Contextual Feedback**: When the comment needs to reference the relationship between multiple lines
+- **Refactoring Suggestions**: When suggesting changes that affect a range of lines
+
+### Technical Implementation
+
+Multi-line comments use GitHub's review comment API with additional parameters:
+- `start_line`: The first line of the comment range
+- `line`: The last line of the comment range  
+- `side`: Set to 'RIGHT' for the new version of the file
+- `start_side`: Set to 'RIGHT' for consistency
+
+The cleanup system intelligently handles multi-line comments by checking that all lines in the range (start_line to line) are still present in the current diff before preserving the comment.
 
 ## CLI Usage for Testing
 

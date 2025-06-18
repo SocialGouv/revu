@@ -6,6 +6,7 @@ interface CodeReviewResponse {
   comments: Array<{
     path: string
     line: number
+    start_line?: number
     body: string
     suggestion?: string
   }>
@@ -59,7 +60,13 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
                   },
                   line: {
                     type: 'integer',
-                    description: 'Line number for the comment'
+                    description:
+                      'End line number for the comment (or single line if start_line not provided)'
+                  },
+                  start_line: {
+                    type: 'integer',
+                    description:
+                      'Start line number for multi-line comments (optional). Must be <= line.'
                   },
                   body: {
                     type: 'string',
