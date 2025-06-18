@@ -41,6 +41,9 @@ Absolute code path: {{absolute_code_path}}
 5. When using the "provide_code_review" tool, make sure to provide:
    - A comprehensive overall summary of the PR in the "summary" field
    - Multiple specific comments targeting different issues with accurate file paths and line numbers
+   - For single-line comments: use only the "line" parameter
+   - For multi-line comments: use both "start_line" and "line" parameters (start_line must be ≤ line)
+   - Use multi-line comments when your feedback applies to a range of consecutive lines
    - Detailed explanations in each comment's body
    - Code suggestions where appropriate
 

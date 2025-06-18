@@ -65,6 +65,56 @@ The cleanup process runs automatically before creating new comments and:
 4. Preserves comments that are still relevant
 5. Reports cleanup actions in the response
 
+## Multi-line Comment Support
+
+Revu supports both single-line and multi-line code review comments, allowing for more contextual and precise feedback on code blocks.
+
+### Features
+
+- **Single-line Comments**: Target specific lines for focused feedback
+- **Multi-line Comments**: Span multiple consecutive lines for broader context
+- **Intelligent Validation**: Automatically validates that start_line ≤ line
+- **Smart Cleanup**: Multi-line comments are preserved only if ALL lines in the range are still in the diff
+- **GitHub Integration**: Uses GitHub's native multi-line comment API
+
+### Usage Examples
+
+#### Single-line Comment
+```json
+{
+  "path": "src/utils.ts",
+  "line": 42,
+  "body": "Consider using a more descriptive variable name here"
+}
+```
+
+#### Multi-line Comment
+```json
+{
+  "path": "src/auth.ts", 
+  "line": 25,
+  "start_line": 20,
+  "body": "This entire authentication block could be refactored into a separate function for better readability"
+}
+```
+
+### When to Use Multi-line Comments
+
+- **Code Blocks**: When feedback applies to an entire function, loop, or conditional block
+- **Related Lines**: When multiple consecutive lines share the same issue
+- **Contextual Feedback**: When the comment needs to reference the relationship between multiple lines
+- **Refactoring Suggestions**: When suggesting changes that affect a range of lines
+
+### Technical Implementation
+
+Multi-line comments use GitHub's review comment API with additional parameters:
+- `start_line`: The first line of the comment range
+- `line`: The last line of the comment range  
+- `side`: Set to 'RIGHT' for the new version of the file
+- `start_side`: Set to 'RIGHT' for consistency
+
+The cleanup system intelligently handles multi-line comments by checking that all lines in the range (start_line to line) are still present in the current diff before preserving the comment.
+
 ## CLI Usage for Testing
 
 For testing purposes, you can review closed PRs without waiting for PR events using the CLI:
