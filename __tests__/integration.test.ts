@@ -4,6 +4,7 @@ import {
   addBotAsReviewer,
   isReviewRequestedForBot
 } from '../src/github/reviewer-utils.ts'
+import { createMockContextWithReviewers } from './utils/mock-context-factory.ts'
 
 describe('Integration Tests - On-Demand Reviews', () => {
   let mockContext: Context
@@ -12,58 +13,11 @@ describe('Integration Tests - On-Demand Reviews', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    mockRequestReviewers = vi.fn().mockResolvedValue({
-      data: {
-        requested_reviewers: [
-          {
-            login: 'revu-bot[bot]',
-            type: 'Bot'
-          }
-        ]
-      }
+    const mockContextResult = createMockContextWithReviewers({
+      withLogging: true
     })
-
-    mockContext = {
-      payload: {
-        pull_request: {
-          number: 123,
-          user: {
-            login: 'developer',
-            type: 'User'
-          },
-          requested_reviewers: []
-        },
-        repository: {
-          name: 'test-repo',
-          owner: {
-            login: 'test-owner'
-          }
-        },
-        installation: {
-          id: 12345
-        }
-      },
-      repo: () => ({
-        owner: 'test-owner',
-        repo: 'test-repo'
-      }),
-      octokit: {
-        apps: {
-          getAuthenticated: vi.fn().mockResolvedValue({
-            data: {
-              slug: 'revu-bot'
-            }
-          })
-        },
-        pulls: {
-          requestReviewers: mockRequestReviewers
-        }
-      },
-      log: {
-        info: vi.fn(),
-        error: vi.fn()
-      }
-    } as unknown as Context
+    mockContext = mockContextResult.context
+    mockRequestReviewers = mockContextResult.mockRequestReviewers
   })
 
   it('should add bot as reviewer on PR opened', async () => {

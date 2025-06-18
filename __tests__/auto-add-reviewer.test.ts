@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Context } from 'probot'
+import { createMockContextWithReviewers } from './utils/mock-context-factory.ts'
 
 describe('Auto Add Reviewer', () => {
   let mockContext: Context
@@ -8,54 +9,9 @@ describe('Auto Add Reviewer', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    mockRequestReviewers = vi.fn().mockResolvedValue({
-      data: {
-        requested_reviewers: [
-          {
-            login: 'revu-bot[bot]',
-            type: 'Bot'
-          }
-        ]
-      }
-    })
-
-    mockContext = {
-      payload: {
-        pull_request: {
-          number: 123,
-          user: {
-            login: 'developer',
-            type: 'User'
-          },
-          requested_reviewers: []
-        },
-        repository: {
-          name: 'test-repo',
-          owner: {
-            login: 'test-owner'
-          }
-        },
-        installation: {
-          id: 12345
-        }
-      },
-      repo: () => ({
-        owner: 'test-owner',
-        repo: 'test-repo'
-      }),
-      octokit: {
-        apps: {
-          getAuthenticated: vi.fn().mockResolvedValue({
-            data: {
-              slug: 'revu-bot'
-            }
-          })
-        },
-        pulls: {
-          requestReviewers: mockRequestReviewers
-        }
-      }
-    } as unknown as Context
+    const mockContextResult = createMockContextWithReviewers()
+    mockContext = mockContextResult.context
+    mockRequestReviewers = mockContextResult.mockRequestReviewers
   })
 
   it('should have the foundation for adding bot as reviewer', () => {
