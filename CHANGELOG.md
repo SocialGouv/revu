@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/SocialGouv/revu/compare/v1.10.0...v1.11.0) (2025-06-18)
+
+
+### Features
+
+* implement cleanup of obsolete comments in PR reviews ([#58](https://github.com/SocialGouv/revu/issues/58)) ([eb97b0c](https://github.com/SocialGouv/revu/commit/eb97b0c19faedb12259f67951c672932374451ef))
+
 # [1.10.0](https://github.com/SocialGouv/revu/compare/v1.9.1...v1.10.0) (2025-06-17)
 
 
