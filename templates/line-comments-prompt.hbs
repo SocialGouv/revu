@@ -65,8 +65,12 @@ Only comment on issues that fall into these categories (don't write down what th
 
 You MUST use the "provide_code_review" tool with:
 - A concise summary focusing on the most important aspects of the PR
-- Targeted line-specific comments for significant issues only
-- Each comment should include the problem, why it matters, and suggested solution
+- Each comment should include the problem, why it matters, and code suggestions where appropriate
+- Targeted comments for significant issues only
+- Multiple specific comments targeting different issues with accurate file paths and line numbers
+- Use multi-line comments when your feedback applies to a range of consecutive lines
+- For multi-line comments: use both "start_line" and "line" parameters (start_line must be ≤ line)
+- For single-line comments: use only the "line" parameter
 
 ## Important Notes
 
