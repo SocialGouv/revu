@@ -24,6 +24,40 @@ Absolute code path: {{absolute_code_path}}
 
 {{coding_guidelines}}
 
+## Test Quality Anti-Patterns - CRITICAL DETECTION
+
+When reviewing test files (*.test.ts, *.spec.ts, *.test.js), pay special attention to these CRITICAL anti-patterns:
+
+### 🚨 ALWAYS FLAG THESE ISSUES:
+
+1. **Mock-Only Tests (Useless Tests)**:
+   - Tests that redefine functions locally instead of importing them from source code
+   - Tests that only validate their own mock implementations
+   - Example: `const isValid = (x) => x === 'test'` defined in test instead of importing real function
+
+2. **Missing Source Imports**:
+   - Test files that don't import any actual source code from `../src/` or similar
+   - Tests that create their own implementations of business logic
+   - Mock factories that replace ALL real functionality
+
+3. **Circular Mock Testing**:
+   - Tests that mock a function and then test the mock behavior
+   - Validating mock calls without testing real code paths
+   - Example: `mockFn.mockReturnValue(true); expect(mockFn()).toBe(true)`
+
+4. **False Coverage Patterns**:
+   - Tests that appear to test functionality but only test test doubles
+   - Complex mock setups that bypass all real code execution
+   - Tests that pass regardless of source code changes
+
+### ✅ WHAT REAL TESTS SHOULD DO:
+- Import actual functions/classes from source code
+- Test real behavior, not mock behavior
+- Use mocks only for external dependencies (APIs, databases, etc.)
+- Fail when source code logic changes
+
+**PRIORITY**: Treat useless tests as CRITICAL bugs - they provide false confidence and zero protection against regressions.
+
 ## Review Instructions
 
 ### Comment Priority Levels
