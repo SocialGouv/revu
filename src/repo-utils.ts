@@ -1,3 +1,4 @@
+import { Octokit } from '@octokit/rest'
 import { exec } from 'child_process'
 import * as fs from 'fs/promises'
 import * as os from 'os'
@@ -98,5 +99,87 @@ export async function cleanUpRepository(repoPath: string): Promise<void> {
     await fs.rm(repoPath, { recursive: true, force: true })
   } catch (cleanupError) {
     console.error('Error during cleanup:', cleanupError)
+  }
+}
+
+/**
+ * Extracts issue numbers from PR description text
+ * Looks for patterns like: #123, fixes #123, https://github.com/owner/repo/issues/123
+ */
+export function extractIssueNumbers(text: string): number[] {
+  const issueNumbers: number[] = []
+
+  // Common patterns for referencing issues in GitHub
+  const patterns = [
+    // Direct references: #123
+    /#(\d+)/g,
+    // GitHub URLs: https://github.com/owner/repo/issues/123
+    /https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/(\d+)/g
+  ]
+
+  patterns.forEach((pattern) => {
+    let match
+    while ((match = pattern.exec(text)) !== null) {
+      const issueNumber = parseInt(match[1], 10)
+      if (!issueNumbers.includes(issueNumber)) {
+        issueNumbers.push(issueNumber)
+      }
+    }
+  })
+
+  return issueNumbers.sort((a, b) => a - b)
+}
+
+/**
+ * Interface for issue details
+ */
+export interface IssueDetails {
+  number: number
+  title: string
+  body: string | null
+  state: string
+  comments: Array<{
+    id: number
+    body: string
+  }>
+}
+
+/**
+ * Fetches issue details including title, description, and comments
+ */
+export async function fetchIssueDetails(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  issueNumber: number
+): Promise<IssueDetails | null> {
+  try {
+    // Fetch issue details
+    const { data: issue } = await octokit.rest.issues.get({
+      owner,
+      repo,
+      issue_number: issueNumber
+    })
+
+    // Fetch issue comments
+    const { data: comments } = await octokit.rest.issues.listComments({
+      owner,
+      repo,
+      issue_number: issueNumber
+    })
+
+    return {
+      number: issue.number,
+      title: issue.title,
+      body: issue.body,
+      state: issue.state,
+      comments: comments.map((comment) => ({
+        id: comment.id,
+        body: comment.body
+      }))
+    }
+  } catch (error) {
+    console.error(`Error fetching issue #${issueNumber}:`, error)
+    return null
   }
 }
