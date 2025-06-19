@@ -149,11 +149,32 @@ async function reviewPr(
 
     // Call sendToAnthropic
     console.log(chalk.yellow('Analyzing PR with Claude...'))
+
+    // Prepare context for prompt generation (includes PR body for issue extraction)
+    let body = null
+    try {
+      const prResponse = await octokit.rest.pulls.get({
+        owner,
+        repo,
+        pull_number: prNumber
+      })
+      body = prResponse.data.body
+    } catch (error) {
+      console.warn(chalk.yellow(`Could not fetch PR body: ${error.message}`))
+    }
+
+    const promptContext = {
+      prBody: body || undefined,
+      repoOwner: owner,
+      repoName: repo
+    }
+
     const analysis = await sendToAnthropic({
       repositoryUrl: repositoryUrl,
       branch: headBranch,
       token: token,
-      strategyName: strategyName
+      strategyName: strategyName,
+      context: promptContext
     })
 
     // Calculate elapsed time
