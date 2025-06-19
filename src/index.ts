@@ -6,12 +6,13 @@ import {
   getCommentHandler,
   errorCommentHandler
 } from './comment-handlers/index.ts'
-import { sendToAnthropic } from './send-to-anthropic.ts'
 import {
   addBotAsReviewer,
   getBotUsername,
   isReviewRequestedForBot
 } from './github/reviewer-utils.ts'
+import { sendToAnthropic } from './send-to-anthropic.ts'
+import type { PromptContext } from './prompt-strategies/prompt-strategy.ts'
 
 // Load environment variables
 config()
@@ -88,6 +89,7 @@ export default async (app: Probot, { getRouter }) => {
       pull_request: {
         number: number
         head: { ref: string }
+        body: string | null
       }
       installation: { id: number }
     }
@@ -111,13 +113,25 @@ export default async (app: Probot, { getRouter }) => {
         })
         .then((response) => response.data.token)
 
-      // Perform the complete review analysis
+      // Get the current strategy from configuration
+      const strategyName = await getStrategyNameFromConfig()
+
+      // Prepare context for prompt generation (includes PR body for issue extraction)
+      const promptContext = {
+        prBody: pr.body || undefined,
+        repoOwner: repo.owner,
+        repoName: repo.repo
+      }
+
+      // Perform the complete review analysis with context
       const result = await performReviewAnalysis(
         context,
         pr.number,
         repositoryUrl,
         branch,
-        installationAccessToken
+        installationAccessToken,
+        strategyName,
+        promptContext
       )
 
       app.log.info(result)
@@ -170,18 +184,20 @@ export default async (app: Probot, { getRouter }) => {
     repositoryUrl: string,
     branch: string,
     installationAccessToken: string,
-    strategyName?: string
+    strategyName?: string,
+    promptContext?: PromptContext
   ): Promise<string> {
     // Get the current strategy from configuration if not provided
     const finalStrategyName =
       strategyName || (await getStrategyNameFromConfig())
 
-    // Get the analysis from Anthropic
+    // Get the analysis from Anthropic with context
     const analysis = await sendToAnthropic({
       repositoryUrl,
       branch,
       token: installationAccessToken,
-      strategyName: finalStrategyName
+      strategyName: finalStrategyName,
+      context: promptContext
     })
 
     // Get the appropriate comment handler based on the strategy
