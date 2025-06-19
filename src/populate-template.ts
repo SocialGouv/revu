@@ -2,6 +2,7 @@ import {
   getStrategyByName,
   getStrategyFromConfig
 } from './prompt-strategies/index.ts'
+import type { PromptContext } from './prompt-strategies/prompt-strategy.ts'
 
 interface PopulateTemplateOptions {
   repositoryUrl: string
@@ -9,6 +10,7 @@ interface PopulateTemplateOptions {
   templatePath?: string
   token?: string
   strategyName?: string
+  context?: PromptContext
 }
 
 /**
@@ -26,6 +28,8 @@ interface PopulateTemplateOptions {
  * @param {string} options.branch - The branch to analyze
  * @param {string} [options.templatePath] - Optional path to the template file
  * @param {string} [options.token] - Optional GitHub access token for private repositories
+ * @param {string} [options.strategyName] - Optional strategy name to use
+ * @param {PromptContext} [options.context] - Optional additional context for prompt generation
  * @returns {Promise<string>} The populated template ready for Anthropic analysis
  * @throws {Error} If template reading or data extraction fails
  */
@@ -34,7 +38,8 @@ export async function populateTemplate({
   branch,
   templatePath,
   token,
-  strategyName
+  strategyName,
+  context
 }: PopulateTemplateOptions): Promise<string> {
   // Get the appropriate strategy based on provided strategy name or configuration
   const strategy = strategyName
@@ -42,5 +47,5 @@ export async function populateTemplate({
     : await getStrategyFromConfig()
 
   // Use the strategy to generate the prompt
-  return strategy(repositoryUrl, branch, templatePath, token)
+  return strategy(repositoryUrl, branch, templatePath, token, context)
 }
