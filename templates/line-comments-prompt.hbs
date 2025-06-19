@@ -33,6 +33,36 @@ Absolute code path: {{absolute_code_path}}
 
 **PRIORITY**: Treat useless tests as CRITICAL bugs - they provide false confidence and zero protection against regressions.
 
+{{#if related_issues}}
+---
+
+## Related Issues
+
+The following issues are referenced in this PR and provide important context for the code review:
+
+{{#each related_issues}}
+### Issue #{{number}}: {{title}}
+
+**Status:** {{state}}
+
+{{#if body}}
+**Description:**
+{{body}}
+{{/if}}
+
+{{#if comments}}
+{{#if comments.length}}
+**Comments:**
+{{#each comments}}
+- {{body}}
+{{/each}}
+{{/if}}
+{{/if}}
+---
+
+{{/each}}
+{{/if}}
+
 ## Review Instructions
 
 ### Comment Priority Levels
