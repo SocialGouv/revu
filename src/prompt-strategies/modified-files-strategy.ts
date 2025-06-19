@@ -9,7 +9,7 @@ import {
   filterIgnoredFiles
 } from '../file-utils.ts'
 import { cleanUpRepository, prepareRepository } from '../repo-utils.ts'
-import type { PromptStrategy } from './prompt-strategy.ts'
+import type { PromptStrategy, PromptContext } from './prompt-strategy.ts'
 
 /**
  * Modified files prompt generation strategy.
@@ -20,13 +20,15 @@ import type { PromptStrategy } from './prompt-strategy.ts'
  * @param branch - The branch to analyze
  * @param templatePath - Optional path to a custom template file
  * @param token - Optional GitHub access token for private repositories
+ * @param _context - Optional additional context (unused in modified-files strategy)
  * @returns A promise that resolves to the generated prompt string
  */
 export const modifiedFilesPromptStrategy: PromptStrategy = async (
   repositoryUrl: string,
   branch: string,
   templatePath?: string,
-  token?: string
+  token?: string,
+  _context?: PromptContext
 ): Promise<string> => {
   // Prepare the repository for extraction with authentication if needed
   const repoPath = await prepareRepository(

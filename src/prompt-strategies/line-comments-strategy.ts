@@ -8,8 +8,15 @@ import {
   filterIgnoredFiles,
   getFilesContent
 } from '../file-utils.ts'
-import { cleanUpRepository, prepareRepository } from '../repo-utils.ts'
-import type { PromptStrategy } from './prompt-strategy.ts'
+import { createGithubAppOctokit } from '../github/utils.ts'
+import {
+  cleanUpRepository,
+  extractIssueNumbers,
+  fetchIssueDetails,
+  prepareRepository,
+  type IssueDetails
+} from '../repo-utils.ts'
+import type { PromptContext, PromptStrategy } from './prompt-strategy.ts'
 
 /**
  * Line comments prompt generation strategy.
@@ -22,13 +29,15 @@ import type { PromptStrategy } from './prompt-strategy.ts'
  * @param branch - The branch to analyze
  * @param templatePath - Optional path to a custom template file
  * @param githubAccessToken - Optional GitHub access token for private repositories
+ * @param context - Optional additional context including PR information
  * @returns A promise that resolves to the generated prompt string
  */
 export const lineCommentsPromptStrategy: PromptStrategy = async (
   repositoryUrl: string,
   branch: string,
   templatePath?: string,
-  githubAccessToken?: string
+  githubAccessToken?: string,
+  context?: PromptContext
 ): Promise<string> => {
   // Prepare the repository for extraction with authentication if needed
   const repoPath = await prepareRepository(
@@ -74,12 +83,44 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
     console.warn(`Failed to load coding guidelines: ${error.message}`)
   }
 
+  // Fetch related issues if PR context is provided
+  const relatedIssues: IssueDetails[] = []
+  if (context?.prBody && context?.repoOwner && context?.repoName) {
+    try {
+      const issueNumbers = extractIssueNumbers(context.prBody)
+      if (issueNumbers.length > 0) {
+        console.log(`Found related issues: ${issueNumbers.join(', ')}`)
+
+        const octokit = await createGithubAppOctokit(
+          context.repoOwner,
+          context.repoName
+        )
+
+        for (const issueNumber of issueNumbers) {
+          const issueDetails = await fetchIssueDetails(
+            octokit,
+            context.repoOwner,
+            context.repoName,
+            issueNumber
+          )
+
+          if (issueDetails) {
+            relatedIssues.push(issueDetails)
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch related issues: ${error}`)
+    }
+  }
+
   // Populate the template with the data
   const result = template({
     absolute_code_path: absolutePath,
     git_diff_branch: diff,
     modified_files: modifiedFilesContent,
-    coding_guidelines: codingGuidelines
+    coding_guidelines: codingGuidelines,
+    related_issues: relatedIssues
   })
 
   return result

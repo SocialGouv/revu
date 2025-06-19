@@ -3,11 +3,11 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { Probot } from 'probot'
 import { getCommentHandler } from './comment-handlers/index.ts'
-import { sendToAnthropic } from './send-to-anthropic.ts'
 import {
   addBotAsReviewer,
   isReviewRequestedForBot
 } from './github/reviewer-utils.ts'
+import { sendToAnthropic } from './send-to-anthropic.ts'
 
 // Load environment variables
 config()
@@ -74,6 +74,7 @@ export default async (app: Probot, { getRouter }) => {
       pull_request: {
         number: number
         head: { ref: string }
+        body: string | null
       }
       installation: { id: number }
     }
@@ -100,13 +101,23 @@ export default async (app: Probot, { getRouter }) => {
       // Get the current strategy from configuration
       const strategyName = await getStrategyNameFromConfig()
 
+      // Prepare context for prompt generation (includes PR body for issue extraction)
+      const promptContext = {
+        prBody: pr.body || undefined,
+        repoOwner: repo.owner,
+        repoName: repo.repo
+      }
+
       // Get the analysis from Anthropic
       const analysis = await sendToAnthropic({
         repositoryUrl,
         branch,
         token: installationAccessToken,
-        strategyName
+        strategyName,
+        context: promptContext
       })
+
+      return
 
       // Get the appropriate comment handler based on the strategy
       const commentHandler = getCommentHandler(strategyName)
