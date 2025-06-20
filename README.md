@@ -4,6 +4,8 @@ Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent
 
 ## Features
 
+- **On-Demand Reviews**: Performs code review only when explicitly requested, giving developers control over when reviews happen
+- **Auto-Reviewer Assignment**: Automatically adds itself as a reviewer on new PRs for easy access
 - **Contextual Analysis**: Understands code changes in the context of the entire codebase
 - **Intelligent Feedback**: Provides detailed explanations and suggestions for improvements
 - **Git-Aware**: Considers commit history and branch differences
@@ -16,26 +18,38 @@ Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent
 
 ```mermaid
 graph TD
-    A[PR Created/Updated] --> B[Extract Data]
-    B --> C[Codebase Analysis]
-    B --> D[PR Diff]
-    B --> E[Git History]
-    C --> F[Generate Prompt]
-    D --> F
-    E --> F
-    F --> G[Claude Analysis]
-    G --> H[Post PR Comment]
+    A[PR Opened] --> B[Auto-Add Bot as Reviewer]
+    B --> C[Developer Requests Review]
+    C --> D[Extract Data]
+    D --> E[Codebase Analysis]
+    D --> F[PR Diff]
+    D --> G[Git History]
+    E --> H[Generate Prompt]
+    F --> H
+    G --> H
+    H --> I[Claude Analysis]
+    I --> J[Post PR Comment]
 ```
 
-1. **Trigger**: When a PR is opened or updated
-2. **Data Collection**:
+### On-Demand Review Workflow
+
+1. **PR Creation**: When a PR is opened, Revu automatically adds itself as a reviewer
+2. **Manual Trigger**: Developer clicks "Request review" button next to Revu in the PR interface
+3. **Data Collection**:
    - Extracts full codebase for context
    - Generates diff to focus on changes
    - Retrieves git history for background
-3. **Analysis**:
+4. **Analysis**:
    - Combines data into a structured prompt
    - Sends to Claude for intelligent analysis
-4. **Feedback**: Posts detailed review comments on the PR
+5. **Feedback**: Posts detailed review comments on the PR
+
+### Benefits of On-Demand Approach
+
+- **Developer Control**: Reviews happen only when requested, not on every commit
+- **Resource Efficiency**: Reduces API calls and computational overhead
+- **Better Timing**: Developers can request reviews when they're ready for feedback
+- **Clean GitHub Interface**: Bot appears as a normal reviewer in PR interface
 
 ## Smart Comment Management
 
@@ -177,13 +191,17 @@ Requirements:
    Permissions:
      - Pull requests: Read & write
      - Contents: Read
-   Events: Pull request
+   Events: 
+     - Pull request
+     - Pull request review
    ```
 
 3. Generate and save:
    - Private key
    - App ID
    - Webhook secret
+
+**Note**: The on-demand review feature requires both "Pull request" and "Pull request review" events to be enabled. This allows Revu to add itself as a reviewer when PRs are opened and to detect when reviews are requested.
 
 ### Environment Configuration
 
