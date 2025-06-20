@@ -24,6 +24,15 @@ Absolute code path: {{absolute_code_path}}
 
 {{coding_guidelines}}
 
+## Test Quality Anti-Patterns - CRITICAL DETECTION
+### ✅ WHAT REAL TESTS SHOULD DO:
+- Import actual functions/classes from source code
+- Test real behavior, not mock behavior
+- Use mocks only for external dependencies (APIs, databases, etc.)
+- Fail when source code logic changes
+
+**PRIORITY**: Treat useless tests as CRITICAL bugs - they provide false confidence and zero protection against regressions.
+
 ## Review Instructions
 
 ### Comment Priority Levels

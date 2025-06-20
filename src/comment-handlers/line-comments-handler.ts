@@ -1,10 +1,8 @@
 import { type Context } from 'probot'
 import { z } from 'zod'
 import { fetchPrDiff } from '../extract-diff.ts'
-import {
-  globalCommentHandler,
-  upsertComment
-} from './global-comment-handler.ts'
+import { upsertComment } from './global-comment-handler.ts'
+import { errorCommentHandler } from './error-comment-handler.ts'
 
 // Marker for the global summary comment
 const SUMMARY_MARKER = '<!-- REVU-AI-SUMMARY -->'
@@ -459,11 +457,15 @@ export async function lineCommentsHandler(
 
     return `PR #${prNumber}: Created ${createdCount}, updated ${updatedCount}, deleted ${deletedCount}, and skipped ${skippedCount} line comments`
   } catch (error) {
-    // In case of error, fall back to the global comment handler
+    // In case of error, fall back to the error comment handler
     console.error(
-      'Error parsing or creating line comments, falling back to global comment:',
+      'Error parsing or creating line comments, falling back to error comment:',
       error
     )
-    return globalCommentHandler(context, prNumber, analysis)
+    return errorCommentHandler(
+      context,
+      prNumber,
+      `Error processing line comments: ${error.message || String(error)}`
+    )
   }
 }

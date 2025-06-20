@@ -1,3 +1,24 @@
+# [1.14.0](https://github.com/SocialGouv/revu/compare/v1.13.0...v1.14.0) (2025-06-20)
+
+
+### Features
+
+* set model name as env variable ([#62](https://github.com/SocialGouv/revu/issues/62)) ([3b1747b](https://github.com/SocialGouv/revu/commit/3b1747b2da7bfd911df378a63cad77bd99076e48))
+
+# [1.13.0](https://github.com/SocialGouv/revu/compare/v1.12.0...v1.13.0) (2025-06-20)
+
+
+### Features
+
+* implement on-demand code reviews ([#77](https://github.com/SocialGouv/revu/issues/77)) ([1c1ee3f](https://github.com/SocialGouv/revu/commit/1c1ee3f79f9db27ab53418ef1fb30941a291ba7b))
+
+# [1.12.0](https://github.com/SocialGouv/revu/compare/v1.11.1...v1.12.0) (2025-06-20)
+
+
+### Features
+
+* Comment with an error and link to revu logs as fallback ([799aeb1](https://github.com/SocialGouv/revu/commit/799aeb1f4473693782df671d39245523122a4acc))
+
 ## [1.11.1](https://github.com/SocialGouv/revu/compare/v1.11.0...v1.11.1) (2025-06-20)
 
 
