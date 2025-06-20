@@ -30,66 +30,6 @@ export interface MockContextResult {
   mockRequestReviewers: ReturnType<typeof vi.fn>
 }
 
-export function createMockContext(options: MockContextOptions = {}): Context {
-  const {
-    prNumber = 123,
-    withLogging = false,
-    existingReviewers = [],
-    repoName = 'test-repo',
-    repoOwner = 'test-owner',
-    botSlug = 'revu-bot',
-    installationId = 12345,
-    prAuthor = { login: 'developer', type: 'User' }
-  } = options
-
-  const baseContext = {
-    payload: {
-      pull_request: {
-        number: prNumber,
-        user: prAuthor,
-        requested_reviewers: existingReviewers
-      },
-      repository: {
-        name: repoName,
-        owner: {
-          login: repoOwner
-        }
-      },
-      installation: {
-        id: installationId
-      }
-    },
-    repo: () => ({
-      owner: repoOwner,
-      repo: repoName
-    }),
-    octokit: {
-      apps: {
-        getAuthenticated: vi.fn().mockResolvedValue({
-          data: {
-            slug: botSlug
-          }
-        })
-      },
-      pulls: {
-        requestReviewers: createMockRequestReviewers()
-      }
-    }
-  }
-
-  if (withLogging) {
-    return {
-      ...baseContext,
-      log: {
-        info: vi.fn(),
-        error: vi.fn()
-      }
-    } as unknown as Context
-  }
-
-  return baseContext as unknown as Context
-}
-
 export function createMockContextWithReviewers(
   options: MockContextOptions = {}
 ): MockContextResult {
