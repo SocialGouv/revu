@@ -46,11 +46,13 @@ function extractMarkerIdFromComment(commentBody: string): string | null {
 async function cleanupObsoleteComments(
   context: Context,
   prNumber: number,
-  diffMap: Map<string, { changedLines: Set<number> }>,
-  existingComments: Array<{ id: number; body: string; path?: string }>
+  diffMap: Map<string, { changedLines: Set<number> }>
 ): Promise<number> {
   const repo = context.repo()
   let deletedCount = 0
+
+  // Get existing review comments
+  const existingComments = await findExistingComments(context, prNumber)
 
   for (const comment of existingComments) {
     // Extract the marker ID from the comment
@@ -147,6 +149,125 @@ async function findExistingSummaryComment(context: Context, prNumber: number) {
   return comments.find((comment) => comment.body.includes(SUMMARY_MARKER))
 }
 
+// Type pour les erreurs GitHub API
+interface GitHubApiError {
+  status: number
+  message?: string
+  documentation_url?: string
+}
+
+// Type guard pour vérifier si une erreur est une erreur GitHub API
+function isGitHubApiError(error: unknown): error is GitHubApiError {
+  return (
+    error !== null &&
+    typeof error === 'object' &&
+    'status' in error &&
+    typeof (error as GitHubApiError).status === 'number' &&
+    // Vérifications spécifiques GitHub API
+    ('message' in error || 'documentation_url' in error) &&
+    // Vérifier les codes d'erreur HTTP typiques
+    (error as GitHubApiError).status >= 400 &&
+    (error as GitHubApiError).status < 600
+  )
+}
+
+// Type pour le résultat de vérification d'existence de commentaire
+type CommentExistenceResult =
+  | { exists: true }
+  | { exists: false; reason: 'not_found' }
+  | { exists: false; reason: 'error'; error: unknown }
+
+/**
+ * Vérifie l'existence d'un commentaire sur GitHub de manière robuste
+ */
+async function checkCommentExistence(
+  context: Context,
+  commentId: number
+): Promise<CommentExistenceResult> {
+  try {
+    await context.octokit.pulls.getReviewComment({
+      ...context.repo(),
+      comment_id: commentId
+    })
+    return { exists: true }
+  } catch (error) {
+    if (isGitHubApiError(error) && error.status === 404) {
+      return { exists: false, reason: 'not_found' }
+    }
+    return { exists: false, reason: 'error', error }
+  }
+}
+
+/**
+ * Prépare les paramètres pour créer un commentaire
+ */
+function createCommentParams(
+  repo: ReturnType<Context['repo']>,
+  prNumber: number,
+  commitSha: string,
+  comment: z.infer<typeof CommentSchema>,
+  commentBody: string
+) {
+  return {
+    ...repo,
+    pull_number: prNumber,
+    commit_id: commitSha,
+    path: comment.path,
+    line: comment.line,
+    body: commentBody,
+    ...(comment.start_line !== undefined && {
+      start_line: comment.start_line,
+      side: 'RIGHT' as const,
+      start_side: 'RIGHT' as const
+    })
+  }
+}
+
+/**
+ * Valide si un commentaire peut être appliqué sur le diff actuel
+ */
+function isCommentValidForDiff(
+  comment: z.infer<typeof CommentSchema>,
+  diffMap: Map<string, { changedLines: Set<number> }>
+): boolean {
+  const fileInfo = diffMap.get(comment.path)
+  if (!fileInfo) {
+    return false
+  }
+
+  // For multi-line comments, check if ALL lines in the range are in the diff
+  if (comment.start_line !== undefined) {
+    const allLinesInDiff = Array.from(
+      { length: comment.line - comment.start_line + 1 },
+      (_, i) => comment.start_line! + i
+    ).every((line) => fileInfo.changedLines.has(line))
+    return allLinesInDiff
+  } else {
+    // Single line comment
+    return fileInfo.changedLines.has(comment.line)
+  }
+}
+
+/**
+ * Prépare le contenu d'un commentaire avec son marker ID
+ */
+function prepareCommentContent(comment: z.infer<typeof CommentSchema>) {
+  const markerId = createCommentMarkerId(
+    comment.path,
+    comment.line,
+    comment.start_line
+  )
+
+  let commentBody = `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}\n\n${comment.body}`
+
+  // Add suggested code if available
+  if (comment.suggestion) {
+    commentBody += '\n\n```suggestion\n' + comment.suggestion + '\n```'
+  }
+
+  return { markerId, commentBody }
+}
+
 // Schémas de validation pour garantir le bon format de la réponse
 const CommentSchema = z
   .object({
@@ -165,7 +286,8 @@ const CommentSchema = z
       return true
     },
     {
-      message: 'start_line must be less than or equal to line',
+      message:
+        'start_line must be less than or equal to line (start_line === line is valid for single-line ranges)',
       path: ['start_line']
     }
   )
@@ -235,16 +357,15 @@ export async function lineCommentsHandler(
     // Fetch PR diff to identify changed lines
     const diffMap = await fetchPrDiff(context, prNumber)
 
-    // Get existing review comments
-    const existingComments = await findExistingComments(context, prNumber)
-
     // Clean up obsolete comments first
     const deletedCount = await cleanupObsoleteComments(
       context,
       prNumber,
-      diffMap,
-      existingComments
+      diffMap
     )
+
+    // Get existing review comments AFTER cleanup
+    const existingComments = await findExistingComments(context, prNumber)
 
     // Track created/updated comments
     let createdCount = 0
@@ -253,88 +374,84 @@ export async function lineCommentsHandler(
 
     // Process each comment
     for (const comment of parsedAnalysis.comments) {
-      // Generate marker ID for this comment
-      const markerId = createCommentMarkerId(
-        comment.path,
-        comment.line,
-        comment.start_line
-      )
-
-      // Format the comment body with marker
-      let commentBody = `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}\n\n${comment.body}`
-
-      // Add suggested code if available
-      if (comment.suggestion) {
-        commentBody += '\n\n```suggestion\n' + comment.suggestion + '\n```'
+      // Valider que le fichier/ligne est dans le diff d'abord
+      if (!isCommentValidForDiff(comment, diffMap)) {
+        console.log(
+          `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - not valid for current diff`
+        )
+        skippedCount++
+        continue
       }
 
-      // Check if this comment already exists
+      // Générer le contenu du commentaire
+      const { markerId, commentBody } = prepareCommentContent(comment)
+
+      // Trouver le commentaire existant
       const existingComment = existingComments.find(
         (existing) =>
           existing.body.includes(`${COMMENT_MARKER_PREFIX}${markerId}`) &&
           existing.path === comment.path
       )
 
+      // Décision unique : update ou create avec gestion robuste des erreurs
       if (existingComment) {
-        // Update existing comment
-        await context.octokit.pulls.updateReviewComment({
-          ...repo,
-          comment_id: existingComment.id,
-          body: commentBody
-        })
-        updatedCount++
-      } else {
-        // Check if the file and lines are part of the diff
-        const fileInfo = diffMap.get(comment.path)
-        if (!fileInfo) {
-          console.log(
-            `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - file not in diff`
-          )
-          skippedCount++
-          continue
-        }
+        const existenceResult = await checkCommentExistence(
+          context,
+          existingComment.id
+        )
 
-        // For multi-line comments, check if ALL lines in the range are in the diff
-        if (comment.start_line !== undefined) {
-          const allLinesInDiff = Array.from(
-            { length: comment.line - comment.start_line + 1 },
-            (_, i) => comment.start_line! + i
-          ).every((line) => fileInfo.changedLines.has(line))
-
-          if (!allLinesInDiff) {
-            console.log(
-              `Skipping comment on ${comment.path}:${comment.start_line}-${comment.line} - not all lines in diff`
-            )
-            skippedCount++
-            continue
-          }
-        } else {
-          // Single line comment
-          if (!fileInfo.changedLines.has(comment.line)) {
-            console.log(
-              `Skipping comment on ${comment.path}:${comment.line} - not part of the diff`
-            )
-            skippedCount++
-            continue
-          }
-        }
-
-        // Prepare the comment parameters
-        const commentParams = {
-          ...repo,
-          pull_number: prNumber,
-          commit_id: commitSha,
-          path: comment.path,
-          line: comment.line,
-          body: commentBody,
-          ...(comment.start_line !== undefined && {
-            start_line: comment.start_line,
-            side: 'RIGHT' as const,
-            start_side: 'RIGHT' as const
+        if (existenceResult.exists) {
+          // Update existing comment
+          await context.octokit.pulls.updateReviewComment({
+            ...repo,
+            comment_id: existingComment.id,
+            body: commentBody
           })
-        }
+          updatedCount++
+        } else {
+          // Cast to the correct union type since exists is false
+          const failedResult = existenceResult as
+            | { exists: false; reason: 'not_found' }
+            | { exists: false; reason: 'error'; error: unknown }
 
+          if (failedResult.reason === 'not_found') {
+            // Comment was deleted, create a new one
+            console.log(
+              `Comment ${existingComment.id} no longer exists, creating new one`
+            )
+            const commentParams = createCommentParams(
+              repo,
+              prNumber,
+              commitSha,
+              comment,
+              commentBody
+            )
+            await context.octokit.pulls.createReviewComment(commentParams)
+            createdCount++
+          } else {
+            // failedResult.reason === 'error'
+            console.warn(
+              `Unable to verify comment ${existingComment.id} existence, skipping update:`,
+              (
+                failedResult as {
+                  exists: false
+                  reason: 'error'
+                  error: unknown
+                }
+              ).error
+            )
+            skippedCount++
+          }
+        }
+      } else {
         // Create new comment
+        const commentParams = createCommentParams(
+          repo,
+          prNumber,
+          commitSha,
+          comment,
+          commentBody
+        )
         await context.octokit.pulls.createReviewComment(commentParams)
         createdCount++
       }
