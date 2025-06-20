@@ -117,6 +117,8 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
   // Populate the template with the data
   const result = template({
     absolute_code_path: absolutePath,
+    pr_title: context?.prTitle,
+    pr_body: context?.prBody?.length > 16 ? context.prBody : null,
     git_diff_branch: diff,
     modified_files: modifiedFilesContent,
     coding_guidelines: codingGuidelines,
