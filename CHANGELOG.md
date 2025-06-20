@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/SocialGouv/revu/compare/v1.13.0...v1.14.0) (2025-06-20)
+
+
+### Features
+
+* set model name as env variable ([#62](https://github.com/SocialGouv/revu/issues/62)) ([3b1747b](https://github.com/SocialGouv/revu/commit/3b1747b2da7bfd911df378a63cad77bd99076e48))
+
 # [1.13.0](https://github.com/SocialGouv/revu/compare/v1.12.0...v1.13.0) (2025-06-20)
 
 
