@@ -2,6 +2,8 @@
  * Additional context that can be passed to prompt strategies
  */
 export interface PromptContext {
+  /** PR title */
+  prTitle?: string
   /** PR body text for extracting related issues */
   prBody?: string
   /** Repository owner for GitHub API calls */
