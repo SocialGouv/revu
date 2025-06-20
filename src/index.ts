@@ -140,9 +140,9 @@ export default async (app: Probot, { getRouter }) => {
   ): Promise<void> {
     try {
       const repo = context.repo()
-      const errorMessage = `❌ **Une erreur est survenue lors de l'analyse de cette PR.**
+      const errorMessage = `❌ **An error occurred while analyzing this PR.**
 
-Veuillez réessayer en demandant une nouvelle review.
+Please try again by requesting a new review.
 
 <!-- REVU-ERROR-COMMENT -->`
 
