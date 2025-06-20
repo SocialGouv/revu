@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # [1.12.0](https://github.com/SocialGouv/revu/compare/v1.11.1...v1.12.0) (2025-06-20)
 
 
@@ -6,8 +5,6 @@
 
 * Comment with an error and link to revu logs as fallback ([799aeb1](https://github.com/SocialGouv/revu/commit/799aeb1f4473693782df671d39245523122a4acc))
 
-=======
->>>>>>> 8e6cc1e (feat: implement on-demand code reviews)
 ## [1.11.1](https://github.com/SocialGouv/revu/compare/v1.11.0...v1.11.1) (2025-06-20)
 
 

@@ -43,3 +43,5 @@ logs/
 # Coverage reports
 coverage/
 *.lcov
+
+CHANGELOG.md
