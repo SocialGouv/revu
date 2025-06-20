@@ -7,18 +7,22 @@ vi.mock('../../src/extract-diff.ts', () => ({
   fetchPrDiff: vi.fn()
 }))
 
-// Mock global comment handler
+// Mock global comment handler and error comment handler
 vi.mock('../../src/comment-handlers/global-comment-handler.ts', () => ({
   globalCommentHandler: vi.fn(),
   upsertComment: vi.fn().mockResolvedValue('Upserted comment')
 }))
 
+vi.mock('../../src/comment-handlers/error-comment-handler.ts', () => ({
+  errorCommentHandler: vi.fn().mockResolvedValue('Posted error comment')
+}))
+
 // Import the mocked functions after the mock setup
 import { fetchPrDiff } from '../../src/extract-diff.ts'
-import { globalCommentHandler } from '../../src/comment-handlers/global-comment-handler.ts'
+import { errorCommentHandler } from '../../src/comment-handlers/error-comment-handler.ts'
 
 const mockFetchPrDiff = vi.mocked(fetchPrDiff)
-const mockGlobalCommentHandler = vi.mocked(globalCommentHandler)
+const mockErrorCommentHandler = vi.mocked(errorCommentHandler)
 
 describe('lineCommentsHandler', () => {
   let mockContext: Context
@@ -193,15 +197,15 @@ describe('lineCommentsHandler', () => {
       // upsertComment should be called for summary
     })
 
-    it('should fallback to global handler on invalid JSON', async () => {
+    it('should fallback to error handler on invalid JSON', async () => {
       const invalidJson = 'invalid json'
 
       await lineCommentsHandler(mockContext, 123, invalidJson)
 
-      expect(mockGlobalCommentHandler).toHaveBeenCalledWith(
+      expect(mockErrorCommentHandler).toHaveBeenCalledWith(
         mockContext,
         123,
-        invalidJson
+        expect.stringContaining('Error processing line comments:')
       )
     })
 
@@ -820,10 +824,10 @@ describe('lineCommentsHandler', () => {
 
       await lineCommentsHandler(mockContext, 123, invalidAnalysis)
 
-      expect(mockGlobalCommentHandler).toHaveBeenCalledWith(
+      expect(mockErrorCommentHandler).toHaveBeenCalledWith(
         mockContext,
         123,
-        invalidAnalysis
+        expect.stringContaining('Error processing line comments:')
       )
     })
 
@@ -842,10 +846,10 @@ describe('lineCommentsHandler', () => {
 
       await lineCommentsHandler(mockContext, 123, invalidAnalysis)
 
-      expect(mockGlobalCommentHandler).toHaveBeenCalledWith(
+      expect(mockErrorCommentHandler).toHaveBeenCalledWith(
         mockContext,
         123,
-        invalidAnalysis
+        expect.stringContaining('Error processing line comments:')
       )
     })
   })

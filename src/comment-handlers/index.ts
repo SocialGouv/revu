@@ -1,6 +1,7 @@
 import { type Context } from 'probot'
 import { globalCommentHandler } from './global-comment-handler.ts'
 import { lineCommentsHandler } from './line-comments-handler.ts'
+import { errorCommentHandler } from './error-comment-handler.ts'
 
 /**
  * Callback type for comment handlers
@@ -29,4 +30,4 @@ export function getCommentHandler(strategyName: string): CommentHandler {
   }
 }
 
-export { globalCommentHandler, lineCommentsHandler }
+export { globalCommentHandler, lineCommentsHandler, errorCommentHandler }
