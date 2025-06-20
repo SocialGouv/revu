@@ -2,7 +2,10 @@ import { config } from 'dotenv'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { Probot } from 'probot'
-import { getCommentHandler } from './comment-handlers/index.ts'
+import {
+  getCommentHandler,
+  errorCommentHandler
+} from './comment-handlers/index.ts'
 import { sendToAnthropic } from './send-to-anthropic.ts'
 
 // Load environment variables
@@ -57,6 +60,20 @@ export default async (app: Probot, { getRouter }) => {
         app.log.info(`Successfully analyzed PR #${pr.number}`)
       } catch (error) {
         app.log.error(`Error processing PR #${pr.number}: ${error}`)
+
+        // Post an error comment to the PR
+        try {
+          await errorCommentHandler(
+            context,
+            pr.number,
+            error.message || String(error)
+          )
+          app.log.info(`Posted error comment on PR #${pr.number}`)
+        } catch (commentError) {
+          app.log.error(
+            `Failed to post error comment on PR #${pr.number}: ${commentError}`
+          )
+        }
       }
     }
   )
