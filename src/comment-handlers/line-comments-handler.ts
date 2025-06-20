@@ -274,7 +274,8 @@ const CommentSchema = z
       return true
     },
     {
-      message: 'start_line must be less than or equal to line',
+      message:
+        'start_line must be less than or equal to line (start_line === line is valid for single-line ranges)',
       path: ['start_line']
     }
   )
@@ -381,9 +382,25 @@ export async function lineCommentsHandler(
       )
 
       // Décision unique : update ou create
-      const shouldUpdate =
-        existingComment &&
-        (await commentStillExists(context, existingComment.id))
+      let shouldUpdate = false
+      let shouldSkip = false
+
+      if (existingComment) {
+        try {
+          shouldUpdate = await commentStillExists(context, existingComment.id)
+        } catch (error) {
+          console.warn(
+            `Unable to verify comment ${existingComment.id} existence, skipping update:`,
+            error
+          )
+          shouldSkip = true
+        }
+      }
+
+      if (shouldSkip) {
+        skippedCount++
+        continue
+      }
 
       if (shouldUpdate) {
         // Update existing comment
