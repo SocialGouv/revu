@@ -125,8 +125,39 @@ export default async (app: Probot, { getRouter }) => {
       app.log.error(
         `Error performing on-demand review for PR #${pr.number}: ${error}`
       )
+
+      // Notify the user that an error occurred
+      await postErrorComment(context, pr.number)
     }
   })
+
+  /**
+   * Posts an error comment to notify the user that the review failed
+   */
+  async function postErrorComment(
+    context: Context,
+    prNumber: number
+  ): Promise<void> {
+    try {
+      const repo = context.repo()
+      const errorMessage = `❌ **Une erreur est survenue lors de l'analyse de cette PR.**
+
+Veuillez réessayer en demandant une nouvelle review.
+
+<!-- REVU-ERROR-COMMENT -->`
+
+      await context.octokit.issues.createComment({
+        ...repo,
+        issue_number: prNumber,
+        body: errorMessage
+      })
+    } catch (commentError) {
+      // Don't throw if posting the error comment fails - just log it
+      app.log.error(
+        `Failed to post error comment on PR #${prNumber}: ${commentError}`
+      )
+    }
+  }
 
   /**
    * Gets the strategy name from the configuration file
