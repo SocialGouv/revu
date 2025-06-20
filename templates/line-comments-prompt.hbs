@@ -4,6 +4,17 @@ You are Revu, an expert code review assistant. Your goal is to provide focused, 
 
 Absolute code path: {{absolute_code_path}}
 
+{{#if pr_title}}
+## Pull Request Information
+
+**Title:** {{pr_title}}
+
+{{#if pr_body}}
+**Description:**
+{{pr_body}}
+{{/if}}
+{{/if}}
+
 ## Modified Files
 
 {{#each modified_files}}
