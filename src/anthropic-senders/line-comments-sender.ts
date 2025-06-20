@@ -125,10 +125,17 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
         // If the whole response looks like JSON
         const trimmedText = text.trim()
         if (trimmedText.startsWith('{') && trimmedText.endsWith('}')) {
-          console.log('Response appears to be JSON, using as fallback')
-          fallbackResult = trimmedText
-          hasJsonFallback = true
-          continue // Don't overwrite with plain text
+          try {
+            // Validate that it's actually valid JSON
+            JSON.parse(trimmedText)
+            console.log('Response appears to be JSON, using as fallback')
+            fallbackResult = trimmedText
+            hasJsonFallback = true
+            continue // Don't overwrite with plain text
+          } catch (error) {
+            console.warn('Text looks like JSON but failed to parse:', error)
+            // Continue to check for plain text fallback
+          }
         }
 
         // Only use plain text as fallback if we haven't found JSON
