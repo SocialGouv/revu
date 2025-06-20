@@ -61,7 +61,12 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
   )
   const actualTemplatePath = templatePath || defaultTemplatePath
   const templateContent = await fs.readFile(actualTemplatePath, 'utf-8')
-  const template = Handlebars.compile(templateContent)
+  let template
+  try {
+    template = Handlebars.compile(templateContent)
+  } catch (error) {
+    throw new Error(`Failed to compile Handlebars template: ${error.message}`)
+  }
 
   const repoName = repositoryUrl.split('/').pop()?.replace('.git', '') || ''
   const absolutePath = path.join(process.cwd(), repoName)
