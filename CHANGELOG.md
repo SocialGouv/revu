@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/SocialGouv/revu/compare/v1.14.0...v1.15.0) (2025-06-20)
+
+
+### Features
+
+* improve tests review ([#66](https://github.com/SocialGouv/revu/issues/66)) ([059ad09](https://github.com/SocialGouv/revu/commit/059ad093c0f40f5e02f30044e28792d9b54519bf))
+
 # [1.14.0](https://github.com/SocialGouv/revu/compare/v1.13.0...v1.14.0) (2025-06-20)
 
 
