@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/SocialGouv/revu/compare/v1.12.0...v1.13.0) (2025-06-20)
+
+
+### Features
+
+* implement on-demand code reviews ([#77](https://github.com/SocialGouv/revu/issues/77)) ([1c1ee3f](https://github.com/SocialGouv/revu/commit/1c1ee3f79f9db27ab53418ef1fb30941a291ba7b))
+
 # [1.12.0](https://github.com/SocialGouv/revu/compare/v1.11.1...v1.12.0) (2025-06-20)
 
 
