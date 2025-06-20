@@ -1,3 +1,10 @@
+## [1.15.1](https://github.com/SocialGouv/revu/compare/v1.15.0...v1.15.1) (2025-06-20)
+
+
+### Bug Fixes
+
+* correct fallback logic in lineCommentsSender ([#71](https://github.com/SocialGouv/revu/issues/71)) ([4cbae4d](https://github.com/SocialGouv/revu/commit/4cbae4dc0dedf0e3dc3bbe30b1bf1ae5b6f8a2f9))
+
 # [1.15.0](https://github.com/SocialGouv/revu/compare/v1.14.0...v1.15.0) (2025-06-20)
 
 
