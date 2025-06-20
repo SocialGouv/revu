@@ -28,6 +28,7 @@ describe('lineCommentsHandler', () => {
       updateReviewComment: ReturnType<typeof vi.fn>
       createReviewComment: ReturnType<typeof vi.fn>
       deleteReviewComment: ReturnType<typeof vi.fn>
+      getReviewComment: ReturnType<typeof vi.fn>
       get: ReturnType<typeof vi.fn>
     }
     issues: {
@@ -48,6 +49,7 @@ describe('lineCommentsHandler', () => {
         updateReviewComment: vi.fn(),
         createReviewComment: vi.fn(),
         deleteReviewComment: vi.fn(),
+        getReviewComment: vi.fn(),
         get: vi.fn()
       },
       issues: {
@@ -94,6 +96,11 @@ describe('lineCommentsHandler', () => {
 
       mockOctokit.pulls.listReviewComments.mockResolvedValue({
         data: []
+      })
+
+      // Mock getReviewComment to return success by default (comment exists)
+      mockOctokit.pulls.getReviewComment.mockResolvedValue({
+        data: { id: 1, body: 'Existing comment' }
       })
 
       mockFetchPrDiff.mockResolvedValue(

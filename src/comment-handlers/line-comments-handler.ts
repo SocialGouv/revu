@@ -165,6 +165,97 @@ function isGitHubApiError(error: unknown): error is GitHubApiError {
   )
 }
 
+/**
+ * Vérifie si un commentaire existe encore sur GitHub
+ */
+async function commentStillExists(
+  context: Context,
+  commentId: number
+): Promise<boolean> {
+  try {
+    await context.octokit.pulls.getReviewComment({
+      ...context.repo(),
+      comment_id: commentId
+    })
+    return true
+  } catch (error) {
+    if (isGitHubApiError(error) && error.status === 404) {
+      return false
+    }
+    throw error // Autres erreurs sont re-lancées
+  }
+}
+
+/**
+ * Prépare les paramètres pour créer un commentaire
+ */
+function createCommentParams(
+  repo: ReturnType<Context['repo']>,
+  prNumber: number,
+  commitSha: string,
+  comment: z.infer<typeof CommentSchema>,
+  commentBody: string
+) {
+  return {
+    ...repo,
+    pull_number: prNumber,
+    commit_id: commitSha,
+    path: comment.path,
+    line: comment.line,
+    body: commentBody,
+    ...(comment.start_line !== undefined && {
+      start_line: comment.start_line,
+      side: 'RIGHT' as const,
+      start_side: 'RIGHT' as const
+    })
+  }
+}
+
+/**
+ * Valide si un commentaire peut être appliqué sur le diff actuel
+ */
+function isCommentValidForDiff(
+  comment: z.infer<typeof CommentSchema>,
+  diffMap: Map<string, { changedLines: Set<number> }>
+): boolean {
+  const fileInfo = diffMap.get(comment.path)
+  if (!fileInfo) {
+    return false
+  }
+
+  // For multi-line comments, check if ALL lines in the range are in the diff
+  if (comment.start_line !== undefined) {
+    const allLinesInDiff = Array.from(
+      { length: comment.line - comment.start_line + 1 },
+      (_, i) => comment.start_line! + i
+    ).every((line) => fileInfo.changedLines.has(line))
+    return allLinesInDiff
+  } else {
+    // Single line comment
+    return fileInfo.changedLines.has(comment.line)
+  }
+}
+
+/**
+ * Prépare le contenu d'un commentaire avec son marker ID
+ */
+function prepareCommentContent(comment: z.infer<typeof CommentSchema>) {
+  const markerId = createCommentMarkerId(
+    comment.path,
+    comment.line,
+    comment.start_line
+  )
+
+  let commentBody = `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}\n\n${comment.body}`
+
+  // Add suggested code if available
+  if (comment.suggestion) {
+    commentBody += '\n\n```suggestion\n' + comment.suggestion + '\n```'
+  }
+
+  return { markerId, commentBody }
+}
+
 // Schémas de validation pour garantir le bon format de la réponse
 const CommentSchema = z
   .object({
@@ -270,152 +361,53 @@ export async function lineCommentsHandler(
 
     // Process each comment
     for (const comment of parsedAnalysis.comments) {
-      // Generate marker ID for this comment
-      const markerId = createCommentMarkerId(
-        comment.path,
-        comment.line,
-        comment.start_line
-      )
-
-      // Format the comment body with marker
-      let commentBody = `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}\n\n${comment.body}`
-
-      // Add suggested code if available
-      if (comment.suggestion) {
-        commentBody += '\n\n```suggestion\n' + comment.suggestion + '\n```'
+      // Valider que le fichier/ligne est dans le diff d'abord
+      if (!isCommentValidForDiff(comment, diffMap)) {
+        console.log(
+          `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - not valid for current diff`
+        )
+        skippedCount++
+        continue
       }
 
-      // Check if this comment already exists
+      // Générer le contenu du commentaire
+      const { markerId, commentBody } = prepareCommentContent(comment)
+
+      // Trouver le commentaire existant
       const existingComment = existingComments.find(
         (existing) =>
           existing.body.includes(`${COMMENT_MARKER_PREFIX}${markerId}`) &&
           existing.path === comment.path
       )
 
-      if (existingComment) {
-        try {
-          // Update existing comment
-          await context.octokit.pulls.updateReviewComment({
-            ...repo,
-            comment_id: existingComment.id,
-            body: commentBody
-          })
-          updatedCount++
-        } catch (error: unknown) {
-          if (isGitHubApiError(error) && error.status === 404) {
-            // Le commentaire a été supprimé entre temps, on crée un nouveau commentaire
-            console.log(
-              `Comment ${existingComment.id} was deleted, creating new one`
-            )
+      // Décision unique : update ou create
+      const shouldUpdate =
+        existingComment &&
+        (await commentStillExists(context, existingComment.id))
 
-            // Check if the file and lines are part of the diff before creating
-            const fileInfo = diffMap.get(comment.path)
-            if (!fileInfo) {
-              console.log(
-                `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - file not in diff`
-              )
-              skippedCount++
-              continue
-            }
-
-            // For multi-line comments, check if ALL lines in the range are in the diff
-            if (comment.start_line !== undefined) {
-              const allLinesInDiff = Array.from(
-                { length: comment.line - comment.start_line + 1 },
-                (_, i) => comment.start_line! + i
-              ).every((line) => fileInfo.changedLines.has(line))
-
-              if (!allLinesInDiff) {
-                console.log(
-                  `Skipping comment on ${comment.path}:${comment.start_line}-${comment.line} - not all lines in diff`
-                )
-                skippedCount++
-                continue
-              }
-            } else {
-              // Single line comment
-              if (!fileInfo.changedLines.has(comment.line)) {
-                console.log(
-                  `Skipping comment on ${comment.path}:${comment.line} - not part of the diff`
-                )
-                skippedCount++
-                continue
-              }
-            }
-
-            // Create new comment
-            const commentParams = {
-              ...repo,
-              pull_number: prNumber,
-              commit_id: commitSha,
-              path: comment.path,
-              line: comment.line,
-              body: commentBody,
-              ...(comment.start_line !== undefined && {
-                start_line: comment.start_line,
-                side: 'RIGHT' as const,
-                start_side: 'RIGHT' as const
-              })
-            }
-            await context.octokit.pulls.createReviewComment(commentParams)
-            createdCount++
-          } else {
-            // Autre erreur, on la relance
-            throw error
-          }
-        }
-      } else {
-        // Check if the file and lines are part of the diff
-        const fileInfo = diffMap.get(comment.path)
-        if (!fileInfo) {
-          console.log(
-            `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - file not in diff`
-          )
-          skippedCount++
-          continue
-        }
-
-        // For multi-line comments, check if ALL lines in the range are in the diff
-        if (comment.start_line !== undefined) {
-          const allLinesInDiff = Array.from(
-            { length: comment.line - comment.start_line + 1 },
-            (_, i) => comment.start_line! + i
-          ).every((line) => fileInfo.changedLines.has(line))
-
-          if (!allLinesInDiff) {
-            console.log(
-              `Skipping comment on ${comment.path}:${comment.start_line}-${comment.line} - not all lines in diff`
-            )
-            skippedCount++
-            continue
-          }
-        } else {
-          // Single line comment
-          if (!fileInfo.changedLines.has(comment.line)) {
-            console.log(
-              `Skipping comment on ${comment.path}:${comment.line} - not part of the diff`
-            )
-            skippedCount++
-            continue
-          }
-        }
-
-        // Prepare the comment parameters
-        const commentParams = {
+      if (shouldUpdate) {
+        // Update existing comment
+        await context.octokit.pulls.updateReviewComment({
           ...repo,
-          pull_number: prNumber,
-          commit_id: commitSha,
-          path: comment.path,
-          line: comment.line,
-          body: commentBody,
-          ...(comment.start_line !== undefined && {
-            start_line: comment.start_line,
-            side: 'RIGHT' as const,
-            start_side: 'RIGHT' as const
-          })
+          comment_id: existingComment.id,
+          body: commentBody
+        })
+        updatedCount++
+      } else {
+        // Create new comment (either brand new or replacement for deleted one)
+        if (existingComment) {
+          console.log(
+            `Comment ${existingComment.id} no longer exists, creating new one`
+          )
         }
 
-        // Create new comment
+        const commentParams = createCommentParams(
+          repo,
+          prNumber,
+          commitSha,
+          comment,
+          commentBody
+        )
         await context.octokit.pulls.createReviewComment(commentParams)
         createdCount++
       }
