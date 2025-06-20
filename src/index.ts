@@ -25,27 +25,16 @@ export default async (app: Probot, { getRouter }) => {
         number: number
         head: { ref: string }
       }
-    try {
-      await addBotAsReviewer(context)
-      app.log.info(`Successfully added bot as reviewer for PR #${pr.number}`)
-    } catch (error) {
-      app.log.error(
-        `Error adding bot as reviewer for PR #${pr.number}: ${error}`
-      )
     }
+    const pr = payload.pull_request
+    const repo = context.repo()
 
     app.log.info(
       `Adding bot as reviewer for PR #${pr.number} in ${repo.owner}/${repo.repo}`
     )
 
     try {
-    try {
       await addBotAsReviewer(context)
-    } catch (error) {
-      app.log.error(
-        `Error adding bot as reviewer for PR #${pr.number}: ${error}`
-      )
-    }
       app.log.info(`Successfully added bot as reviewer for PR #${pr.number}`)
     } catch (error) {
       app.log.error(

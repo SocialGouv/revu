@@ -32,16 +32,8 @@ function createMockContext(
   if (shouldThrowError) {
     mockRequestReviewers.mockRejectedValue(new Error('GitHub API Error'))
   } else {
-    mockRequestReviewers.mockResolvedValue({
-      data: {
-        requested_reviewers: [
-          {
-            login: 'revu-bot[bot]',
-            type: 'Bot'
-          }
-        ]
-      }
-    })
+    // Simple success response - the returned data is not used in the actual logic
+    mockRequestReviewers.mockResolvedValue({ data: {} })
   }
 
   return {
@@ -73,6 +65,7 @@ function createMockContext(
 describe('Auto Add Reviewer - Real Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Reset to default bot slug for consistency
     mockGetAuthenticated.mockResolvedValue({
       data: {
         slug: 'revu-bot'
@@ -172,6 +165,30 @@ describe('Auto Add Reviewer - Real Tests', () => {
       )
     })
 
+    it('should work with custom bot slug', async () => {
+      // Override the bot slug for this specific test
+      mockGetAuthenticated.mockResolvedValue({
+        data: {
+          slug: 'my-custom-bot'
+        }
+      })
+
+      const context = createMockContext()
+
+      await addBotAsReviewer(context)
+
+      expect(mockRequestReviewers).toHaveBeenCalledWith({
+        owner: 'test-owner',
+        repo: 'test-repo',
+        pull_number: 123,
+        reviewers: ['my-custom-bot[bot]']
+      })
+
+      expect(mockLogInfo).toHaveBeenCalledWith(
+        'Successfully added bot as reviewer for PR #123'
+      )
+    })
+
     it('should handle empty requested_reviewers array', async () => {
       const context = createMockContext({
         existingReviewers: []
@@ -180,6 +197,15 @@ describe('Auto Add Reviewer - Real Tests', () => {
       await addBotAsReviewer(context)
 
       expect(mockRequestReviewers).toHaveBeenCalled()
+
+      expect(mockRequestReviewers).toHaveBeenCalledWith({
+        owner: 'test-owner',
+        repo: 'test-repo',
+        pull_number: 123,
+        reviewers: ['revu-bot[bot]']
+      })
+    })
+
     it('should handle undefined requested_reviewers', async () => {
       const context = {
         payload: {
@@ -214,22 +240,14 @@ describe('Auto Add Reviewer - Real Tests', () => {
         pull_number: 123,
         reviewers: ['revu-bot[bot]']
       })
-      
+
       // Verify the correct log message was produced
       expect(mockLogInfo).toHaveBeenCalledWith(
         'Successfully added bot as reviewer for PR #123'
       )
-      
+
       // Verify no errors were logged
       expect(mockLogError).not.toHaveBeenCalled()
-    })
-
-      expect(mockRequestReviewers).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        pull_number: 123,
-        reviewers: ['revu-bot[bot]']
-      })
     })
   })
 
