@@ -89,6 +89,7 @@ export default async (app: Probot, { getRouter }) => {
       pull_request: {
         number: number
         head: { ref: string }
+        title: string
         body: string | null
       }
       installation: { id: number }
@@ -116,8 +117,9 @@ export default async (app: Probot, { getRouter }) => {
       // Get the current strategy from configuration
       const strategyName = await getStrategyNameFromConfig()
 
-      // Prepare context for prompt generation (includes PR body for issue extraction)
+      // Prepare context for prompt generation (includes PR title and body)
       const promptContext = {
+        prTitle: pr.title,
         prBody: pr.body || undefined,
         repoOwner: repo.owner,
         repoName: repo.repo
