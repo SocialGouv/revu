@@ -1,12 +1,17 @@
 import { config } from 'dotenv'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import { Probot } from 'probot'
+import { Context, Probot } from 'probot'
 import {
   getCommentHandler,
   errorCommentHandler
 } from './comment-handlers/index.ts'
 import { sendToAnthropic } from './send-to-anthropic.ts'
+import {
+  addBotAsReviewer,
+  getBotUsername,
+  isReviewRequestedForBot
+} from './github/reviewer-utils.ts'
 
 // Load environment variables
 config()
@@ -17,66 +22,128 @@ export default async (app: Probot, { getRouter }) => {
   // Container health check route
   getRouter('/healthz').get('/', (req, res) => res.end('OK'))
 
-  // Listen for PR opens and updates
-  app.on(
-    ['pull_request.opened', 'pull_request.synchronize'],
-    async (context) => {
-      const pr = context.payload.pull_request
-      const repo = context.repo()
+  // Listen for PR opens to add bot as reviewer
+  app.on(['pull_request.opened'], async (context) => {
+    const payload = context.payload as {
+      pull_request: {
+        number: number
+        head: { ref: string }
+      }
+    }
+    const pr = payload.pull_request
+    const repo = context.repo()
 
-      app.log.info(`Processing PR #${pr.number} in ${repo.owner}/${repo.repo}`)
+    app.log.info(
+      `Adding bot as reviewer for PR #${pr.number} in ${repo.owner}/${repo.repo}`
+    )
 
-      try {
-        // Get repository URL and branch from PR
-        const repositoryUrl = `https://github.com/${repo.owner}/${repo.repo}.git`
-        const branch = pr.head.ref
+    try {
+      await addBotAsReviewer(context)
+      app.log.info(`Successfully added bot as reviewer for PR #${pr.number}`)
+    } catch (error) {
+      app.log.error(
+        `Error adding bot as reviewer for PR #${pr.number}: ${error}`
+      )
+    }
+  })
 
-        // Get an installation token for authentication with private repositories
-        const installationId = context.payload.installation.id
-        const installationAccessToken = await context.octokit.apps
-          .createInstallationAccessToken({
-            installation_id: installationId
-          })
-          .then((response) => response.data.token)
-
-        // Get the current strategy from configuration
-        const strategyName = await getStrategyNameFromConfig()
-
-        // Get the analysis from Anthropic
-        const analysis = await sendToAnthropic({
-          repositoryUrl,
-          branch,
-          token: installationAccessToken,
-          strategyName
-        })
-
-        // Get the appropriate comment handler based on the strategy
-        const commentHandler = getCommentHandler(strategyName)
-
-        // Handle the analysis with the appropriate handler
-        const result = await commentHandler(context, pr.number, analysis)
-
-        app.log.info(result)
-        app.log.info(`Successfully analyzed PR #${pr.number}`)
-      } catch (error) {
-        app.log.error(`Error processing PR #${pr.number}: ${error}`)
-
-        // Post an error comment to the PR
-        try {
-          await errorCommentHandler(
-            context,
-            pr.number,
-            error.message || String(error)
-          )
-          app.log.info(`Posted error comment on PR #${pr.number}`)
-        } catch (commentError) {
-          app.log.error(
-            `Failed to post error comment on PR #${pr.number}: ${commentError}`
-          )
+  // Listen for review requests to perform on-demand analysis
+  app.on(['pull_request.review_requested'], async (context) => {
+    // Cast payload to a more flexible type for the review request check
+    const reviewPayload = context.payload as {
+      action: string
+      requested_reviewer?: {
+        login: string
+        type: string
+      }
+      pull_request: {
+        number: number
+      }
+      repository: {
+        name: string
+        owner: {
+          login: string
         }
       }
     }
-  )
+
+    // Get the bot username dynamically to avoid race conditions
+    let botUsername: string
+    try {
+      botUsername = await getBotUsername(context)
+    } catch (error) {
+      app.log.error(
+        `Failed to get bot username, aborting review request: ${error}`
+      )
+      return
+    }
+
+    // Check if the review request is for our bot
+    if (!isReviewRequestedForBot(reviewPayload, botUsername)) {
+      app.log.info('Review requested for someone else, ignoring')
+      return
+    }
+
+    const payload = context.payload as {
+      pull_request: {
+        number: number
+        head: { ref: string }
+      }
+      installation: { id: number }
+    }
+    const pr = payload.pull_request
+    const repo = context.repo()
+
+    app.log.info(
+      `Performing on-demand review for PR #${pr.number} in ${repo.owner}/${repo.repo}`
+    )
+
+    try {
+      // Get repository URL and branch from PR
+      const repositoryUrl = `https://github.com/${repo.owner}/${repo.repo}.git`
+      const branch = pr.head.ref
+
+      // Get an installation token for authentication with private repositories
+      const installationId = payload.installation.id
+      const installationAccessToken = await context.octokit.apps
+        .createInstallationAccessToken({
+          installation_id: installationId
+        })
+        .then((response) => response.data.token)
+
+      // Perform the complete review analysis
+      const result = await performReviewAnalysis(
+        context,
+        pr.number,
+        repositoryUrl,
+        branch,
+        installationAccessToken
+      )
+
+      app.log.info(result)
+      app.log.info(
+        `Successfully completed on-demand review for PR #${pr.number}`
+      )
+    } catch (error) {
+      app.log.error(
+        `Error performing on-demand review for PR #${pr.number}: ${error}`
+      )
+
+      // Use the sophisticated error comment handler from main
+      try {
+        await errorCommentHandler(
+          context,
+          pr.number,
+          error.message || String(error)
+        )
+        app.log.info(`Posted error comment on PR #${pr.number}`)
+      } catch (commentError) {
+        app.log.error(
+          `Failed to post error comment on PR #${pr.number}: ${commentError}`
+        )
+      }
+    }
+  })
 
   /**
    * Gets the strategy name from the configuration file
@@ -91,5 +158,38 @@ export default async (app: Probot, { getRouter }) => {
       console.error('Error reading configuration:', error)
       return 'default'
     }
+  }
+
+  /**
+   * Performs a complete review analysis for a PR
+   * This function encapsulates the common logic for analyzing PRs and posting comments
+   */
+  async function performReviewAnalysis(
+    context: Context,
+    prNumber: number,
+    repositoryUrl: string,
+    branch: string,
+    installationAccessToken: string,
+    strategyName?: string
+  ): Promise<string> {
+    // Get the current strategy from configuration if not provided
+    const finalStrategyName =
+      strategyName || (await getStrategyNameFromConfig())
+
+    // Get the analysis from Anthropic
+    const analysis = await sendToAnthropic({
+      repositoryUrl,
+      branch,
+      token: installationAccessToken,
+      strategyName: finalStrategyName
+    })
+
+    // Get the appropriate comment handler based on the strategy
+    const commentHandler = getCommentHandler(finalStrategyName)
+
+    // Handle the analysis with the appropriate handler
+    const result = await commentHandler(context, prNumber, analysis)
+
+    return result || 'Review completed successfully'
   }
 }
