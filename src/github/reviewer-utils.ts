@@ -19,13 +19,13 @@ interface GitHubEvent {
 }
 
 /**
- * Checks if a review request is specifically for the Revu bot
- */
 export function isReviewRequestedForBot(event: GitHubEvent, botUsername: string = 'revu-bot[bot]'): boolean {
   return Boolean(
     event.action === 'requested' &&
       event.requested_reviewer &&
       event.requested_reviewer.login === botUsername
+  )
+}
   )
 }
       event.requested_reviewer &&
