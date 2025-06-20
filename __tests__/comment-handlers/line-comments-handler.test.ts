@@ -7,18 +7,22 @@ vi.mock('../../src/extract-diff.ts', () => ({
   fetchPrDiff: vi.fn()
 }))
 
-// Mock global comment handler
+// Mock global comment handler and error comment handler
 vi.mock('../../src/comment-handlers/global-comment-handler.ts', () => ({
   globalCommentHandler: vi.fn(),
   upsertComment: vi.fn().mockResolvedValue('Upserted comment')
 }))
 
+vi.mock('../../src/comment-handlers/error-comment-handler.ts', () => ({
+  errorCommentHandler: vi.fn().mockResolvedValue('Posted error comment')
+}))
+
 // Import the mocked functions after the mock setup
 import { fetchPrDiff } from '../../src/extract-diff.ts'
-import { globalCommentHandler } from '../../src/comment-handlers/global-comment-handler.ts'
+import { errorCommentHandler } from '../../src/comment-handlers/error-comment-handler.ts'
 
 const mockFetchPrDiff = vi.mocked(fetchPrDiff)
-const mockGlobalCommentHandler = vi.mocked(globalCommentHandler)
+const mockErrorCommentHandler = vi.mocked(errorCommentHandler)
 
 describe('lineCommentsHandler', () => {
   let mockContext: Context
@@ -28,6 +32,7 @@ describe('lineCommentsHandler', () => {
       updateReviewComment: ReturnType<typeof vi.fn>
       createReviewComment: ReturnType<typeof vi.fn>
       deleteReviewComment: ReturnType<typeof vi.fn>
+      getReviewComment: ReturnType<typeof vi.fn>
       get: ReturnType<typeof vi.fn>
     }
     issues: {
@@ -48,6 +53,7 @@ describe('lineCommentsHandler', () => {
         updateReviewComment: vi.fn(),
         createReviewComment: vi.fn(),
         deleteReviewComment: vi.fn(),
+        getReviewComment: vi.fn(),
         get: vi.fn()
       },
       issues: {
@@ -94,6 +100,11 @@ describe('lineCommentsHandler', () => {
 
       mockOctokit.pulls.listReviewComments.mockResolvedValue({
         data: []
+      })
+
+      // Mock getReviewComment to return success by default (comment exists)
+      mockOctokit.pulls.getReviewComment.mockResolvedValue({
+        data: { id: 1, body: 'Existing comment' }
       })
 
       mockFetchPrDiff.mockResolvedValue(
@@ -186,15 +197,15 @@ describe('lineCommentsHandler', () => {
       // upsertComment should be called for summary
     })
 
-    it('should fallback to global handler on invalid JSON', async () => {
+    it('should fallback to error handler on invalid JSON', async () => {
       const invalidJson = 'invalid json'
 
       await lineCommentsHandler(mockContext, 123, invalidJson)
 
-      expect(mockGlobalCommentHandler).toHaveBeenCalledWith(
+      expect(mockErrorCommentHandler).toHaveBeenCalledWith(
         mockContext,
         123,
-        invalidJson
+        expect.stringContaining('Error processing line comments:')
       )
     })
 
@@ -813,10 +824,10 @@ describe('lineCommentsHandler', () => {
 
       await lineCommentsHandler(mockContext, 123, invalidAnalysis)
 
-      expect(mockGlobalCommentHandler).toHaveBeenCalledWith(
+      expect(mockErrorCommentHandler).toHaveBeenCalledWith(
         mockContext,
         123,
-        invalidAnalysis
+        expect.stringContaining('Error processing line comments:')
       )
     })
 
@@ -835,10 +846,10 @@ describe('lineCommentsHandler', () => {
 
       await lineCommentsHandler(mockContext, 123, invalidAnalysis)
 
-      expect(mockGlobalCommentHandler).toHaveBeenCalledWith(
+      expect(mockErrorCommentHandler).toHaveBeenCalledWith(
         mockContext,
         123,
-        invalidAnalysis
+        expect.stringContaining('Error processing line comments:')
       )
     })
   })
@@ -1145,6 +1156,122 @@ describe('lineCommentsHandler', () => {
           )
         })
       )
+    })
+  })
+
+  describe('Error Handling Robustness', () => {
+    beforeEach(() => {
+      mockOctokit.pulls.get.mockResolvedValue({
+        data: { head: { sha: 'abc123' } }
+      })
+
+      mockOctokit.issues.listComments.mockResolvedValue({
+        data: []
+      })
+
+      mockFetchPrDiff.mockResolvedValue(
+        new Map([['file1.ts', { changedLines: new Set([10, 11]) }]])
+      )
+    })
+
+    it('should skip comment when commentStillExists throws non-404 error', async () => {
+      const existingComments = [
+        {
+          id: 1,
+          body: '<!-- REVU-AI-COMMENT file1.ts:10 -->\n\nExisting comment',
+          path: 'file1.ts'
+        }
+      ]
+
+      mockOctokit.pulls.listReviewComments.mockResolvedValue({
+        data: existingComments
+      })
+
+      // Mock getReviewComment to throw a non-404 error (e.g., rate limiting)
+      mockOctokit.pulls.getReviewComment.mockRejectedValue({
+        status: 429,
+        message: 'Rate limit exceeded'
+      })
+
+      const analysis = JSON.stringify({
+        summary: 'Test with API error',
+        comments: [
+          {
+            path: 'file1.ts',
+            line: 10,
+            body: 'Updated comment'
+          }
+        ]
+      })
+
+      const result = await lineCommentsHandler(mockContext, 123, analysis)
+
+      // Should skip the update due to API error
+      expect(mockOctokit.pulls.updateReviewComment).not.toHaveBeenCalled()
+      expect(mockOctokit.pulls.createReviewComment).not.toHaveBeenCalled()
+      expect(result).toContain('skipped 1')
+    })
+
+    it('should continue processing other comments when one comment verification fails', async () => {
+      const existingComments = [
+        {
+          id: 1,
+          body: '<!-- REVU-AI-COMMENT file1.ts:10 -->\n\nComment with API error',
+          path: 'file1.ts'
+        },
+        {
+          id: 2,
+          body: '<!-- REVU-AI-COMMENT file1.ts:11 -->\n\nComment that works',
+          path: 'file1.ts'
+        }
+      ]
+
+      mockOctokit.pulls.listReviewComments.mockResolvedValue({
+        data: existingComments
+      })
+
+      // Mock getReviewComment to fail for first comment but succeed for second
+      mockOctokit.pulls.getReviewComment
+        .mockRejectedValueOnce({
+          status: 500,
+          message: 'Internal server error'
+        })
+        .mockResolvedValueOnce({
+          data: { id: 2, body: 'Existing comment' }
+        })
+
+      mockFetchPrDiff.mockResolvedValue(
+        new Map([['file1.ts', { changedLines: new Set([10, 11]) }]])
+      )
+
+      const analysis = JSON.stringify({
+        summary: 'Test with mixed API responses',
+        comments: [
+          {
+            path: 'file1.ts',
+            line: 10,
+            body: 'Updated comment 1'
+          },
+          {
+            path: 'file1.ts',
+            line: 11,
+            body: 'Updated comment 2'
+          }
+        ]
+      })
+
+      const result = await lineCommentsHandler(mockContext, 123, analysis)
+
+      // First comment should be skipped, second should be updated
+      expect(mockOctokit.pulls.updateReviewComment).toHaveBeenCalledTimes(1)
+      expect(mockOctokit.pulls.updateReviewComment).toHaveBeenCalledWith({
+        owner: 'test-owner',
+        repo: 'test-repo',
+        comment_id: 2,
+        body: expect.stringContaining('Updated comment 2')
+      })
+      expect(result).toContain('updated 1')
+      expect(result).toContain('skipped 1')
     })
   })
 })
