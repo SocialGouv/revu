@@ -77,6 +77,13 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
 
     // Get the bot username dynamically
     const botUsername = await getBotUsername(context)
+    context.log.info(`Bot username resolved to: ${botUsername}`)
+
+    // Log current requested reviewers
+    context.log.info(
+      `Current requested reviewers for PR #${pr.number}:`,
+      pr.requested_reviewers
+    )
 
     // Check if bot is already a requested reviewer
     const isBotAlreadyRequested = pr.requested_reviewers?.some(
@@ -91,17 +98,44 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
       return
     }
 
-    // Add bot as reviewer
-    await context.octokit.pulls.requestReviewers({
+    // Log the parameters before making the API call
+    const requestParams = {
       owner: repo.owner,
       repo: repo.repo,
       pull_number: pr.number,
       reviewers: [botUsername]
-    })
+    }
+    context.log.info(
+      `Making requestReviewers API call with params:`,
+      requestParams
+    )
+
+    // Add bot as reviewer
+    const response = await context.octokit.pulls.requestReviewers(requestParams)
+
+    // Log the full API response
+    context.log.info(`API Response status: ${response.status}`)
+    context.log.info(
+      `API Response data:`,
+      JSON.stringify(response.data, null, 2)
+    )
+
+    // Log the updated requested reviewers from the response
+    context.log.info(
+      `Updated requested reviewers after API call:`,
+      response.data.requested_reviewers
+    )
 
     context.log.info(`Successfully added bot as reviewer for PR #${pr.number}`)
   } catch (error) {
+    // Enhanced error logging
     context.log.error(`Error adding bot as reviewer: ${error}`)
+    context.log.error(`Error details:`, {
+      message: error.message,
+      status: error.status,
+      response: error.response?.data,
+      stack: error.stack
+    })
     // Don't throw error to avoid breaking the workflow
   }
 }
