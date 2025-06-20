@@ -19,7 +19,6 @@ interface GitHubEvent {
 }
 
 /**
-/**
  * Checks if a review request is specifically for the Revu bot
  */
 export function isReviewRequestedForBot(event: GitHubEvent, botUsername: string = 'revu-bot[bot]'): boolean {
@@ -29,12 +28,6 @@ export function isReviewRequestedForBot(event: GitHubEvent, botUsername: string 
       event.requested_reviewer.login === botUsername
   )
 }
-/**
- * Checks if a review request is specifically for the Revu bot
- */
-export function isReviewRequestedForBot(event: GitHubEvent, botUsername: string = 'revu-bot[bot]'): boolean {
-  return Boolean(
-    event.action === 'requested' &&
       event.requested_reviewer &&
       event.requested_reviewer.login === botUsername
   )
@@ -62,8 +55,6 @@ export function extractPRInfo(event: GitHubEvent): {
   }
 }
 
-/**
- * Adds the Revu bot as a reviewer to a pull request
 /**
  * Adds the Revu bot as a reviewer to a pull request
  */
@@ -106,6 +97,8 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
   } catch (error) {
     context.log.error(`Error adding bot as reviewer: ${error}`)
     // Don't throw error to avoid breaking the workflow
+  }
+}
   }
 }
       owner: repo.owner,

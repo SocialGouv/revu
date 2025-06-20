@@ -180,11 +180,6 @@ describe('Auto Add Reviewer - Real Tests', () => {
       await addBotAsReviewer(context)
 
       expect(mockRequestReviewers).toHaveBeenCalled()
-      expect(mockLogInfo).toHaveBeenCalledWith(
-        'Successfully added bot as reviewer for PR #123'
-      )
-    })
-
     it('should handle undefined requested_reviewers', async () => {
       const context = {
         payload: {
@@ -200,6 +195,9 @@ describe('Auto Add Reviewer - Real Tests', () => {
         octokit: {
           pulls: {
             requestReviewers: mockRequestReviewers
+          },
+          apps: {
+            getAuthenticated: mockGetAuthenticated
           }
         },
         log: {
@@ -209,6 +207,22 @@ describe('Auto Add Reviewer - Real Tests', () => {
       } as unknown as Context
 
       await addBotAsReviewer(context)
+
+      expect(mockRequestReviewers).toHaveBeenCalledWith({
+        owner: 'test-owner',
+        repo: 'test-repo',
+        pull_number: 123,
+        reviewers: ['revu-bot[bot]']
+      })
+      
+      // Verify the correct log message was produced
+      expect(mockLogInfo).toHaveBeenCalledWith(
+        'Successfully added bot as reviewer for PR #123'
+      )
+      
+      // Verify no errors were logged
+      expect(mockLogError).not.toHaveBeenCalled()
+    })
 
       expect(mockRequestReviewers).toHaveBeenCalledWith({
         owner: 'test-owner',

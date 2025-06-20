@@ -35,7 +35,13 @@ export default async (app: Probot, { getRouter }) => {
     )
 
     try {
+    try {
       await addBotAsReviewer(context)
+    } catch (error) {
+      app.log.error(
+        `Error adding bot as reviewer for PR #${pr.number}: ${error}`
+      )
+    }
       app.log.info(`Successfully added bot as reviewer for PR #${pr.number}`)
     } catch (error) {
       app.log.error(
