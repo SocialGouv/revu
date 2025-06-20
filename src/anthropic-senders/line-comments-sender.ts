@@ -88,6 +88,7 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
   })
 
   let fallbackResult = ''
+  let hasJsonFallback = false
 
   // Extract response from tool use
   // Find content blocks that are tool_use type
@@ -97,38 +98,65 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
         // Return the structured response as a JSON string
         return JSON.stringify(content.input as CodeReviewResponse)
       } else {
-        console.log('Input:', content.input)
-        console.log('Tool name:', content.name)
-        throw new Error('Tool name or input incorect')
+        console.error('Unexpected tool use response:', {
+          name: content.name,
+          input: content.input
+        })
+        throw new Error(`Unexpected tool name: ${content.name}`)
       }
-    } else {
+    } else if (content.type === 'text') {
       // Fallback if tool use failed or returned unexpected format
-      if (content.type === 'text') {
-        // Try to parse any JSON that might be in the response
-        try {
-          const text = content.text
-          // const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/)
-          const jsonMatch = text.match(/```json\n([\s\S]{1,10000}?)\n```/)
-          if (jsonMatch && jsonMatch[1]) {
-            fallbackResult = jsonMatch[1].trim()
-          }
-          // If the whole response is potentially JSON
-          if (text.trim().startsWith('{') && text.trim().endsWith('}')) {
-            fallbackResult = text
-          }
+      console.warn(
+        'Tool use failed, attempting fallback parsing from text response'
+      )
 
-          // Just return the text as is
-          fallbackResult = text
-        } catch {
-          // Silent catch - continue to next content block or error
+      try {
+        const text = content.text
+
+        // Try to extract JSON from code blocks first
+        const jsonMatch = text.match(/```json\n([\s\S]{1,10000}?)\n```/)
+        if (jsonMatch && jsonMatch[1]) {
+          console.log('Found JSON in code block, using as fallback')
+          fallbackResult = jsonMatch[1].trim()
+          hasJsonFallback = true
+          continue // Don't overwrite with plain text
         }
+
+        // If the whole response looks like JSON
+        const trimmedText = text.trim()
+        if (trimmedText.startsWith('{') && trimmedText.endsWith('}')) {
+          try {
+            // Validate that it's actually valid JSON
+            JSON.parse(trimmedText)
+            console.log('Response appears to be JSON, using as fallback')
+            fallbackResult = trimmedText
+            hasJsonFallback = true
+            continue // Don't overwrite with plain text
+          } catch (error) {
+            console.warn('Text looks like JSON but failed to parse:', error)
+            // Continue to check for plain text fallback
+          }
+        }
+
+        // Only use plain text as fallback if we haven't found JSON
+        if (!hasJsonFallback) {
+          console.warn('No JSON found, using plain text as fallback')
+          fallbackResult = text
+        }
+      } catch (error) {
+        console.error('Error processing fallback text:', error)
+        // Continue to next content block
       }
     }
   }
 
   if (fallbackResult) {
     // If we have a fallback result, return it
+    console.log('Returning fallback result, hasJsonFallback:', hasJsonFallback)
     return fallbackResult
   }
-  throw new Error('Unexpected response format from Anthropic')
+
+  throw new Error(
+    'Unexpected response format from Anthropic - no content found'
+  )
 }
