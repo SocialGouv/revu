@@ -1,3 +1,17 @@
+# [1.12.0](https://github.com/SocialGouv/revu/compare/v1.11.1...v1.12.0) (2025-06-20)
+
+
+### Features
+
+* Comment with an error and link to revu logs as fallback ([799aeb1](https://github.com/SocialGouv/revu/commit/799aeb1f4473693782df671d39245523122a4acc))
+
+## [1.11.1](https://github.com/SocialGouv/revu/compare/v1.11.0...v1.11.1) (2025-06-20)
+
+
+### Bug Fixes
+
+* avoid updating deleted comments ([#73](https://github.com/SocialGouv/revu/issues/73)) ([621ca56](https://github.com/SocialGouv/revu/commit/621ca561ac5ae75e5c0ca385368ba53313b483a0))
+
 # [1.11.0](https://github.com/SocialGouv/revu/compare/v1.10.0...v1.11.0) (2025-06-18)
 
 
