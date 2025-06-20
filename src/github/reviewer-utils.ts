@@ -29,6 +29,15 @@ export function isReviewRequestedForBot(event: GitHubEvent, botUsername: string 
       event.requested_reviewer.login === botUsername
   )
 }
+/**
+ * Checks if a review request is specifically for the Revu bot
+ */
+export function isReviewRequestedForBot(event: GitHubEvent, botUsername: string = 'revu-bot[bot]'): boolean {
+  return Boolean(
+    event.action === 'requested' &&
+      event.requested_reviewer &&
+      event.requested_reviewer.login === botUsername
+  )
 }
 
 /**
@@ -55,6 +64,8 @@ export function extractPRInfo(event: GitHubEvent): {
 
 /**
  * Adds the Revu bot as a reviewer to a pull request
+/**
+ * Adds the Revu bot as a reviewer to a pull request
  */
 export async function addBotAsReviewer(context: Context): Promise<void> {
   try {
@@ -66,11 +77,14 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
     }
     const pr = payload.pull_request
     const repo = context.repo()
+    
+    // Get the bot username dynamically
+    const botUsername = await getBotUsername(context)
 
     // Check if bot is already a requested reviewer
     const isBotAlreadyRequested = pr.requested_reviewers?.some(
       (reviewer: { login: string; type: string }) =>
-        reviewer.login === 'revu-bot[bot]'
+        reviewer.login === botUsername
     )
 
     if (isBotAlreadyRequested) {
@@ -82,6 +96,18 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
 
     // Add bot as reviewer
     await context.octokit.pulls.requestReviewers({
+      owner: repo.owner,
+      repo: repo.repo,
+      pull_number: pr.number,
+      reviewers: [botUsername]
+    })
+
+    context.log.info(`Successfully added bot as reviewer for PR #${pr.number}`)
+  } catch (error) {
+    context.log.error(`Error adding bot as reviewer: ${error}`)
+    // Don't throw error to avoid breaking the workflow
+  }
+}
       owner: repo.owner,
       repo: repo.repo,
       pull_number: pr.number,
