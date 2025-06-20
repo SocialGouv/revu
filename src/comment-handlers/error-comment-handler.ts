@@ -92,5 +92,15 @@ An error occurred: ${errorMessage}
   const existingComment = await findExistingErrorComment(context, prNumber)
 
   // Create or update the comment
-  return await upsertComment(context, existingComment, formattedError, prNumber)
+  try {
+    return await upsertComment(
+      context,
+      existingComment,
+      formattedError,
+      prNumber
+    )
+  } catch (error) {
+    console.error(`Failed to upsert error comment: ${error}`)
+    return `Failed to post error comment: ${error.message || String(error)}`
+  }
 }
