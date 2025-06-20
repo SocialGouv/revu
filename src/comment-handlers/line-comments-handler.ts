@@ -153,6 +153,7 @@ async function findExistingSummaryComment(context: Context, prNumber: number) {
 interface GitHubApiError {
   status: number
   message?: string
+  documentation_url?: string
 }
 
 // Type guard pour vérifier si une erreur est une erreur GitHub API
@@ -161,28 +162,39 @@ function isGitHubApiError(error: unknown): error is GitHubApiError {
     error !== null &&
     typeof error === 'object' &&
     'status' in error &&
-    typeof (error as GitHubApiError).status === 'number'
+    typeof (error as GitHubApiError).status === 'number' &&
+    // Vérifications spécifiques GitHub API
+    ('message' in error || 'documentation_url' in error) &&
+    // Vérifier les codes d'erreur HTTP typiques
+    (error as GitHubApiError).status >= 400 &&
+    (error as GitHubApiError).status < 600
   )
 }
 
+// Type pour le résultat de vérification d'existence de commentaire
+type CommentExistenceResult =
+  | { exists: true }
+  | { exists: false; reason: 'not_found' }
+  | { exists: false; reason: 'error'; error: unknown }
+
 /**
- * Vérifie si un commentaire existe encore sur GitHub
+ * Vérifie l'existence d'un commentaire sur GitHub de manière robuste
  */
-async function commentStillExists(
+async function checkCommentExistence(
   context: Context,
   commentId: number
-): Promise<boolean> {
+): Promise<CommentExistenceResult> {
   try {
     await context.octokit.pulls.getReviewComment({
       ...context.repo(),
       comment_id: commentId
     })
-    return true
+    return { exists: true }
   } catch (error) {
     if (isGitHubApiError(error) && error.status === 404) {
-      return false
+      return { exists: false, reason: 'not_found' }
     }
-    throw error // Autres erreurs sont re-lancées
+    return { exists: false, reason: 'error', error }
   }
 }
 
@@ -381,43 +393,58 @@ export async function lineCommentsHandler(
           existing.path === comment.path
       )
 
-      // Décision unique : update ou create
-      let shouldUpdate = false
-      let shouldSkip = false
-
+      // Décision unique : update ou create avec gestion robuste des erreurs
       if (existingComment) {
-        try {
-          shouldUpdate = await commentStillExists(context, existingComment.id)
-        } catch (error) {
-          console.warn(
-            `Unable to verify comment ${existingComment.id} existence, skipping update:`,
-            error
-          )
-          shouldSkip = true
+        const existenceResult = await checkCommentExistence(
+          context,
+          existingComment.id
+        )
+
+        if (existenceResult.exists) {
+          // Update existing comment
+          await context.octokit.pulls.updateReviewComment({
+            ...repo,
+            comment_id: existingComment.id,
+            body: commentBody
+          })
+          updatedCount++
+        } else {
+          // Cast to the correct union type since exists is false
+          const failedResult = existenceResult as
+            | { exists: false; reason: 'not_found' }
+            | { exists: false; reason: 'error'; error: unknown }
+
+          if (failedResult.reason === 'not_found') {
+            // Comment was deleted, create a new one
+            console.log(
+              `Comment ${existingComment.id} no longer exists, creating new one`
+            )
+            const commentParams = createCommentParams(
+              repo,
+              prNumber,
+              commitSha,
+              comment,
+              commentBody
+            )
+            await context.octokit.pulls.createReviewComment(commentParams)
+            createdCount++
+          } else {
+            // failedResult.reason === 'error'
+            console.warn(
+              `Unable to verify comment ${existingComment.id} existence, skipping update:`,
+              (
+                failedResult as {
+                  exists: false
+                  reason: 'error'
+                  error: unknown
+                }
+              ).error
+            )
+            skippedCount++
+          }
         }
-      }
-
-      if (shouldSkip) {
-        skippedCount++
-        continue
-      }
-
-      if (shouldUpdate) {
-        // Update existing comment
-        await context.octokit.pulls.updateReviewComment({
-          ...repo,
-          comment_id: existingComment.id,
-          body: commentBody
-        })
-        updatedCount++
       } else {
-        // Create new comment (either brand new or replacement for deleted one)
-        if (existingComment) {
-          console.log(
-            `Comment ${existingComment.id} no longer exists, creating new one`
-          )
-        }
-
+        // Create new comment
         const commentParams = createCommentParams(
           repo,
           prNumber,
