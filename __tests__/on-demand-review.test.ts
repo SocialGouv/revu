@@ -25,7 +25,7 @@ describe('On-Demand Review - Real Tests', () => {
         }
       }
 
-      expect(isReviewRequestedForBot(event)).toBe(true)
+      expect(isReviewRequestedForBot(event, 'revu-bot[bot]')).toBe(true)
     })
 
     it('should return false when review is requested for another user', () => {
@@ -46,7 +46,7 @@ describe('On-Demand Review - Real Tests', () => {
         }
       }
 
-      expect(isReviewRequestedForBot(event)).toBe(false)
+      expect(isReviewRequestedForBot(event, 'revu-bot[bot]')).toBe(false)
     })
 
     it('should return false when action is not "requested"', () => {
@@ -67,7 +67,7 @@ describe('On-Demand Review - Real Tests', () => {
         }
       }
 
-      expect(isReviewRequestedForBot(event)).toBe(false)
+      expect(isReviewRequestedForBot(event, 'revu-bot[bot]')).toBe(false)
     })
 
     it('should return false when requested_reviewer is undefined', () => {
@@ -84,7 +84,7 @@ describe('On-Demand Review - Real Tests', () => {
         }
       }
 
-      expect(isReviewRequestedForBot(event)).toBe(false)
+      expect(isReviewRequestedForBot(event, 'revu-bot[bot]')).toBe(false)
     })
 
     it('should handle edge cases with missing properties', () => {
@@ -102,7 +102,9 @@ describe('On-Demand Review - Real Tests', () => {
         }
       }
 
-      expect(isReviewRequestedForBot(eventWithNullReviewer)).toBe(false)
+      expect(
+        isReviewRequestedForBot(eventWithNullReviewer, 'revu-bot[bot]')
+      ).toBe(false)
     })
   })
 

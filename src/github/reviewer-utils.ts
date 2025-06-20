@@ -1,5 +1,15 @@
 import { Context } from 'probot'
 
+// Cache for bot username to avoid repeated API calls
+let cachedBotUsername: string | null = null
+
+/**
+ * Resets the bot username cache (primarily for testing)
+ */
+export function resetBotUsernameCache(): void {
+  cachedBotUsername = null
+}
+
 interface GitHubEvent {
   action: string
   requested_reviewer?: {
@@ -20,7 +30,7 @@ interface GitHubEvent {
 
 export function isReviewRequestedForBot(
   event: GitHubEvent,
-  botUsername: string = 'revu-bot[bot]'
+  botUsername: string
 ): boolean {
   return Boolean(
     event.action === 'requested' &&
@@ -98,13 +108,24 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
 
 /**
  * Gets the bot's username from the GitHub App
+ * Caches the result to avoid repeated API calls
  */
 export async function getBotUsername(context: Context): Promise<string> {
+  // Return cached value if available
+  if (cachedBotUsername) {
+    return cachedBotUsername
+  }
+
   try {
     const app = await context.octokit.apps.getAuthenticated()
-    return `${app.data.slug}[bot]`
+    const username = `${app.data.slug}[bot]`
+
+    // Cache the successful result
+    cachedBotUsername = username
+    return username
   } catch (error) {
-    context.log.error(`Error getting bot username: ${error}`)
-    return 'revu-bot[bot]' // fallback
+    context.log.error(`Failed to get bot username: ${error}`)
+    // No fallback - throw the error to let calling code handle it
+    throw new Error(`Unable to retrieve bot username: ${error}`)
   }
 }

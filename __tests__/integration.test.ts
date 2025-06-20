@@ -3,7 +3,8 @@ import { Context } from 'probot'
 import {
   addBotAsReviewer,
   isReviewRequestedForBot,
-  getBotUsername
+  getBotUsername,
+  resetBotUsernameCache
 } from '../src/github/reviewer-utils.ts'
 
 // Mock octokit methods for integration testing
@@ -106,6 +107,7 @@ function createIntegrationContext(
 describe('Integration Tests - Real Workflows', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetBotUsernameCache()
   })
 
   describe('Complete PR Opened Workflow', () => {
@@ -170,7 +172,9 @@ describe('Integration Tests - Real Workflows', () => {
         }
       }
 
-      expect(isReviewRequestedForBot(reviewRequestEvent)).toBe(true)
+      expect(isReviewRequestedForBot(reviewRequestEvent, 'revu-bot[bot]')).toBe(
+        true
+      )
     })
 
     it('should ignore review requests for other reviewers', () => {
@@ -191,37 +195,48 @@ describe('Integration Tests - Real Workflows', () => {
         }
       }
 
-      expect(isReviewRequestedForBot(reviewRequestEvent)).toBe(false)
+      expect(isReviewRequestedForBot(reviewRequestEvent, 'revu-bot[bot]')).toBe(
+        false
+      )
     })
 
     it('should handle various edge cases in review request detection', () => {
       // Test missing requested_reviewer
       expect(
-        isReviewRequestedForBot({
-          action: 'requested',
-          pull_request: { number: 123 },
-          repository: { name: 'test', owner: { login: 'test' } }
-        })
+        isReviewRequestedForBot(
+          {
+            action: 'requested',
+            pull_request: { number: 123 },
+            repository: { name: 'test', owner: { login: 'test' } }
+          },
+          'revu-bot[bot]'
+        )
       ).toBe(false)
 
       // Test wrong action
       expect(
-        isReviewRequestedForBot({
-          action: 'submitted',
-          requested_reviewer: { login: 'revu-bot[bot]', type: 'Bot' },
-          pull_request: { number: 123 },
-          repository: { name: 'test', owner: { login: 'test' } }
-        })
+        isReviewRequestedForBot(
+          {
+            action: 'submitted',
+            requested_reviewer: { login: 'revu-bot[bot]', type: 'Bot' },
+            pull_request: { number: 123 },
+            repository: { name: 'test', owner: { login: 'test' } }
+          },
+          'revu-bot[bot]'
+        )
       ).toBe(false)
 
       // Test null requested_reviewer
       expect(
-        isReviewRequestedForBot({
-          action: 'requested',
-          requested_reviewer: null,
-          pull_request: { number: 123 },
-          repository: { name: 'test', owner: { login: 'test' } }
-        })
+        isReviewRequestedForBot(
+          {
+            action: 'requested',
+            requested_reviewer: null,
+            pull_request: { number: 123 },
+            repository: { name: 'test', owner: { login: 'test' } }
+          },
+          'revu-bot[bot]'
+        )
       ).toBe(false)
     })
   })
@@ -233,19 +248,29 @@ describe('Integration Tests - Real Workflows', () => {
       // Adding reviewer should not throw even if API fails
       await expect(addBotAsReviewer(context)).resolves.not.toThrow()
 
+      // With the new behavior, getBotUsername fails first, then addBotAsReviewer catches and logs that error
       expect(mockLogError).toHaveBeenCalledWith(
-        'Error adding bot as reviewer: Error: Network Error'
+        'Failed to get bot username: Error: Auth Error'
+      )
+      expect(mockLogError).toHaveBeenCalledWith(
+        'Error adding bot as reviewer: Error: Unable to retrieve bot username: Error: Auth Error'
       )
 
-      // Getting bot username should return fallback
-      const username = await getBotUsername(context)
-      expect(username).toBe('revu-bot[bot]')
-      expect(mockLogError).toHaveBeenCalledWith(
-        'Error getting bot username: Error: Auth Error'
+      // Getting bot username should throw an error
+      resetBotUsernameCache()
+      await expect(getBotUsername(context)).rejects.toThrow(
+        'Unable to retrieve bot username: Error: Auth Error'
       )
     })
 
     it('should handle missing context properties gracefully', async () => {
+      // Make sure the getAuthenticated mock works for this test
+      mockGetAuthenticated.mockResolvedValue({
+        data: {
+          slug: 'revu-bot'
+        }
+      })
+
       const contextWithMissingData = {
         payload: {
           pull_request: {
@@ -314,15 +339,15 @@ describe('Integration Tests - Real Workflows', () => {
 
   describe('Custom Bot Configuration Integration', () => {
     it('should work with custom bot names', async () => {
+      resetBotUsernameCache()
       const customBotSlug = 'my-custom-reviewer'
       const context = createIntegrationContext({ botSlug: customBotSlug })
 
       const username = await getBotUsername(context)
       expect(username).toBe('my-custom-reviewer[bot]')
 
-      // The addBotAsReviewer function still uses hardcoded 'revu-bot[bot]'
+      // The addBotAsReviewer function uses dynamic bot names from getBotUsername
       // This test shows that getBotUsername works with custom bots
-      // but addBotAsReviewer would need to be updated to use dynamic bot names
     })
   })
 
@@ -353,7 +378,10 @@ describe('Integration Tests - Real Workflows', () => {
       }
 
       // Step 3: System detects review request for bot
-      const isForBot = isReviewRequestedForBot(reviewRequestEvent)
+      const isForBot = isReviewRequestedForBot(
+        reviewRequestEvent,
+        'revu-bot[bot]'
+      )
       expect(isForBot).toBe(true)
 
       // Step 4: Get bot username for further processing

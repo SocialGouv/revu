@@ -2,7 +2,8 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Context } from 'probot'
 import {
   addBotAsReviewer,
-  getBotUsername
+  getBotUsername,
+  resetBotUsernameCache
 } from '../src/github/reviewer-utils.ts'
 
 // Mock octokit
@@ -71,6 +72,8 @@ describe('Auto Add Reviewer - Real Tests', () => {
         slug: 'revu-bot'
       }
     })
+    // Reset the cache between tests
+    resetBotUsernameCache()
   })
 
   describe('addBotAsReviewer', () => {
@@ -166,6 +169,10 @@ describe('Auto Add Reviewer - Real Tests', () => {
     })
 
     it('should work with custom bot slug', async () => {
+      // Reset cache and clear mocks for this specific test
+      resetBotUsernameCache()
+      vi.clearAllMocks()
+
       // Override the bot slug for this specific test
       mockGetAuthenticated.mockResolvedValue({
         data: {
@@ -261,19 +268,23 @@ describe('Auto Add Reviewer - Real Tests', () => {
       expect(mockGetAuthenticated).toHaveBeenCalled()
     })
 
-    it('should return fallback username when API fails', async () => {
+    it('should throw error when API fails', async () => {
+      resetBotUsernameCache()
+      vi.clearAllMocks()
       mockGetAuthenticated.mockRejectedValue(new Error('API Error'))
       const context = createMockContext()
 
-      const username = await getBotUsername(context)
-
-      expect(username).toBe('revu-bot[bot]')
+      await expect(getBotUsername(context)).rejects.toThrow(
+        'Unable to retrieve bot username: Error: API Error'
+      )
       expect(mockLogError).toHaveBeenCalledWith(
-        'Error getting bot username: Error: API Error'
+        'Failed to get bot username: Error: API Error'
       )
     })
 
     it('should handle different app slugs', async () => {
+      resetBotUsernameCache()
+      vi.clearAllMocks()
       mockGetAuthenticated.mockResolvedValue({
         data: {
           slug: 'my-custom-bot'

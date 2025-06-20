@@ -65,7 +65,15 @@ export default async (app: Probot, { getRouter }) => {
     }
 
     // Get the bot username dynamically to avoid race conditions
-    const botUsername = await getBotUsername(context)
+    let botUsername: string
+    try {
+      botUsername = await getBotUsername(context)
+    } catch (error) {
+      app.log.error(
+        `Failed to get bot username, aborting review request: ${error}`
+      )
+      return
+    }
 
     // Check if the review request is for our bot
     if (!isReviewRequestedForBot(reviewPayload, botUsername)) {
