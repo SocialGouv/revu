@@ -16,7 +16,7 @@ export async function defaultSender(prompt: string): Promise<string> {
 
   // Send to Anthropic API
   const message = await anthropic.messages.create({
-    model: 'claude-3-7-sonnet-latest',
+    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
     max_tokens: 4096,
     temperature: 0, // Using 0 for consistent, deterministic code review feedback
     messages: [
