@@ -36,6 +36,23 @@ Repo path: {{local_repo_path}}
 
 {{coding_guidelines}}
 
+## Test Quality Anti-Patterns - CRITICAL DETECTION
+
+When reviewing test files (*.test.ts, *.spec.ts, *.test.js), ALWAYS flag these critical issues:
+
+### 🚨 USELESS TESTS (High Priority):
+- **Mock-Only Tests**: Tests that redefine functions locally instead of importing from source code
+- **Missing Source Imports**: Test files without imports from `../src/` or actual source directories
+- **Circular Testing**: Tests that only validate their own mock implementations
+- **False Coverage**: Tests that bypass all real code execution through excessive mocking
+
+### ✅ Requirements for Valid Tests:
+- Must import actual functions/classes from source code
+- Should test real behavior, not mock behavior
+- Use mocks only for external dependencies (APIs, databases, etc.)
+
+**TREAT AS CRITICAL**: Useless tests provide false confidence and zero regression protection.
+
 ## Important Notes
 
 - Focus on significant issues rather than minor style or convention concerns.
