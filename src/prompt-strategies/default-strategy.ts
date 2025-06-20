@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'
 import Handlebars from 'handlebars'
 import * as path from 'path'
 import { extractAllFromUrl } from '../extract-all.ts'
-import type { PromptStrategy } from './prompt-strategy.ts'
+import type { PromptStrategy, PromptContext } from './prompt-strategy.ts'
 
 /**
  * Default prompt generation strategy.
@@ -13,13 +13,15 @@ import type { PromptStrategy } from './prompt-strategy.ts'
  * @param branch - The branch to analyze
  * @param templatePath - Optional path to a custom template file
  * @param token - Optional GitHub access token for private repositories
+ * @param _context - Optional additional context (unused in default strategy)
  * @returns A promise that resolves to the generated prompt string
  */
 export const defaultPromptStrategy: PromptStrategy = async (
   repositoryUrl: string,
   branch: string,
   templatePath?: string,
-  token?: string
+  token?: string,
+  _context?: PromptContext
 ): Promise<string> => {
   // Extract all data with token support for private repositories
   const { codebase, diff, log } = await extractAllFromUrl({
