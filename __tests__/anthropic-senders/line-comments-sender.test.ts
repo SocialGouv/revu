@@ -196,4 +196,113 @@ Some text after that should be ignored`
       'Unexpected response format from Anthropic - no content found'
     )
   })
+
+  it('should handle invalid JSON in code block (falls back to plain text)', async () => {
+    const invalidJsonInCodeBlock = `Here's the analysis:
+
+\`\`\`json
+{
+  "summary": "Test summary",
+  "comments": [
+    { 
+      "path": "test.ts",
+      "line": 10,
+      "body": "Comment"
+    // Missing closing bracket - invalid JSON
+  ]
+}
+\`\`\`
+
+This should fallback to the entire text since JSON is invalid.`
+
+    mockAnthropic.messages.create.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: invalidJsonInCodeBlock
+        }
+      ]
+    })
+
+    const result = await lineCommentsSender('test prompt')
+
+    // Should return the invalid JSON string (not the whole text)
+    // The validation happens later in lineCommentsHandler
+    expect(result).toContain('"summary": "Test summary"')
+    expect(result).toContain('// Missing closing bracket')
+  })
+
+  it('should handle invalid JSON as plain text', async () => {
+    const invalidJsonText = `{"summary":"Test","comments":[{"path":"test.ts","line":10}` // Missing closing brackets
+
+    mockAnthropic.messages.create.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: invalidJsonText
+        }
+      ]
+    })
+
+    const result = await lineCommentsSender('test prompt')
+
+    // Should return the invalid JSON string as-is
+    // The validation/parsing happens in lineCommentsHandler
+    expect(result).toBe(invalidJsonText)
+  })
+
+  it('should handle malformed text that looks like JSON but is not', async () => {
+    const malformedJson = `{this is not valid json at all}`
+
+    mockAnthropic.messages.create.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: malformedJson
+        }
+      ]
+    })
+
+    const result = await lineCommentsSender('test prompt')
+
+    // Should return the malformed JSON as-is
+    expect(result).toBe(malformedJson)
+  })
+
+  it('should prefer JSON in code block over malformed JSON-like text', async () => {
+    const validJson = {
+      summary: 'Valid summary',
+      comments: [
+        {
+          path: 'valid.ts',
+          line: 15,
+          body: 'Valid comment'
+        }
+      ]
+    }
+
+    const textWithValidJsonInCodeBlock = `Some analysis text with malformed JSON-like content {invalid: json}.
+
+But here's the valid JSON:
+
+\`\`\`json
+${JSON.stringify(validJson, null, 2)}
+\`\`\`
+
+More text after.`
+
+    mockAnthropic.messages.create.mockResolvedValue({
+      content: [
+        {
+          type: 'text',
+          text: textWithValidJsonInCodeBlock
+        }
+      ]
+    })
+
+    const result = await lineCommentsSender('test prompt')
+
+    // Should return the valid JSON from the code block, not the malformed JSON-like text
+    expect(result).toBe(JSON.stringify(validJson, null, 2))
+  })
 })
