@@ -253,14 +253,12 @@ describe('Integration Tests - Real Workflows', () => {
         'Failed to get bot username: Error: Auth Error'
       )
       expect(mockLogError).toHaveBeenCalledWith(
-        'Error adding bot as reviewer: Error: Unable to retrieve bot username: Error: Auth Error'
+        'Error adding bot as reviewer: Error: Auth Error'
       )
 
       // Getting bot username should throw an error
       resetBotUsernameCache()
-      await expect(getBotUsername(context)).rejects.toThrow(
-        'Unable to retrieve bot username: Error: Auth Error'
-      )
+      await expect(getBotUsername(context)).rejects.toThrow('Auth Error')
     })
 
     it('should handle missing context properties gracefully', async () => {

@@ -1,7 +1,7 @@
 import { config } from 'dotenv'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import { Probot } from 'probot'
+import { Context, Probot } from 'probot'
 import { getCommentHandler } from './comment-handlers/index.ts'
 import { sendToAnthropic } from './send-to-anthropic.ts'
 import {
@@ -108,22 +108,14 @@ export default async (app: Probot, { getRouter }) => {
         })
         .then((response) => response.data.token)
 
-      // Get the current strategy from configuration
-      const strategyName = await getStrategyNameFromConfig()
-
-      // Get the analysis from Anthropic
-      const analysis = await sendToAnthropic({
+      // Perform the complete review analysis
+      const result = await performReviewAnalysis(
+        context,
+        pr.number,
         repositoryUrl,
         branch,
-        token: installationAccessToken,
-        strategyName
-      })
-
-      // Get the appropriate comment handler based on the strategy
-      const commentHandler = getCommentHandler(strategyName)
-
-      // Handle the analysis with the appropriate handler
-      const result = await commentHandler(context, pr.number, analysis)
+        installationAccessToken
+      )
 
       app.log.info(result)
       app.log.info(
@@ -149,5 +141,38 @@ export default async (app: Probot, { getRouter }) => {
       console.error('Error reading configuration:', error)
       return 'default'
     }
+  }
+
+  /**
+   * Performs a complete review analysis for a PR
+   * This function encapsulates the common logic for analyzing PRs and posting comments
+   */
+  async function performReviewAnalysis(
+    context: Context,
+    prNumber: number,
+    repositoryUrl: string,
+    branch: string,
+    installationAccessToken: string,
+    strategyName?: string
+  ): Promise<string> {
+    // Get the current strategy from configuration if not provided
+    const finalStrategyName =
+      strategyName || (await getStrategyNameFromConfig())
+
+    // Get the analysis from Anthropic
+    const analysis = await sendToAnthropic({
+      repositoryUrl,
+      branch,
+      token: installationAccessToken,
+      strategyName: finalStrategyName
+    })
+
+    // Get the appropriate comment handler based on the strategy
+    const commentHandler = getCommentHandler(finalStrategyName)
+
+    // Handle the analysis with the appropriate handler
+    const result = await commentHandler(context, prNumber, analysis)
+
+    return result || 'Review completed successfully'
   }
 }

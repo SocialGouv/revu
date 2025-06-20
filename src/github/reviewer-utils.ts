@@ -32,10 +32,10 @@ export function isReviewRequestedForBot(
   event: GitHubEvent,
   botUsername: string
 ): boolean {
-  return Boolean(
+  return !!(
     event.action === 'requested' &&
-      event.requested_reviewer &&
-      event.requested_reviewer.login === botUsername
+    event.requested_reviewer &&
+    event.requested_reviewer.login === botUsername
   )
 }
 
@@ -125,7 +125,7 @@ export async function getBotUsername(context: Context): Promise<string> {
     return username
   } catch (error) {
     context.log.error(`Failed to get bot username: ${error}`)
-    // No fallback - throw the error to let calling code handle it
-    throw new Error(`Unable to retrieve bot username: ${error}`)
+    // Re-throw the original error to avoid nested error messages
+    throw error
   }
 }

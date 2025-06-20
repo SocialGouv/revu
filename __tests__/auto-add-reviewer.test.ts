@@ -274,9 +274,7 @@ describe('Auto Add Reviewer - Real Tests', () => {
       mockGetAuthenticated.mockRejectedValue(new Error('API Error'))
       const context = createMockContext()
 
-      await expect(getBotUsername(context)).rejects.toThrow(
-        'Unable to retrieve bot username: Error: API Error'
-      )
+      await expect(getBotUsername(context)).rejects.toThrow('API Error')
       expect(mockLogError).toHaveBeenCalledWith(
         'Failed to get bot username: Error: API Error'
       )
