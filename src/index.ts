@@ -6,6 +6,7 @@ import { getCommentHandler } from './comment-handlers/index.ts'
 import { sendToAnthropic } from './send-to-anthropic.ts'
 import {
   addBotAsReviewer,
+  getBotUsername,
   isReviewRequestedForBot
 } from './github/reviewer-utils.ts'
 
@@ -63,8 +64,11 @@ export default async (app: Probot, { getRouter }) => {
       }
     }
 
+    // Get the bot username dynamically to avoid race conditions
+    const botUsername = await getBotUsername(context)
+
     // Check if the review request is for our bot
-    if (!isReviewRequestedForBot(reviewPayload)) {
+    if (!isReviewRequestedForBot(reviewPayload, botUsername)) {
       app.log.info('Review requested for someone else, ignoring')
       return
     }
