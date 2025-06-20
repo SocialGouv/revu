@@ -36,7 +36,13 @@ export const defaultPromptStrategy: PromptStrategy = async (
   const actualTemplatePath =
     templatePath || path.join(process.cwd(), 'templates', 'prompt.hbs')
   const templateContent = await fs.readFile(actualTemplatePath, 'utf-8')
-  const template = Handlebars.compile(templateContent)
+
+  let template
+  try {
+    template = Handlebars.compile(templateContent)
+  } catch (error) {
+    throw new Error(`Failed to compile Handlebars template: ${error.message}`)
+  }
 
   // Populate the template with the data
   const result = template({
