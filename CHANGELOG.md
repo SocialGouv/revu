@@ -1,3 +1,10 @@
+## [1.15.3](https://github.com/SocialGouv/revu/compare/v1.15.2...v1.15.3) (2025-06-21)
+
+
+### Bug Fixes
+
+* improve reviewer logs ([070c56b](https://github.com/SocialGouv/revu/commit/070c56b65540937f680292a707bec54384195543))
+
 ## [1.15.2](https://github.com/SocialGouv/revu/compare/v1.15.1...v1.15.2) (2025-06-20)
 
 
