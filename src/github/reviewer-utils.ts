@@ -113,18 +113,38 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
     // Add bot as reviewer
     const response = await context.octokit.pulls.requestReviewers(requestParams)
 
-    // Log the full API response
+    // Comprehensive response logging
     context.log.info(`API Response status: ${response.status}`)
-    context.log.info(
-      `API Response data:`,
-      JSON.stringify(response.data, null, 2)
-    )
+    context.log.info(`API Response headers:`, response.headers)
 
-    // Log the updated requested reviewers from the response
-    context.log.info(
-      `Updated requested reviewers after API call:`,
-      response.data.requested_reviewers
-    )
+    // Check if response.data exists and log its type
+    context.log.info(`Response data exists: ${!!response.data}`)
+    context.log.info(`Response data type: ${typeof response.data}`)
+
+    if (response.data) {
+      // Log each property of response.data
+      context.log.info(`Response data keys:`, Object.keys(response.data))
+      context.log.info(
+        `Full response data:`,
+        JSON.stringify(response.data, null, 2)
+      )
+
+      // Specifically check for requested_reviewers
+      if (response.data.requested_reviewers) {
+        context.log.info(
+          `Requested reviewers in response:`,
+          response.data.requested_reviewers
+        )
+        context.log.info(
+          `Number of requested reviewers:`,
+          response.data.requested_reviewers.length
+        )
+      } else {
+        context.log.info(`No requested_reviewers field in response data`)
+      }
+    } else {
+      context.log.info(`Response data is null/undefined`)
+    }
 
     context.log.info(`Successfully added bot as reviewer for PR #${pr.number}`)
   } catch (error) {
