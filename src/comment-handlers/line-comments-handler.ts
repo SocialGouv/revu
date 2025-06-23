@@ -2,7 +2,7 @@ import { type Context } from 'probot'
 import { z } from 'zod'
 import { fetchPrDiffFileMap } from '../extract-diff.ts'
 import { errorCommentHandler } from './error-comment-handler.ts'
-import { upsertComment } from './global-comment-handler.ts'
+import { upsertComment } from './index.ts'
 
 // Marker for the global summary comment
 const SUMMARY_MARKER = '<!-- REVU-AI-SUMMARY -->'

@@ -1,18 +1,9 @@
 import { exec } from 'child_process'
 import * as fs from 'fs/promises'
-import * as os from 'os'
 import * as path from 'path'
 import { promisify } from 'util'
-import { cloneRepository } from './repo-utils.ts'
 
 const execAsync = promisify(exec)
-
-interface ExtractCodebaseOptions {
-  repositoryUrl: string
-  branch: string
-  tempFolder?: string
-  token?: string
-}
 
 interface ExtractCodebaseFromRepoOptions {
   repoPath: string
@@ -50,57 +41,4 @@ export async function extractCodebaseFromRepo({
   await fs.rm(path.join(repoPath, '.aidigestignore'))
 
   return codebase
-}
-
-// Keep original function for backward compatibility
-/**
- * Legacy function that extracts codebase content from a GitHub repository.
- * Creates a temporary clone of the repository and delegates to extractCodebaseFromRepo.
- *
- * @param {Object} options - The options for extraction
- * @param {string} options.repositoryUrl - The URL of the GitHub repository
- * @param {string} options.branch - The branch to extract from
- * @param {string} [options.tempFolder] - Optional temporary folder path for cloning
- * @param {string} [options.token] - Optional access token for authentication with private repos
- * @returns {Promise<string>} The processed codebase content
- * @throws {Error} If cloning or extraction fails
- * @deprecated Use extractCodebaseFromRepo when repository is already cloned
- */
-export async function extractCodebase({
-  repositoryUrl,
-  branch,
-  tempFolder = path.join(os.tmpdir(), 'ai-digest-' + Date.now()),
-  token
-}: ExtractCodebaseOptions): Promise<string> {
-  try {
-    // Create temporary directory
-    await fs.mkdir(tempFolder, { recursive: true })
-
-    // Clone the repository with the centralized function
-    await cloneRepository({
-      repositoryUrl,
-      branch,
-      destination: tempFolder,
-      token
-    })
-
-    // Extract codebase using the new function
-    const codebase = await extractCodebaseFromRepo({
-      repoPath: tempFolder
-    })
-
-    // Clean up
-    await fs.rm(tempFolder, { recursive: true, force: true })
-
-    return codebase
-  } catch (error) {
-    // Clean up on error
-    try {
-      await fs.rm(tempFolder, { recursive: true, force: true })
-    } catch (cleanupError) {
-      console.error('Error during cleanup:', cleanupError)
-    }
-
-    throw error
-  }
 }

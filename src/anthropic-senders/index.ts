@@ -1,10 +1,9 @@
-import { defaultSender } from './default-sender.ts'
 import { lineCommentsSender } from './line-comments-sender.ts'
 
 /**
  * Type definition for all Anthropic senders
  */
-export type AnthropicSender = (prompt: string) => Promise<string>
+type LLMSender = (prompt: string) => Promise<string>
 
 /**
  * Gets the appropriate sender based on the strategy name.
@@ -13,14 +12,13 @@ export type AnthropicSender = (prompt: string) => Promise<string>
  * @param strategyName - The name of the prompt strategy used
  * @returns The appropriate sender function
  */
-export function getSender(strategyName?: string): AnthropicSender {
-  switch (strategyName?.toLowerCase()) {
-    case 'line-comments':
-      return lineCommentsSender
-    case 'default':
-    default:
-      return defaultSender
-  }
+export function getSender(_strategyName?: string): LLMSender {
+  // switch (strategyName?.toLowerCase()) {
+  //   case 'line-comments':
+  //     return lineCommentsSender
+  //   case 'default':
+  //   default:
+  //     return defaultSender
+  // }
+  return lineCommentsSender
 }
-
-export { defaultSender, lineCommentsSender }

@@ -2,10 +2,8 @@ import { config } from 'dotenv'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { Context, Probot } from 'probot'
-import {
-  errorCommentHandler,
-  getCommentHandler
-} from './comment-handlers/index.ts'
+import { errorCommentHandler } from './comment-handlers/error-comment-handler.ts'
+import { getCommentHandler } from './comment-handlers/index.ts'
 import {
   addBotAsReviewer,
   getBotUsername,
