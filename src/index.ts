@@ -3,16 +3,16 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { Context, Probot } from 'probot'
 import {
-  getCommentHandler,
-  errorCommentHandler
+  errorCommentHandler,
+  getCommentHandler
 } from './comment-handlers/index.ts'
 import {
   addBotAsReviewer,
   getBotUsername,
   isReviewRequestedForBot
 } from './github/reviewer-utils.ts'
-import { sendToAnthropic } from './send-to-anthropic.ts'
 import type { PromptContext } from './prompt-strategies/prompt-strategy.ts'
+import { sendToAnthropic } from './send-to-anthropic.ts'
 
 // Load environment variables
 config()
@@ -119,6 +119,7 @@ export default async (app: Probot, { getRouter }) => {
 
       // Prepare context for prompt generation (includes PR title and body)
       const promptContext = {
+        prNumber: pr.number,
         prTitle: pr.title,
         prBody: pr.body || undefined,
         repoOwner: repo.owner,

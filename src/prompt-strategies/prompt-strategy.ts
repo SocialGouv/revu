@@ -10,6 +10,8 @@ export interface PromptContext {
   repoOwner?: string
   /** Repository name for GitHub API calls */
   repoName?: string
+  /** Pull request number */
+  prNumber?: number
 }
 
 /**
