@@ -1,16 +1,47 @@
-import { type Context } from 'probot'
-import { globalCommentHandler } from './global-comment-handler.ts'
+import { type Context, ProbotOctokit } from 'probot'
 import { lineCommentsHandler } from './line-comments-handler.ts'
-import { errorCommentHandler } from './error-comment-handler.ts'
 
 /**
  * Callback type for comment handlers
  */
-export type CommentHandler = (
+type CommentHandler = (
   context: Context,
   prNumber: number,
   analysis: string
 ) => Promise<string | void>
+
+type ListCommentsResponse = Awaited<
+  ReturnType<ProbotOctokit['rest']['issues']['listComments']>
+>
+
+type SingleComment = ListCommentsResponse['data'][number]
+
+export async function upsertComment(
+  context: Context,
+  existingComment: SingleComment,
+  formattedAnalysis: string,
+  prNumber: number
+) {
+  const repo = context.repo()
+
+  if (existingComment) {
+    // Update the existing comment
+    await context.octokit.issues.updateComment({
+      ...repo,
+      comment_id: existingComment.id,
+      body: formattedAnalysis
+    })
+    return `Updated existing analysis comment on PR #${prNumber}`
+  } else {
+    // Post a new comment
+    await context.octokit.issues.createComment({
+      ...repo,
+      issue_number: prNumber,
+      body: formattedAnalysis
+    })
+    return `Created new analysis comment on PR #${prNumber}`
+  }
+}
 
 /**
  * Gets the appropriate comment handler based on the strategy name.
@@ -19,14 +50,14 @@ export type CommentHandler = (
  * @param strategyName - The name of the prompt strategy used
  * @returns The appropriate comment handler function
  */
-export function getCommentHandler(strategyName: string): CommentHandler {
-  switch (strategyName.toLowerCase()) {
-    case 'line-comments':
-      return lineCommentsHandler
-    case 'default':
-    default:
-      return globalCommentHandler
-  }
-}
+export function getCommentHandler(_strategyName: string): CommentHandler {
+  // switch (strategyName.toLowerCase()) {
+  //   case 'line-comments':
+  //     return lineCommentsHandler
+  //   case 'default':
+  //   default:
+  //     return globalCommentHandler
+  // }
 
-export { globalCommentHandler, lineCommentsHandler, errorCommentHandler }
+  return lineCommentsHandler
+}

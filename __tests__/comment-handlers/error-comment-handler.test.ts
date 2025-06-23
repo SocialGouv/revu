@@ -2,13 +2,12 @@ import { type Context } from 'probot'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { errorCommentHandler } from '../../src/comment-handlers/error-comment-handler.ts'
 
-// Mock upsertComment from global-comment-handler
-vi.mock('../../src/comment-handlers/global-comment-handler.ts', () => ({
+vi.mock('../../src/comment-handlers/index.ts', () => ({
   upsertComment: vi.fn().mockResolvedValue('Upserted comment')
 }))
 
 // Import the mocked function after the mock setup
-import { upsertComment } from '../../src/comment-handlers/global-comment-handler.ts'
+import { upsertComment } from '../../src/comment-handlers/index.ts'
 
 const mockUpsertComment = vi.mocked(upsertComment)
 
