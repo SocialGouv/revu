@@ -1,3 +1,12 @@
+# [1.16.0](https://github.com/SocialGouv/revu/compare/v1.15.4...v1.16.0) (2025-06-23)
+
+
+### Features
+
+* Add PR body and title to the line comment prompt ([#76](https://github.com/SocialGouv/revu/issues/76)) ([15277ef](https://github.com/SocialGouv/revu/commit/15277ef9f84f20a095207df7cb42df27d7bb037d)), closes [#68](https://github.com/SocialGouv/revu/issues/68)
+* Add related issues content to the line comment prompt ([65bfb5a](https://github.com/SocialGouv/revu/commit/65bfb5aaf6de7e061e087ef34844d5b6326e868f))
+* Add repo utils to extract issu content from PR body ([94d5eac](https://github.com/SocialGouv/revu/commit/94d5eacadd2c6c8b6b240d27fd7e748365ccfcf9))
+
 ## [1.15.4](https://github.com/SocialGouv/revu/compare/v1.15.3...v1.15.4) (2025-06-21)
 
 
