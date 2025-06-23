@@ -20,7 +20,7 @@ import type { PromptContext, PromptStrategy } from './prompt-strategy.ts'
 
 /**
  * Line comments prompt generation strategy.
- * Similar to the modified-files strategy but requests line-specific comments.
+ * Requests line-specific comments.
  * Instructs Claude to respond with a structured JSON format that includes:
  * - A summary of the PR
  * - Individual comments for specific lines of code

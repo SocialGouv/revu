@@ -19,7 +19,7 @@
 
 ## Strategy System
 
-- **Prompt Strategies**: Different templates for Claude (default, line-comments, modified-files)
+- **Prompt Strategies**: Different templates for Claude (default, line-comments)
 - **Anthropic Senders**: Format requests to Claude API based on strategy
 - **Comment Handlers**: Post reviews as global comments or line-specific comments
 - Current config: "line-comments" strategy (provides feedback as inline comments on specific code lines rather than a single PR comment)

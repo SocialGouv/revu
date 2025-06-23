@@ -24,7 +24,6 @@ export function getCommentHandler(strategyName: string): CommentHandler {
     case 'line-comments':
       return lineCommentsHandler
     case 'default':
-    case 'modified-files':
     default:
       return globalCommentHandler
   }
