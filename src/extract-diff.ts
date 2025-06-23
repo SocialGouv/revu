@@ -76,15 +76,15 @@ export async function extractDiffFromRepo({
 }
 
 /**
- * Fetches the diff for a PR and parses it to identify changed lines
+ * Fetches the diff for a PR using the GitHub API
  * @param context GitHub API context
  * @param prNumber PR number
- * @returns Map of file paths to their diff information
+ * @returns The diff as a string
  */
 export async function fetchPrDiff(
   context: Context,
   prNumber: number
-): Promise<Map<string, DiffInfo>> {
+): Promise<string> {
   const repo = context.repo()
 
   // Fetch the PR diff with the 'application/vnd.github.v3.diff' media type
@@ -99,8 +99,21 @@ export async function fetchPrDiff(
     }
   )
 
+  return response.data as unknown as string
+}
+
+/**
+ * Fetches the diff for a PR and parses it to identify changed lines
+ * @param context GitHub API context
+ * @param prNumber PR number
+ * @returns Map of file paths to their diff information
+ */
+export async function fetchPrDiffFileMap(
+  context: Context,
+  prNumber: number
+): Promise<Map<string, DiffInfo>> {
   // The response will be a string when using the diff media type
-  const diffText = response.data as unknown as string
+  const diffText = await fetchPrDiff(context, prNumber)
 
   // Parse the diff to extract changed lines
   return parseDiff(diffText)

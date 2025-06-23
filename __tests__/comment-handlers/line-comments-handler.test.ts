@@ -1,10 +1,10 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { type Context } from 'probot'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { lineCommentsHandler } from '../../src/comment-handlers/line-comments-handler.ts'
 
 // Mock fetchPrDiff - function must be defined before vi.mock call
 vi.mock('../../src/extract-diff.ts', () => ({
-  fetchPrDiff: vi.fn()
+  fetchPrDiffFileMap: vi.fn()
 }))
 
 // Mock global comment handler and error comment handler
@@ -18,10 +18,10 @@ vi.mock('../../src/comment-handlers/error-comment-handler.ts', () => ({
 }))
 
 // Import the mocked functions after the mock setup
-import { fetchPrDiff } from '../../src/extract-diff.ts'
 import { errorCommentHandler } from '../../src/comment-handlers/error-comment-handler.ts'
+import { fetchPrDiffFileMap } from '../../src/extract-diff.ts'
 
-const mockFetchPrDiff = vi.mocked(fetchPrDiff)
+const mockFetchPrDiffFileMap = vi.mocked(fetchPrDiffFileMap)
 const mockErrorCommentHandler = vi.mocked(errorCommentHandler)
 
 describe('lineCommentsHandler', () => {
@@ -107,7 +107,7 @@ describe('lineCommentsHandler', () => {
         data: { id: 1, body: 'Existing comment' }
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file1.ts', { changedLines: new Set([10, 11]) }],
           ['file2.ts', { changedLines: new Set([20, 21]) }]
@@ -273,7 +273,7 @@ describe('lineCommentsHandler', () => {
       })
 
       // Current diff only contains file2.ts:20 and file3.ts:30
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file2.ts', { changedLines: new Set([20, 21]) }],
           ['file3.ts', { changedLines: new Set([30, 31]) }]
@@ -309,7 +309,7 @@ describe('lineCommentsHandler', () => {
         data: existingComments
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file2.ts', { changedLines: new Set([20, 21]) }],
           ['file3.ts', { changedLines: new Set([30, 31]) }]
@@ -357,7 +357,7 @@ describe('lineCommentsHandler', () => {
         data: existingComments
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file2.ts', { changedLines: new Set([20, 21]) }],
           ['file3.ts', { changedLines: new Set([30, 31]) }]
@@ -422,7 +422,7 @@ describe('lineCommentsHandler', () => {
         data: existingComments
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([['file2.ts', { changedLines: new Set([20]) }]])
       )
 
@@ -456,7 +456,7 @@ describe('lineCommentsHandler', () => {
       })
 
       // Empty diff - no changed lines
-      mockFetchPrDiff.mockResolvedValue(new Map())
+      mockFetchPrDiffFileMap.mockResolvedValue(new Map())
 
       const emptyAnalysis = JSON.stringify({
         summary: 'No changes',
@@ -483,7 +483,7 @@ describe('lineCommentsHandler', () => {
         data: existingComments
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([['file2.ts', { changedLines: new Set([20]) }]])
       )
 
@@ -549,7 +549,7 @@ describe('lineCommentsHandler', () => {
         data: []
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file2.ts', { changedLines: new Set([20]) }],
           ['file3.ts', { changedLines: new Set([30]) }]
@@ -596,7 +596,7 @@ describe('lineCommentsHandler', () => {
         data: []
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([['file2.ts', { changedLines: new Set([20]) }]])
       )
 
@@ -653,7 +653,7 @@ describe('lineCommentsHandler', () => {
       })
 
       // Mock diff that includes all lines in the ranges
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file1.ts', { changedLines: new Set([10, 11, 12, 13, 14, 15]) }],
           ['file2.ts', { changedLines: new Set([20, 21]) }],
@@ -768,7 +768,7 @@ describe('lineCommentsHandler', () => {
 
     it('should skip multi-line comment when entire range is not in diff', async () => {
       // Mock diff that only includes some lines from the range
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file1.ts', { changedLines: new Set([10, 11, 12]) }], // Missing lines 13, 14, 15
           ['file2.ts', { changedLines: new Set([20, 21]) }],
@@ -802,7 +802,7 @@ describe('lineCommentsHandler', () => {
         data: []
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file1.ts', { changedLines: new Set([10, 11, 12, 13, 14, 15]) }]
         ])
@@ -879,7 +879,7 @@ describe('lineCommentsHandler', () => {
       })
 
       // Current diff doesn't include the range 10-15
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([['file2.ts', { changedLines: new Set([20, 21]) }]])
       )
 
@@ -912,7 +912,7 @@ describe('lineCommentsHandler', () => {
       })
 
       // Current diff only includes part of the range
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file1.ts', { changedLines: new Set([10, 11, 12]) }] // Missing 13, 14, 15
         ])
@@ -947,7 +947,7 @@ describe('lineCommentsHandler', () => {
       })
 
       // Current diff includes the entire range
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           [
             'file1.ts',
@@ -998,7 +998,7 @@ describe('lineCommentsHandler', () => {
       })
 
       // Only file1.ts:10 is still in diff, file2.ts:20-25 is not
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([['file1.ts', { changedLines: new Set([10, 11]) }]])
       )
 
@@ -1057,7 +1057,7 @@ describe('lineCommentsHandler', () => {
         data: []
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([['file1.ts', { changedLines: new Set([10]) }]])
       )
 
@@ -1095,7 +1095,7 @@ describe('lineCommentsHandler', () => {
         data: []
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file1.ts', { changedLines: new Set([10, 11, 12, 13, 14, 15]) }]
         ])
@@ -1137,7 +1137,7 @@ describe('lineCommentsHandler', () => {
         data: []
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           [
             'src/components/my-component.tsx',
@@ -1169,7 +1169,7 @@ describe('lineCommentsHandler', () => {
         data: []
       })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([['file1.ts', { changedLines: new Set([10, 11]) }]])
       )
     })
@@ -1240,7 +1240,7 @@ describe('lineCommentsHandler', () => {
           data: { id: 2, body: 'Existing comment' }
         })
 
-      mockFetchPrDiff.mockResolvedValue(
+      mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([['file1.ts', { changedLines: new Set([10, 11]) }]])
       )
 

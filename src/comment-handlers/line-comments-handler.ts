@@ -1,8 +1,8 @@
 import { type Context } from 'probot'
 import { z } from 'zod'
-import { fetchPrDiff } from '../extract-diff.ts'
-import { upsertComment } from './global-comment-handler.ts'
+import { fetchPrDiffFileMap } from '../extract-diff.ts'
 import { errorCommentHandler } from './error-comment-handler.ts'
+import { upsertComment } from './global-comment-handler.ts'
 
 // Marker for the global summary comment
 const SUMMARY_MARKER = '<!-- REVU-AI-SUMMARY -->'
@@ -353,7 +353,7 @@ export async function lineCommentsHandler(
     const commitSha = pullRequest.head.sha
 
     // Fetch PR diff to identify changed lines
-    const diffMap = await fetchPrDiff(context, prNumber)
+    const diffMap = await fetchPrDiffFileMap(context, prNumber)
 
     // Clean up obsolete comments first
     const deletedCount = await cleanupObsoleteComments(
