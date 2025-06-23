@@ -1,6 +1,5 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import { defaultPromptStrategy } from './default-strategy.ts'
 import { lineCommentsPromptStrategy } from './line-comments-strategy.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
@@ -10,14 +9,15 @@ import type { PromptStrategy } from './prompt-strategy.ts'
  * @param strategyName - The name of the strategy to get
  * @returns The strategy implementation function
  */
-export function getStrategyByName(strategyName: string): PromptStrategy {
-  switch (strategyName.toLowerCase()) {
-    case 'line-comments':
-      return lineCommentsPromptStrategy
-    case 'default':
-    default:
-      return defaultPromptStrategy
-  }
+export function getStrategyByName(_strategyName: string): PromptStrategy {
+  // switch (strategyName.toLowerCase()) {
+  //   case 'other-strategy':
+  //     return otherPromptStrategy
+  //   case 'default':
+  //   default:
+  //     return lineCommentsPromptStrategy
+  // }
+  return lineCommentsPromptStrategy
 }
 
 /**
@@ -36,6 +36,6 @@ export async function getStrategyFromConfig(
     return getStrategyByName(strategyName)
   } catch (error) {
     console.error('Error reading configuration file:', error)
-    return defaultPromptStrategy
+    return lineCommentsPromptStrategy
   }
 }
