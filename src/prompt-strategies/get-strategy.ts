@@ -1,7 +1,6 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { defaultPromptStrategy } from './default-strategy.ts'
-import { modifiedFilesPromptStrategy } from './modified-files-strategy.ts'
 import { lineCommentsPromptStrategy } from './line-comments-strategy.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
@@ -13,8 +12,6 @@ import type { PromptStrategy } from './prompt-strategy.ts'
  */
 export function getStrategyByName(strategyName: string): PromptStrategy {
   switch (strategyName.toLowerCase()) {
-    case 'modified-files':
-      return modifiedFilesPromptStrategy
     case 'line-comments':
       return lineCommentsPromptStrategy
     case 'default':

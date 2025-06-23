@@ -18,7 +18,6 @@ export function getSender(strategyName?: string): AnthropicSender {
     case 'line-comments':
       return lineCommentsSender
     case 'default':
-    case 'modified-files':
     default:
       return defaultSender
   }

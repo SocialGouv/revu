@@ -59,31 +59,6 @@ describe('populateTemplate', () => {
     expect(result).toMatch(/Git log:\n```\n.+\n```/s)
   }, 60000) // Increase timeout since we're doing git operations
 
-  it('should populate the template with repository data using modified-files strategy', async () => {
-    // Set config to use modified-files strategy
-    await fs.writeFile(
-      configPath,
-      JSON.stringify({ promptStrategy: 'modified-files' })
-    )
-
-    const result = await populateTemplate({
-      repositoryUrl: testRepo,
-      branch: testBranch
-    })
-
-    // Verify the template was populated with all required sections
-    expect(result).toContain('Repo path:')
-    expect(result).toContain('## Modified Files')
-    expect(result).toContain('## Git Diff')
-    expect(result).toContain('## Coding Guidelines')
-
-    // Verify the content structure
-    expect(result).toMatch(/Repo path: .+/)
-    expect(result).toMatch(/## Modified Files\n\n###.+\n```\n.+\n```/s)
-    expect(result).toMatch(/## Git Diff\n\n```diff\n.+\n```/s)
-    expect(result).toMatch(/## Coding Guidelines\n\n(\d+\..+\n)+/s)
-  }, 60000) // Increase timeout since we're doing git operations
-
   it('should use custom template path when provided', async () => {
     // Set config to use default strategy
     await fs.writeFile(
