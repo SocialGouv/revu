@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'
 import Handlebars from 'handlebars'
 import * as path from 'path'
 import { getCodingGuidelines } from '../config-handler.ts'
-import { extractDiffFromRepo } from '../extract-diff.ts'
+import { fetchPrDiff } from '../extract-diff.ts'
 import {
   extractModifiedFilePaths,
   filterIgnoredFiles,
@@ -46,10 +46,7 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
     undefined,
     githubAccessToken
   )
-  const diff = await extractDiffFromRepo({
-    branch,
-    repoPath
-  })
+  const diff = await fetchPrDiff(context.githubContext, context.prNumber)
 
   // Extract modified file paths from the diff
   const modifiedFiles = extractModifiedFilePaths(diff)
