@@ -121,7 +121,8 @@ export default async (app: Probot, { getRouter }) => {
         prTitle: pr.title,
         prBody: pr.body || undefined,
         repoOwner: repo.owner,
-        repoName: repo.repo
+        repoName: repo.repo,
+        githubContext: context
       }
 
       // Perform the complete review analysis with context

@@ -1,3 +1,5 @@
+import type { Context } from 'probot'
+
 /**
  * Additional context that can be passed to prompt strategies
  */
@@ -12,6 +14,8 @@ export interface PromptContext {
   repoName?: string
   /** Pull request number */
   prNumber?: number
+  /** GitHub context for additional API interactions */
+  githubContext?: Context
 }
 
 /**

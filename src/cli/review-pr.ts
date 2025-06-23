@@ -168,7 +168,8 @@ async function reviewPr(
       prBody: body || undefined,
       prNumber: prNumber,
       repoOwner: owner,
-      repoName: repo
+      repoName: repo,
+      githubContext: await createMinimalContext(owner, repo, octokit)
     }
 
     const analysis = await sendToAnthropic({
