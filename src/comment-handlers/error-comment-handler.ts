@@ -1,5 +1,5 @@
 import { type Context } from 'probot'
-import { upsertComment } from './global-comment-handler.ts'
+import { upsertComment } from './index.ts'
 
 // Marker to identify our AI error comments
 const ERROR_COMMENT_MARKER = '<!-- REVU-AI-ERROR -->'

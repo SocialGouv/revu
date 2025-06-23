@@ -10,9 +10,7 @@ import * as path from 'path'
  * @param content - Content of the .revuignore file
  * @returns Ignore instance
  */
-export function createIgnoreInstance(
-  content: string
-): ReturnType<typeof ignore> {
+function createIgnoreInstance(content: string): ReturnType<typeof ignore> {
   const ig = ignore()
   ig.add(content)
   return ig

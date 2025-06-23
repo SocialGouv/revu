@@ -4,7 +4,7 @@ import { Octokit } from '@octokit/rest'
 /**
  * Fetches GitHub App credentials from environment variables
  */
-export function fetchGitHubCredentials(): {
+function fetchGitHubCredentials(): {
   appId: string
   privateKey: string
 } {
@@ -24,7 +24,7 @@ export function fetchGitHubCredentials(): {
  * Creates an Octokit instance with GitHub App authentication (app-level)
  * @returns Octokit instance with app-level authentication
  */
-export function createAppOctokit(): Octokit {
+function createAppOctokit(): Octokit {
   const { appId, privateKey } = fetchGitHubCredentials()
 
   return new Octokit({
@@ -43,10 +43,7 @@ export function createAppOctokit(): Octokit {
  * @param repo Repository name
  * @returns Installation ID
  */
-export async function getInstallationId(
-  owner: string,
-  repo: string
-): Promise<number> {
+async function getInstallationId(owner: string, repo: string): Promise<number> {
   const appOctokit = createAppOctokit()
 
   try {
