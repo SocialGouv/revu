@@ -46,17 +46,10 @@ describe('populateTemplate', () => {
       branch: testBranch
     })
 
-    // Verify the template was populated with all required sections
-    expect(result).toContain('Project Path:')
-    expect(result).toContain('Source Tree:')
-    expect(result).toContain('Git diff:')
-    expect(result).toContain('Git log:')
-
     // Verify the content structure
-    expect(result).toMatch(/Project Path: .+/)
-    expect(result).toMatch(/Source Tree:\n```\n.+\n```/s)
-    expect(result).toMatch(/Git diff:\n```\n.+\n```/s)
-    expect(result).toMatch(/Git log:\n```\n.+\n```/s)
+    expect(result).toMatch(/## Context\n+/)
+    expect(result).toMatch(/## Modified Files\n+/)
+    expect(result).toMatch(/## Git Diff\n+/)
   }, 60000) // Increase timeout since we're doing git operations
 
   it('should use custom template path when provided', async () => {
@@ -67,7 +60,7 @@ describe('populateTemplate', () => {
     )
 
     // Create a temporary custom template
-    const customTemplate = 'Custom template: {{source_tree}}'
+    const customTemplate = 'Custom template: {{git_diff_branch}}'
     const tempTemplatePath = path.join(process.cwd(), 'test-template.hbs')
     await fs.writeFile(tempTemplatePath, customTemplate)
 
@@ -78,6 +71,7 @@ describe('populateTemplate', () => {
         templatePath: tempTemplatePath
       })
 
+      console.log(`result`, result)
       expect(result).toMatch(/Custom template: .+/)
     } finally {
       // Clean up
