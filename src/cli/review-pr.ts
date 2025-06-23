@@ -11,6 +11,7 @@ import {
   createGithubAppOctokit,
   generateInstallationToken
 } from '../github/utils.ts'
+import type { PromptContext } from '../prompt-strategies/prompt-strategy.ts'
 import { sendToAnthropic } from '../send-to-anthropic.ts'
 
 // Load environment variables
@@ -163,8 +164,9 @@ async function reviewPr(
       console.warn(chalk.yellow(`Could not fetch PR body: ${error.message}`))
     }
 
-    const promptContext = {
+    const promptContext: PromptContext = {
       prBody: body || undefined,
+      prNumber: prNumber,
       repoOwner: owner,
       repoName: repo
     }
