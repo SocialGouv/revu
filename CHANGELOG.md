@@ -1,3 +1,10 @@
+## [1.16.1](https://github.com/SocialGouv/revu/compare/v1.16.0...v1.16.1) (2025-06-24)
+
+
+### Bug Fixes
+
+* Fetch PR diff instead of branch diff based on main ([9aa049f](https://github.com/SocialGouv/revu/commit/9aa049fa48240f21ed2b07028c5b9ff9d67b5ac8))
+
 # [1.16.0](https://github.com/SocialGouv/revu/compare/v1.15.4...v1.16.0) (2025-06-23)
 
 
