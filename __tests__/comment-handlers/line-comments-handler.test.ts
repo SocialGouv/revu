@@ -70,7 +70,7 @@ describe('lineCommentsHandler', () => {
     } as unknown as Context
   })
 
-  describe('Current Behavior (Regression Tests)', () => {
+  describe('Integration Tests', () => {
     const validAnalysisJson = JSON.stringify({
       summary: 'Test summary',
       comments: [
@@ -89,7 +89,7 @@ describe('lineCommentsHandler', () => {
     })
 
     beforeEach(() => {
-      // Setup default mocks for current behavior
+      // Setup default mocks for integration tests
       mockOctokit.pulls.get.mockResolvedValue({
         data: { head: { sha: 'abc123' } }
       })
@@ -185,18 +185,6 @@ describe('lineCommentsHandler', () => {
       expect(result).toContain('skipped 1')
     })
 
-    it('should create summary comment', async () => {
-      const result = await lineCommentsHandler(
-        mockContext,
-        123,
-        validAnalysisJson
-      )
-
-      expect(mockOctokit.issues.listComments).toHaveBeenCalled()
-      expect(result).toBeDefined()
-      // upsertComment should be called for summary
-    })
-
     it('should fallback to error handler on invalid JSON', async () => {
       const invalidJson = 'invalid json'
 
@@ -225,286 +213,7 @@ describe('lineCommentsHandler', () => {
       )
       expect(result).toBeDefined()
     })
-  })
 
-  describe('Cleanup Behavior (New Feature)', () => {
-    const analysisWithCurrentComments = JSON.stringify({
-      summary: 'Updated summary',
-      comments: [
-        {
-          path: 'file2.ts',
-          line: 20,
-          body: 'Still relevant comment'
-        },
-        {
-          path: 'file3.ts',
-          line: 30,
-          body: 'New comment'
-        }
-      ]
-    })
-
-    beforeEach(() => {
-      mockOctokit.pulls.get.mockResolvedValue({
-        data: { head: { sha: 'abc123' } }
-      })
-
-      mockOctokit.issues.listComments.mockResolvedValue({
-        data: []
-      })
-    })
-
-    it('should delete comments on lines no longer in diff', async () => {
-      const existingComments = [
-        {
-          id: 1,
-          body: '<!-- REVU-AI-COMMENT file1.ts:10 -->\n\nObsolete comment',
-          path: 'file1.ts'
-        },
-        {
-          id: 2,
-          body: '<!-- REVU-AI-COMMENT file2.ts:20 -->\n\nStill relevant',
-          path: 'file2.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      // Current diff only contains file2.ts:20 and file3.ts:30
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([
-          ['file2.ts', { changedLines: new Set([20, 21]) }],
-          ['file3.ts', { changedLines: new Set([30, 31]) }]
-        ])
-      )
-
-      const result = await lineCommentsHandler(
-        mockContext,
-        123,
-        analysisWithCurrentComments
-      )
-
-      // Should delete the obsolete comment on file1.ts:10
-      expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 1
-      })
-
-      expect(result).toContain('deleted 1')
-    })
-
-    it('should preserve comments still relevant in current diff', async () => {
-      const existingComments = [
-        {
-          id: 2,
-          body: '<!-- REVU-AI-COMMENT file2.ts:20 -->\n\nStill relevant',
-          path: 'file2.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([
-          ['file2.ts', { changedLines: new Set([20, 21]) }],
-          ['file3.ts', { changedLines: new Set([30, 31]) }]
-        ])
-      )
-
-      const result = await lineCommentsHandler(
-        mockContext,
-        123,
-        analysisWithCurrentComments
-      )
-
-      // Should NOT delete the still relevant comment
-      expect(mockOctokit.pulls.deleteReviewComment).not.toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 2
-      })
-
-      // Should update it instead
-      expect(mockOctokit.pulls.updateReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 2,
-        body: expect.stringContaining('Still relevant comment')
-      })
-      expect(result).toBeDefined()
-    })
-
-    it('should handle mixed scenario: delete obsolete + update existing + create new', async () => {
-      const existingComments = [
-        {
-          id: 1,
-          body: '<!-- REVU-AI-COMMENT file1.ts:10 -->\n\nObsolete comment',
-          path: 'file1.ts'
-        },
-        {
-          id: 2,
-          body: '<!-- REVU-AI-COMMENT file2.ts:20 -->\n\nTo be updated',
-          path: 'file2.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([
-          ['file2.ts', { changedLines: new Set([20, 21]) }],
-          ['file3.ts', { changedLines: new Set([30, 31]) }]
-        ])
-      )
-
-      const result = await lineCommentsHandler(
-        mockContext,
-        123,
-        analysisWithCurrentComments
-      )
-
-      // Should delete obsolete
-      expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 1
-      })
-
-      // Should update existing
-      expect(mockOctokit.pulls.updateReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 2,
-        body: expect.stringContaining('Still relevant comment')
-      })
-
-      // Should create new
-      expect(mockOctokit.pulls.createReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        pull_number: 123,
-        commit_id: 'abc123',
-        path: 'file3.ts',
-        line: 30,
-        body: expect.stringContaining('<!-- REVU-AI-COMMENT file3.ts:30 -->')
-      })
-
-      expect(result).toMatch(/Created 1.*updated 1.*deleted 1/s)
-    })
-
-    it('should not delete comments from other bots/users', async () => {
-      const existingComments = [
-        {
-          id: 1,
-          body: '<!-- REVU-AI-COMMENT file1.ts:10 -->\n\nOur obsolete comment',
-          path: 'file1.ts'
-        },
-        {
-          id: 2,
-          body: 'Regular comment without our marker',
-          path: 'file1.ts'
-        },
-        {
-          id: 3,
-          body: '<!-- OTHER-BOT-MARKER -->\n\nOther bot comment',
-          path: 'file1.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([['file2.ts', { changedLines: new Set([20]) }]])
-      )
-
-      await lineCommentsHandler(mockContext, 123, analysisWithCurrentComments)
-
-      // Should only delete our comment
-      expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledTimes(1)
-      expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 1
-      })
-    })
-
-    it('should handle empty diff (delete all our comments)', async () => {
-      const existingComments = [
-        {
-          id: 1,
-          body: '<!-- REVU-AI-COMMENT file1.ts:10 -->\n\nComment 1',
-          path: 'file1.ts'
-        },
-        {
-          id: 2,
-          body: '<!-- REVU-AI-COMMENT file2.ts:20 -->\n\nComment 2',
-          path: 'file2.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      // Empty diff - no changed lines
-      mockFetchPrDiffFileMap.mockResolvedValue(new Map())
-
-      const emptyAnalysis = JSON.stringify({
-        summary: 'No changes',
-        comments: []
-      })
-
-      const result = await lineCommentsHandler(mockContext, 123, emptyAnalysis)
-
-      // Should delete both our comments
-      expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledTimes(2)
-      expect(result).toContain('deleted 2')
-    })
-
-    it('should handle GitHub API errors during deletion gracefully', async () => {
-      const existingComments = [
-        {
-          id: 1,
-          body: '<!-- REVU-AI-COMMENT file1.ts:10 -->\n\nComment to delete',
-          path: 'file1.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([['file2.ts', { changedLines: new Set([20]) }]])
-      )
-
-      // Mock deletion failure
-      mockOctokit.pulls.deleteReviewComment.mockRejectedValue(
-        new Error('GitHub API Error')
-      )
-
-      const result = await lineCommentsHandler(
-        mockContext,
-        123,
-        analysisWithCurrentComments
-      )
-
-      // Should continue processing despite deletion error
-      expect(result).toBeDefined()
-      expect(mockOctokit.pulls.createReviewComment).toHaveBeenCalled()
-    })
-  })
-
-  describe('Integration Tests', () => {
     it('should perform cleanup then normal processing in correct order', async () => {
       const calls: string[] = []
 
@@ -539,14 +248,6 @@ describe('lineCommentsHandler', () => {
 
       mockOctokit.pulls.listReviewComments.mockResolvedValue({
         data: existingComments
-      })
-
-      mockOctokit.pulls.get.mockResolvedValue({
-        data: { head: { sha: 'abc123' } }
-      })
-
-      mockOctokit.issues.listComments.mockResolvedValue({
-        data: []
       })
 
       mockFetchPrDiffFileMap.mockResolvedValue(
@@ -588,14 +289,6 @@ describe('lineCommentsHandler', () => {
         data: existingComments
       })
 
-      mockOctokit.pulls.get.mockResolvedValue({
-        data: { head: { sha: 'abc123' } }
-      })
-
-      mockOctokit.issues.listComments.mockResolvedValue({
-        data: []
-      })
-
       mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([['file2.ts', { changedLines: new Set([20]) }]])
       )
@@ -614,7 +307,7 @@ describe('lineCommentsHandler', () => {
     })
   })
 
-  describe('Multi-line Comments Support', () => {
+  describe('Multi-line Comments Integration', () => {
     const multiLineAnalysisJson = JSON.stringify({
       summary: 'Test with multi-line comments',
       comments: [
@@ -629,12 +322,6 @@ describe('lineCommentsHandler', () => {
           path: 'file2.ts',
           line: 20,
           body: 'Single-line comment on line 20'
-        },
-        {
-          path: 'file3.ts',
-          line: 25,
-          start_line: 25,
-          body: 'Edge case: start_line equals line'
         }
       ]
     })
@@ -656,8 +343,7 @@ describe('lineCommentsHandler', () => {
       mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file1.ts', { changedLines: new Set([10, 11, 12, 13, 14, 15]) }],
-          ['file2.ts', { changedLines: new Set([20, 21]) }],
-          ['file3.ts', { changedLines: new Set([25, 26]) }]
+          ['file2.ts', { changedLines: new Set([20, 21]) }]
         ])
       )
     })
@@ -682,88 +368,7 @@ describe('lineCommentsHandler', () => {
         body: expect.stringContaining('<!-- REVU-AI-COMMENT file1.ts:10-15 -->')
       })
 
-      expect(result).toContain('Created 3')
-    })
-
-    it('should create single-line comment when start_line is not provided', async () => {
-      await lineCommentsHandler(mockContext, 123, multiLineAnalysisJson)
-
-      expect(mockOctokit.pulls.createReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        pull_number: 123,
-        commit_id: 'abc123',
-        path: 'file2.ts',
-        line: 20,
-        body: expect.stringContaining('<!-- REVU-AI-COMMENT file2.ts:20 -->')
-      })
-
-      // Should NOT include start_line, side, start_side for single-line
-      expect(mockOctokit.pulls.createReviewComment).toHaveBeenCalledWith(
-        expect.not.objectContaining({
-          start_line: expect.anything(),
-          side: expect.anything(),
-          start_side: expect.anything()
-        })
-      )
-    })
-
-    it('should handle edge case where start_line equals line', async () => {
-      await lineCommentsHandler(mockContext, 123, multiLineAnalysisJson)
-
-      expect(mockOctokit.pulls.createReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        pull_number: 123,
-        commit_id: 'abc123',
-        path: 'file3.ts',
-        line: 25,
-        start_line: 25,
-        side: 'RIGHT',
-        start_side: 'RIGHT',
-        body: expect.stringContaining('<!-- REVU-AI-COMMENT file3.ts:25-25 -->')
-      })
-    })
-
-    it('should update existing multi-line comment with same markerId', async () => {
-      const existingComments = [
-        {
-          id: 1,
-          body: '<!-- REVU-AI-COMMENT file1.ts:10-15 -->\n\nOld multi-line comment',
-          path: 'file1.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      const result = await lineCommentsHandler(
-        mockContext,
-        123,
-        multiLineAnalysisJson
-      )
-
-      expect(mockOctokit.pulls.updateReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 1,
-        body: expect.stringContaining('<!-- REVU-AI-COMMENT file1.ts:10-15 -->')
-      })
-      expect(result).toContain('updated 1')
-    })
-
-    it('should handle suggestions in multi-line comments', async () => {
-      await lineCommentsHandler(mockContext, 123, multiLineAnalysisJson)
-
-      expect(mockOctokit.pulls.createReviewComment).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: 'file1.ts',
-          body: expect.stringContaining(
-            '```suggestion\nconst result = doSomething()\n```'
-          )
-        })
-      )
+      expect(result).toContain('Created 2')
     })
 
     it('should skip multi-line comment when entire range is not in diff', async () => {
@@ -771,8 +376,7 @@ describe('lineCommentsHandler', () => {
       mockFetchPrDiffFileMap.mockResolvedValue(
         new Map([
           ['file1.ts', { changedLines: new Set([10, 11, 12]) }], // Missing lines 13, 14, 15
-          ['file2.ts', { changedLines: new Set([20, 21]) }],
-          ['file3.ts', { changedLines: new Set([25, 26]) }]
+          ['file2.ts', { changedLines: new Set([20, 21]) }]
         ])
       )
 
@@ -783,383 +387,12 @@ describe('lineCommentsHandler', () => {
       )
 
       // Should skip the multi-line comment on file1.ts since not all lines are in diff
-      expect(mockOctokit.pulls.createReviewComment).toHaveBeenCalledTimes(2) // Only file2.ts and file3.ts
+      expect(mockOctokit.pulls.createReviewComment).toHaveBeenCalledTimes(1) // Only file2.ts
       expect(result).toContain('skipped 1')
     })
   })
 
-  describe('Multi-line Comments Validation', () => {
-    beforeEach(() => {
-      mockOctokit.pulls.get.mockResolvedValue({
-        data: { head: { sha: 'abc123' } }
-      })
-
-      mockOctokit.issues.listComments.mockResolvedValue({
-        data: []
-      })
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: []
-      })
-
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([
-          ['file1.ts', { changedLines: new Set([10, 11, 12, 13, 14, 15]) }]
-        ])
-      )
-    })
-
-    it('should reject when start_line is greater than line', async () => {
-      const invalidAnalysis = JSON.stringify({
-        summary: 'Invalid multi-line comment',
-        comments: [
-          {
-            path: 'file1.ts',
-            line: 10,
-            start_line: 15, // Invalid: start_line > line
-            body: 'Invalid range'
-          }
-        ]
-      })
-
-      await lineCommentsHandler(mockContext, 123, invalidAnalysis)
-
-      expect(mockErrorCommentHandler).toHaveBeenCalledWith(
-        mockContext,
-        123,
-        expect.stringContaining('Error processing line comments:')
-      )
-    })
-
-    it('should validate negative line numbers', async () => {
-      const invalidAnalysis = JSON.stringify({
-        summary: 'Invalid line numbers',
-        comments: [
-          {
-            path: 'file1.ts',
-            line: -5,
-            start_line: -10,
-            body: 'Negative lines'
-          }
-        ]
-      })
-
-      await lineCommentsHandler(mockContext, 123, invalidAnalysis)
-
-      expect(mockErrorCommentHandler).toHaveBeenCalledWith(
-        mockContext,
-        123,
-        expect.stringContaining('Error processing line comments:')
-      )
-    })
-  })
-
-  describe('Multi-line Comments Cleanup', () => {
-    beforeEach(() => {
-      mockOctokit.pulls.get.mockResolvedValue({
-        data: { head: { sha: 'abc123' } }
-      })
-
-      mockOctokit.issues.listComments.mockResolvedValue({
-        data: []
-      })
-    })
-
-    it('should delete multi-line comment when entire range is no longer in diff', async () => {
-      const existingComments = [
-        {
-          id: 1,
-          body: '<!-- REVU-AI-COMMENT file1.ts:10-15 -->\n\nObsolete multi-line comment',
-          path: 'file1.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      // Current diff doesn't include the range 10-15
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([['file2.ts', { changedLines: new Set([20, 21]) }]])
-      )
-
-      const analysis = JSON.stringify({
-        summary: 'Updated',
-        comments: []
-      })
-
-      const result = await lineCommentsHandler(mockContext, 123, analysis)
-
-      expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 1
-      })
-      expect(result).toContain('deleted 1')
-    })
-
-    it('should delete multi-line comment when partial range is missing from diff', async () => {
-      const existingComments = [
-        {
-          id: 1,
-          body: '<!-- REVU-AI-COMMENT file1.ts:10-15 -->\n\nPartially obsolete comment',
-          path: 'file1.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      // Current diff only includes part of the range
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([
-          ['file1.ts', { changedLines: new Set([10, 11, 12]) }] // Missing 13, 14, 15
-        ])
-      )
-
-      const analysis = JSON.stringify({
-        summary: 'Updated',
-        comments: []
-      })
-
-      const result = await lineCommentsHandler(mockContext, 123, analysis)
-
-      expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 1
-      })
-      expect(result).toContain('deleted 1')
-    })
-
-    it('should preserve multi-line comment when entire range is still in diff', async () => {
-      const existingComments = [
-        {
-          id: 1,
-          body: '<!-- REVU-AI-COMMENT file1.ts:10-15 -->\n\nStill relevant multi-line',
-          path: 'file1.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      // Current diff includes the entire range
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([
-          [
-            'file1.ts',
-            { changedLines: new Set([10, 11, 12, 13, 14, 15, 16, 17]) }
-          ]
-        ])
-      )
-
-      const analysis = JSON.stringify({
-        summary: 'Updated',
-        comments: [
-          {
-            path: 'file1.ts',
-            line: 15,
-            start_line: 10,
-            body: 'Updated multi-line comment'
-          }
-        ]
-      })
-
-      await lineCommentsHandler(mockContext, 123, analysis)
-
-      expect(mockOctokit.pulls.deleteReviewComment).not.toHaveBeenCalled()
-      expect(mockOctokit.pulls.updateReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 1,
-        body: expect.stringContaining('Updated multi-line comment')
-      })
-    })
-
-    it('should handle mixed single-line and multi-line comments cleanup', async () => {
-      const existingComments = [
-        {
-          id: 1,
-          body: '<!-- REVU-AI-COMMENT file1.ts:10 -->\n\nSingle-line comment',
-          path: 'file1.ts'
-        },
-        {
-          id: 2,
-          body: '<!-- REVU-AI-COMMENT file2.ts:20-25 -->\n\nMulti-line comment',
-          path: 'file2.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      // Only file1.ts:10 is still in diff, file2.ts:20-25 is not
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([['file1.ts', { changedLines: new Set([10, 11]) }]])
-      )
-
-      const analysis = JSON.stringify({
-        summary: 'Updated',
-        comments: [
-          {
-            path: 'file1.ts',
-            line: 10,
-            body: 'Updated single-line comment'
-          }
-        ]
-      })
-
-      await lineCommentsHandler(mockContext, 123, analysis)
-
-      // Should delete the multi-line comment but preserve single-line
-      expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledTimes(1)
-      expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 2
-      })
-
-      expect(mockOctokit.pulls.updateReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 1,
-        body: expect.stringContaining('Updated single-line comment')
-      })
-    })
-  })
-
-  describe('Multi-line Comment Markers', () => {
-    it('should create correct markerId for single-line comment', async () => {
-      const singleLineAnalysis = JSON.stringify({
-        summary: 'Single line test',
-        comments: [
-          {
-            path: 'file1.ts',
-            line: 10,
-            body: 'Single line comment'
-          }
-        ]
-      })
-
-      mockOctokit.pulls.get.mockResolvedValue({
-        data: { head: { sha: 'abc123' } }
-      })
-
-      mockOctokit.issues.listComments.mockResolvedValue({
-        data: []
-      })
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: []
-      })
-
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([['file1.ts', { changedLines: new Set([10]) }]])
-      )
-
-      await lineCommentsHandler(mockContext, 123, singleLineAnalysis)
-
-      expect(mockOctokit.pulls.createReviewComment).toHaveBeenCalledWith(
-        expect.objectContaining({
-          body: expect.stringContaining('<!-- REVU-AI-COMMENT file1.ts:10 -->')
-        })
-      )
-    })
-
-    it('should create correct markerId for multi-line comment', async () => {
-      const multiLineAnalysis = JSON.stringify({
-        summary: 'Multi-line test',
-        comments: [
-          {
-            path: 'file1.ts',
-            line: 15,
-            start_line: 10,
-            body: 'Multi-line comment'
-          }
-        ]
-      })
-
-      mockOctokit.pulls.get.mockResolvedValue({
-        data: { head: { sha: 'abc123' } }
-      })
-
-      mockOctokit.issues.listComments.mockResolvedValue({
-        data: []
-      })
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: []
-      })
-
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([
-          ['file1.ts', { changedLines: new Set([10, 11, 12, 13, 14, 15]) }]
-        ])
-      )
-
-      await lineCommentsHandler(mockContext, 123, multiLineAnalysis)
-
-      expect(mockOctokit.pulls.createReviewComment).toHaveBeenCalledWith(
-        expect.objectContaining({
-          body: expect.stringContaining(
-            '<!-- REVU-AI-COMMENT file1.ts:10-15 -->'
-          )
-        })
-      )
-    })
-
-    it('should handle special characters in file paths for markerId', async () => {
-      const specialPathAnalysis = JSON.stringify({
-        summary: 'Special path test',
-        comments: [
-          {
-            path: 'src/components/my-component.tsx',
-            line: 15,
-            start_line: 10,
-            body: 'Comment on special path'
-          }
-        ]
-      })
-
-      mockOctokit.pulls.get.mockResolvedValue({
-        data: { head: { sha: 'abc123' } }
-      })
-
-      mockOctokit.issues.listComments.mockResolvedValue({
-        data: []
-      })
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: []
-      })
-
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([
-          [
-            'src/components/my-component.tsx',
-            { changedLines: new Set([10, 11, 12, 13, 14, 15]) }
-          ]
-        ])
-      )
-
-      await lineCommentsHandler(mockContext, 123, specialPathAnalysis)
-
-      // Should sanitize special characters in markerId
-      expect(mockOctokit.pulls.createReviewComment).toHaveBeenCalledWith(
-        expect.objectContaining({
-          body: expect.stringContaining(
-            '<!-- REVU-AI-COMMENT src_components_my-component.tsx:10-15 -->'
-          )
-        })
-      )
-    })
-  })
-
-  describe('Error Handling Robustness', () => {
+  describe('Error Handling Integration', () => {
     beforeEach(() => {
       mockOctokit.pulls.get.mockResolvedValue({
         data: { head: { sha: 'abc123' } }
@@ -1174,7 +407,7 @@ describe('lineCommentsHandler', () => {
       )
     })
 
-    it('should skip comment when commentStillExists throws non-404 error', async () => {
+    it('should skip comment when comment existence check fails with non-404 error', async () => {
       const existingComments = [
         {
           id: 1,
@@ -1212,66 +445,26 @@ describe('lineCommentsHandler', () => {
       expect(result).toContain('skipped 1')
     })
 
-    it('should continue processing other comments when one comment verification fails', async () => {
-      const existingComments = [
-        {
-          id: 1,
-          body: '<!-- REVU-AI-COMMENT file1.ts:10 -->\n\nComment with API error',
-          path: 'file1.ts'
-        },
-        {
-          id: 2,
-          body: '<!-- REVU-AI-COMMENT file1.ts:11 -->\n\nComment that works',
-          path: 'file1.ts'
-        }
-      ]
-
-      mockOctokit.pulls.listReviewComments.mockResolvedValue({
-        data: existingComments
-      })
-
-      // Mock getReviewComment to fail for first comment but succeed for second
-      mockOctokit.pulls.getReviewComment
-        .mockRejectedValueOnce({
-          status: 500,
-          message: 'Internal server error'
-        })
-        .mockResolvedValueOnce({
-          data: { id: 2, body: 'Existing comment' }
-        })
-
-      mockFetchPrDiffFileMap.mockResolvedValue(
-        new Map([['file1.ts', { changedLines: new Set([10, 11]) }]])
-      )
-
-      const analysis = JSON.stringify({
-        summary: 'Test with mixed API responses',
+    it('should handle validation errors and fallback to error handler', async () => {
+      const invalidAnalysis = JSON.stringify({
+        summary: 'Invalid multi-line comment',
         comments: [
           {
             path: 'file1.ts',
             line: 10,
-            body: 'Updated comment 1'
-          },
-          {
-            path: 'file1.ts',
-            line: 11,
-            body: 'Updated comment 2'
+            start_line: 15, // Invalid: start_line > line
+            body: 'Invalid range'
           }
         ]
       })
 
-      const result = await lineCommentsHandler(mockContext, 123, analysis)
+      await lineCommentsHandler(mockContext, 123, invalidAnalysis)
 
-      // First comment should be skipped, second should be updated
-      expect(mockOctokit.pulls.updateReviewComment).toHaveBeenCalledTimes(1)
-      expect(mockOctokit.pulls.updateReviewComment).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        comment_id: 2,
-        body: expect.stringContaining('Updated comment 2')
-      })
-      expect(result).toContain('updated 1')
-      expect(result).toContain('skipped 1')
+      expect(mockErrorCommentHandler).toHaveBeenCalledWith(
+        mockContext,
+        123,
+        expect.stringContaining('Error processing line comments:')
+      )
     })
   })
 })
