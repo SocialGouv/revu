@@ -5,7 +5,7 @@ Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent
 ## Features
 
 - **On-Demand Reviews**: Performs code review only when explicitly requested, giving developers control over when reviews happen
-- **Auto-Reviewer Assignment**: Automatically adds itself as a reviewer on new PRs for easy access
+- **Auto-Reviewer Assignment**: Automatically adds a proxy user as a reviewer on new PRs for easy access
 - **Contextual Analysis**: Understands code changes in the context of the entire codebase
 - **Intelligent Feedback**: Provides detailed explanations and suggestions for improvements
 - **Git-Aware**: Considers commit history and branch differences
@@ -18,38 +18,57 @@ Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent
 
 ```mermaid
 graph TD
-    A[PR Opened] --> B[Auto-Add Bot as Reviewer]
-    B --> C[Developer Requests Review]
-    C --> D[Extract Data]
-    D --> E[Codebase Analysis]
-    D --> F[PR Diff]
-    D --> G[Git History]
-    E --> H[Generate Prompt]
-    F --> H
-    G --> H
-    H --> I[Claude Analysis]
-    I --> J[Post PR Comment]
+    A[PR Opened] --> B[Auto-Add Proxy User as Reviewer]
+    B --> C[Developer Requests Review from Proxy User]
+    C --> D[Revu Detects Review Request Event]
+    D --> E[Extract Data]
+    E --> F[Codebase Analysis]
+    E --> G[PR Diff]
+    E --> H[Git History]
+    F --> I[Generate Prompt]
+    G --> I
+    H --> I
+    I --> J[Claude Analysis]
+    J --> K[Post PR Comments via Proxy User]
 ```
 
 ### On-Demand Review Workflow
 
-1. **PR Creation**: When a PR is opened, Revu automatically adds itself as a reviewer
-2. **Manual Trigger**: Developer clicks "Request review" button next to Revu in the PR interface
-3. **Data Collection**:
+1. **PR Creation**: When a PR is opened, Revu automatically adds a proxy user as a reviewer
+2. **Manual Trigger**: Developer clicks "Request review" button next to the proxy user in the PR interface
+3. **Review Detection**: Revu detects the review request for the proxy user and triggers analysis
+4. **Data Collection**:
    - Extracts full codebase for context
    - Generates diff to focus on changes
    - Retrieves git history for background
-4. **Analysis**:
+5. **Analysis**:
    - Combines data into a structured prompt
    - Sends to Claude for intelligent analysis
-5. **Feedback**: Posts detailed review comments on the PR
+6. **Feedback**: Posts detailed review comments on the PR using the proxy user account
+
+### Proxy User System
+
+Revu uses a **proxy user system** to enable manual review requests through GitHub's native interface:
+
+- **Why Proxy User**: GitHub Apps cannot receive review requests directly, so Revu uses a regular user account as a "proxy"
+- **Seamless Integration**: Developers interact with the proxy user exactly like any other reviewer
+- **Automatic Detection**: Revu monitors review requests for the proxy user and triggers analysis automatically
+- **Native GitHub UI**: No custom interfaces needed - uses GitHub's standard "Request review" button
+
+#### Setup Requirements
+
+1. **Proxy User Account**: Create a dedicated GitHub user account (e.g., `revu-bot-reviewer`)
+2. **Personal Access Token**: Generate a token for the proxy user with repository access
+3. **Environment Configuration**: Set `PROXY_REVIEWER_USERNAME` and `PROXY_REVIEWER_TOKEN`
+4. **Repository Access**: Ensure the proxy user has read access to target repositories
 
 ### Benefits of On-Demand Approach
 
 - **Developer Control**: Reviews happen only when requested, not on every commit
 - **Resource Efficiency**: Reduces API calls and computational overhead
 - **Better Timing**: Developers can request reviews when they're ready for feedback
-- **Clean GitHub Interface**: Bot appears as a normal reviewer in PR interface
+- **Native GitHub Interface**: Uses standard GitHub review request workflow
+- **Familiar Experience**: Works exactly like requesting reviews from human reviewers
 
 ## Smart Comment Management
 
@@ -205,15 +224,17 @@ Requirements:
 
 ### Environment Configuration
 
-| Variable            | Type   | Description                                                                |
-| ------------------- | ------ | -------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY` | string | Your Anthropic API key for accessing Claude API                            |
-| `ANTHROPIC_MODEL`   | string | (Optional) Anthropic model to use (default: claude-sonnet-4-20250514)     |
-| `APP_ID`            | number | GitHub App ID obtained after registering the app                           |
-| `PRIVATE_KEY`       | string | RSA private key generated for the GitHub App (including BEGIN/END markers) |
-| `WEBHOOK_SECRET`    | string | Secret string used to verify GitHub webhook payloads                       |
-| `WEBHOOK_PROXY_URL` | string | (Optional) Smee.io URL for local development webhook forwarding            |
-| `REPOSITORY_FOLDER` | string | Absolute path where repositories will be cloned                            |
+| Variable                 | Type   | Description                                                                |
+| ------------------------ | ------ | -------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`      | string | Your Anthropic API key for accessing Claude API                            |
+| `ANTHROPIC_MODEL`        | string | (Optional) Anthropic model to use (default: claude-sonnet-4-20250514)     |
+| `APP_ID`                 | number | GitHub App ID obtained after registering the app                           |
+| `PRIVATE_KEY`            | string | RSA private key generated for the GitHub App (including BEGIN/END markers) |
+| `WEBHOOK_SECRET`         | string | Secret string used to verify GitHub webhook payloads                       |
+| `WEBHOOK_PROXY_URL`      | string | (Optional) Smee.io URL for local development webhook forwarding            |
+| `REPOSITORY_FOLDER`      | string | Absolute path where repositories will be cloned                            |
+| `PROXY_REVIEWER_USERNAME`| string | Username of the proxy user account for manual review requests              |
+| `PROXY_REVIEWER_TOKEN`   | string | GitHub personal access token for the proxy user account                    |
 
 ## Running the App
 
