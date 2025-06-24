@@ -1,6 +1,11 @@
 import { type Context } from 'probot'
+import { Octokit } from '@octokit/rest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { lineCommentsHandler } from '../../src/comment-handlers/line-comments-handler.ts'
+
+// Mock environment variables
+vi.stubEnv('PROXY_REVIEWER_USERNAME', 'proxy-reviewer-user')
+vi.stubEnv('PROXY_REVIEWER_TOKEN', 'ghp_proxy_token_123')
 
 // Mock fetchPrDiff - function must be defined before vi.mock call
 vi.mock('../../src/extract-diff.ts', () => ({
@@ -16,6 +21,17 @@ vi.mock('../../src/comment-handlers/global-comment-handler.ts', () => ({
 vi.mock('../../src/comment-handlers/error-comment-handler.ts', () => ({
   errorCommentHandler: vi.fn().mockResolvedValue('Posted error comment')
 }))
+
+// Mock the line comments handler module to override createProxyClient
+vi.mock('../../src/comment-handlers/line-comments-handler.ts', async () => {
+  const actual = await vi.importActual(
+    '../../src/comment-handlers/line-comments-handler.ts'
+  )
+  return {
+    ...actual,
+    createProxyClient: vi.fn()
+  }
+})
 
 // Import the mocked functions after the mock setup
 import { errorCommentHandler } from '../../src/comment-handlers/error-comment-handler.ts'
@@ -42,7 +58,7 @@ describe('lineCommentsHandler', () => {
     }
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset all mocks
     vi.clearAllMocks()
 
@@ -68,6 +84,14 @@ describe('lineCommentsHandler', () => {
       octokit: mockOctokit,
       repo: () => ({ owner: 'test-owner', repo: 'test-repo' })
     } as unknown as Context
+
+    // Configure createProxyClient mock to return mockOctokit
+    const { createProxyClient } = await import(
+      '../../src/comment-handlers/line-comments-handler.ts'
+    )
+    vi.mocked(createProxyClient).mockReturnValue(
+      mockOctokit as unknown as Octokit
+    )
   })
 
   describe('Integration Tests', () => {

@@ -1,4 +1,5 @@
 import { type Context } from 'probot'
+import { Octokit } from '@octokit/rest'
 import { fetchPrDiffFileMap } from '../extract-diff.ts'
 import {
   checkCommentExistence,
@@ -14,6 +15,21 @@ import {
 import { errorCommentHandler } from './error-comment-handler.ts'
 import { upsertComment } from './index.ts'
 import { AnalysisSchema, SUMMARY_MARKER } from './types.ts'
+
+/**
+ * Creates a GitHub client using the proxy user's token
+ */
+export function createProxyClient(): Octokit | null {
+  const proxyToken = process.env.PROXY_REVIEWER_TOKEN
+  if (!proxyToken) {
+    console.error('PROXY_REVIEWER_TOKEN not configured')
+    return null
+  }
+
+  return new Octokit({
+    auth: proxyToken
+  })
+}
 
 /**
  * Handles the creation of individual review comments on specific lines.
@@ -38,6 +54,19 @@ export async function lineCommentsHandler(
   const repo = context.repo()
 
   try {
+    // Create proxy client for posting reviews as the proxy user
+    const proxyClient = createProxyClient()
+    if (!proxyClient) {
+      console.error(
+        'Failed to create proxy client, falling back to error comment'
+      )
+      return errorCommentHandler(
+        context,
+        prNumber,
+        'PROXY_REVIEWER_TOKEN not configured - cannot post reviews as proxy user'
+      )
+    }
+
     // Parse the JSON response
     const rawParsedAnalysis = JSON.parse(analysis)
 
@@ -119,8 +148,8 @@ export async function lineCommentsHandler(
         )
 
         if (existenceResult.exists) {
-          // Update existing comment
-          await context.octokit.pulls.updateReviewComment({
+          // Update existing comment using proxy client
+          await proxyClient.pulls.updateReviewComment({
             ...repo,
             comment_id: existingComment.id,
             body: commentBody
@@ -144,7 +173,7 @@ export async function lineCommentsHandler(
               comment,
               commentBody
             )
-            await context.octokit.pulls.createReviewComment(commentParams)
+            await proxyClient.pulls.createReviewComment(commentParams)
             createdCount++
           } else {
             // failedResult.reason === 'error'
@@ -162,7 +191,7 @@ export async function lineCommentsHandler(
           }
         }
       } else {
-        // Create new comment
+        // Create new comment using proxy client
         const commentParams = createCommentParams(
           repo,
           prNumber,
@@ -170,7 +199,7 @@ export async function lineCommentsHandler(
           comment,
           commentBody
         )
-        await context.octokit.pulls.createReviewComment(commentParams)
+        await proxyClient.pulls.createReviewComment(commentParams)
         createdCount++
       }
     }
