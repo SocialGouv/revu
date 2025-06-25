@@ -1,3 +1,10 @@
+## [1.18.6](https://github.com/SocialGouv/revu/compare/v1.18.5...v1.18.6) (2025-06-25)
+
+
+### Bug Fixes
+
+* global comment by proxy user ([1db8008](https://github.com/SocialGouv/revu/commit/1db8008a0e9e9c3a3ad9e33b05ef7e23f5915296))
+
 ## [1.18.5](https://github.com/SocialGouv/revu/compare/v1.18.4...v1.18.5) (2025-06-25)
 
 
