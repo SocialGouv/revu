@@ -8,11 +8,17 @@ import {
   findExistingSummaryComment
 } from './comment-operations.ts'
 import {
+  createCommentMarkerId,
   isCommentValidForDiff,
   prepareCommentContent
 } from './comment-utils.ts'
 import { errorCommentHandler } from './error-comment-handler.ts'
 import { upsertComment } from './index.ts'
+import {
+  createLineContentHash,
+  getLineContent,
+  shouldReplaceComment
+} from './line-content-hash.ts'
 import { AnalysisSchema, SUMMARY_MARKER } from './types.ts'
 
 /**
@@ -101,18 +107,45 @@ export async function lineCommentsHandler(
         continue
       }
 
-      // Generate the comment content
-      const { markerId, commentBody } = prepareCommentContent(comment)
+      // Get line content and generate hash
+      const lineContent = await getLineContent(
+        context,
+        comment.path,
+        commitSha,
+        comment.line,
+        comment.start_line
+      )
+      const contentHash = createLineContentHash(lineContent)
 
-      // Find the existing comment
+      // Generate the comment content with hash
+      const commentBody = prepareCommentContent(comment, contentHash)
+
+      // Find the existing comment (look for comments with same path and line range)
+      const baseMarkerId = createCommentMarkerId(
+        comment.path,
+        comment.line,
+        comment.start_line
+      )
+
       const existingComment = existingComments.find(
         (existing) =>
-          existing.body.includes(`<!-- REVU-AI-COMMENT ${markerId}`) &&
+          existing.body.includes(`<!-- REVU-AI-COMMENT ${baseMarkerId}`) &&
           existing.path === comment.path
       )
 
+      // Check if we should replace the comment based on content hash
+      const shouldReplace = shouldReplaceComment(existingComment, contentHash)
+
+      if (!shouldReplace && existingComment) {
+        console.log(
+          `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - content unchanged`
+        )
+        skippedCount++
+        continue
+      }
+
       // Single decision: update or create with robust error handling
-      if (existingComment) {
+      if (existingComment && shouldReplace) {
         const existenceResult = await checkCommentExistence(
           context,
           existingComment.id

@@ -130,7 +130,9 @@ describe('lineCommentsHandler', () => {
         commit_id: 'abc123',
         path: 'file1.ts',
         line: 10,
-        body: expect.stringContaining('<!-- REVU-AI-COMMENT file1.ts:10 -->')
+        body: expect.stringContaining(
+          '<!-- REVU-AI-COMMENT file1.ts:10 HASH:e3b0c442 -->'
+        )
       })
       expect(result).toContain('Created 2')
     })
@@ -158,7 +160,9 @@ describe('lineCommentsHandler', () => {
         owner: 'test-owner',
         repo: 'test-repo',
         comment_id: 1,
-        body: expect.stringContaining('<!-- REVU-AI-COMMENT file1.ts:10 -->')
+        body: expect.stringContaining(
+          '<!-- REVU-AI-COMMENT file1.ts:10 HASH:e3b0c442 -->'
+        )
       })
       expect(result).toContain('updated 1')
     })
@@ -365,7 +369,9 @@ describe('lineCommentsHandler', () => {
         start_line: 10,
         side: 'RIGHT',
         start_side: 'RIGHT',
-        body: expect.stringContaining('<!-- REVU-AI-COMMENT file1.ts:10-15 -->')
+        body: expect.stringContaining(
+          '<!-- REVU-AI-COMMENT file1.ts:10-15 HASH:e3b0c442 -->'
+        )
       })
 
       expect(result).toContain('Created 2')
