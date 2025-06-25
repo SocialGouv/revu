@@ -1,4 +1,5 @@
 import { type Context } from 'probot'
+import { Octokit } from '@octokit/rest'
 import { fetchPrDiffFileMap } from '../extract-diff.ts'
 import {
   checkCommentExistence,
@@ -14,6 +15,21 @@ import {
 import { errorCommentHandler } from './error-comment-handler.ts'
 import { upsertComment } from './index.ts'
 import { AnalysisSchema, SUMMARY_MARKER } from './types.ts'
+
+/**
+ * Creates a GitHub client using the proxy user's token
+ */
+export function createProxyClient(): Octokit | null {
+  const proxyToken = process.env.PROXY_REVIEWER_TOKEN
+  if (!proxyToken) {
+    console.error('PROXY_REVIEWER_TOKEN not configured')
+    return null
+  }
+
+  return new Octokit({
+    auth: proxyToken
+  })
+}
 
 /**
  * Handles the creation of individual review comments on specific lines.
@@ -38,7 +54,7 @@ export async function lineCommentsHandler(
   const repo = context.repo()
 
   try {
-    // Parse the JSON response
+    // Parse the JSON response first
     const rawParsedAnalysis = JSON.parse(analysis)
 
     // Validate the structure with Zod
@@ -75,7 +91,7 @@ export async function lineCommentsHandler(
     // Fetch PR diff to identify changed lines
     const diffMap = await fetchPrDiffFileMap(context, prNumber)
 
-    // Clean up obsolete comments first
+    // Clean up obsolete comments first - this should happen regardless of proxy client status
     const deletedCount = await cleanupObsoleteComments(
       context,
       prNumber,
@@ -84,6 +100,16 @@ export async function lineCommentsHandler(
 
     // Get existing review comments AFTER cleanup
     const existingComments = await findExistingComments(context, prNumber)
+
+    // Now check if we can create proxy client for posting new/updated comments
+    const proxyClient = createProxyClient()
+    if (!proxyClient) {
+      console.error(
+        'Failed to create proxy client - cleanup completed but cannot post new comments'
+      )
+      // Return cleanup results even though we can't post new comments
+      return `PR #${prNumber}: Deleted ${deletedCount} obsolete comments, but cannot post new comments - PROXY_REVIEWER_TOKEN not configured`
+    }
 
     // Track created/updated comments
     let createdCount = 0
@@ -119,8 +145,8 @@ export async function lineCommentsHandler(
         )
 
         if (existenceResult.exists) {
-          // Update existing comment
-          await context.octokit.pulls.updateReviewComment({
+          // Update existing comment using proxy client
+          await proxyClient.pulls.updateReviewComment({
             ...repo,
             comment_id: existingComment.id,
             body: commentBody
@@ -144,7 +170,7 @@ export async function lineCommentsHandler(
               comment,
               commentBody
             )
-            await context.octokit.pulls.createReviewComment(commentParams)
+            await proxyClient.pulls.createReviewComment(commentParams)
             createdCount++
           } else {
             // failedResult.reason === 'error'
@@ -162,7 +188,7 @@ export async function lineCommentsHandler(
           }
         }
       } else {
-        // Create new comment
+        // Create new comment using proxy client
         const commentParams = createCommentParams(
           repo,
           prNumber,
@@ -170,7 +196,7 @@ export async function lineCommentsHandler(
           comment,
           commentBody
         )
-        await context.octokit.pulls.createReviewComment(commentParams)
+        await proxyClient.pulls.createReviewComment(commentParams)
         createdCount++
       }
     }

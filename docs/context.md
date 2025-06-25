@@ -8,14 +8,17 @@
 
 ## Architecture
 
-- **Event Triggers**: PR opened/updated → extract data → analyze → post comments
+- **Event Triggers**: 
+  - PR opened → add proxy user as reviewer
+  - PR review requested (for proxy user) → extract data → analyze → post comments
+- **Proxy User System**: Uses a regular GitHub user account to enable manual review requests
 - **Data Pipeline**:
   - Extract codebase (filtered by .revuignore)
   - Extract PR diff
   - Extract git history
   - Populate template with data
   - Send to Claude
-  - Post comments to GitHub
+  - Post comments to GitHub via proxy user
 
 ## Strategy System
 
@@ -28,7 +31,8 @@
 
 ### Core Application
 
-- `src/index.ts`: Main app entry point, PR event handling
+- `src/index.ts`: Main app entry point, PR event handling, review request detection
+- `src/github/reviewer-utils.ts`: Proxy user management and reviewer assignment
 - `config.json`: Strategy configuration
 
 ### Data Processing
@@ -52,6 +56,8 @@
 
 - Node.js application using Probot framework
 - Requires GitHub App credentials and Anthropic API key
+- **Proxy User System**: Requires additional GitHub user account and personal access token for manual review requests
 - Supports both global comments and line-specific comments
 - Includes smart comment management to prevent comment accumulation
 - Configurable through environment variables and YAML files
+- Environment variables: `PROXY_REVIEWER_USERNAME`, `PROXY_REVIEWER_TOKEN` for proxy user functionality

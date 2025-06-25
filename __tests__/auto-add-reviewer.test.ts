@@ -12,6 +12,9 @@ const mockGetAuthenticated = vi.fn()
 const mockLogInfo = vi.fn()
 const mockLogError = vi.fn()
 
+// Mock environment variables
+vi.stubEnv('PROXY_REVIEWER_USERNAME', 'proxy-reviewer-user')
+
 // Create a real Context mock that matches the actual interface
 function createMockContext(
   options: {
@@ -77,7 +80,7 @@ describe('Auto Add Reviewer - Real Tests', () => {
   })
 
   describe('addBotAsReviewer', () => {
-    it('should successfully add bot as reviewer when no existing reviewers', async () => {
+    it('should successfully add proxy user as reviewer when no existing reviewers', async () => {
       const context = createMockContext()
 
       await addBotAsReviewer(context)
@@ -86,21 +89,21 @@ describe('Auto Add Reviewer - Real Tests', () => {
         owner: 'test-owner',
         repo: 'test-repo',
         pull_number: 123,
-        reviewers: ['revu-bot[bot]']
+        reviewers: ['proxy-reviewer-user']
       })
 
       expect(mockRequestReviewers).toHaveBeenCalledTimes(1)
       expect(mockLogInfo).toHaveBeenCalledWith(
-        'Successfully added bot as reviewer for PR #123'
+        'Successfully added proxy user as reviewer for PR #123'
       )
     })
 
-    it('should not add bot if already requested', async () => {
+    it('should not add proxy user if already requested', async () => {
       const context = createMockContext({
         existingReviewers: [
           {
-            login: 'revu-bot[bot]',
-            type: 'Bot'
+            login: 'proxy-reviewer-user',
+            type: 'User'
           }
         ]
       })
@@ -109,16 +112,16 @@ describe('Auto Add Reviewer - Real Tests', () => {
 
       expect(mockRequestReviewers).not.toHaveBeenCalled()
       expect(mockLogInfo).toHaveBeenCalledWith(
-        'Bot is already a requested reviewer for PR #123'
+        'Proxy user is already a requested reviewer for PR #123'
       )
     })
 
-    it('should not add bot if another reviewer with same login exists', async () => {
+    it('should not add proxy user if another reviewer with same login exists', async () => {
       const context = createMockContext({
         existingReviewers: [
           {
-            login: 'revu-bot[bot]',
-            type: 'Bot'
+            login: 'proxy-reviewer-user',
+            type: 'User'
           },
           {
             login: 'human-reviewer',
@@ -131,7 +134,7 @@ describe('Auto Add Reviewer - Real Tests', () => {
 
       expect(mockRequestReviewers).not.toHaveBeenCalled()
       expect(mockLogInfo).toHaveBeenCalledWith(
-        'Bot is already a requested reviewer for PR #123'
+        'Proxy user is already a requested reviewer for PR #123'
       )
     })
 
@@ -160,39 +163,11 @@ describe('Auto Add Reviewer - Real Tests', () => {
         owner: 'my-org',
         repo: 'my-project',
         pull_number: 456,
-        reviewers: ['revu-bot[bot]']
+        reviewers: ['proxy-reviewer-user']
       })
 
       expect(mockLogInfo).toHaveBeenCalledWith(
-        'Successfully added bot as reviewer for PR #456'
-      )
-    })
-
-    it('should work with custom bot slug', async () => {
-      // Reset cache and clear mocks for this specific test
-      resetBotUsernameCache()
-      vi.clearAllMocks()
-
-      // Override the bot slug for this specific test
-      mockGetAuthenticated.mockResolvedValue({
-        data: {
-          slug: 'my-custom-bot'
-        }
-      })
-
-      const context = createMockContext()
-
-      await addBotAsReviewer(context)
-
-      expect(mockRequestReviewers).toHaveBeenCalledWith({
-        owner: 'test-owner',
-        repo: 'test-repo',
-        pull_number: 123,
-        reviewers: ['my-custom-bot[bot]']
-      })
-
-      expect(mockLogInfo).toHaveBeenCalledWith(
-        'Successfully added bot as reviewer for PR #123'
+        'Successfully added proxy user as reviewer for PR #456'
       )
     })
 
@@ -209,7 +184,7 @@ describe('Auto Add Reviewer - Real Tests', () => {
         owner: 'test-owner',
         repo: 'test-repo',
         pull_number: 123,
-        reviewers: ['revu-bot[bot]']
+        reviewers: ['proxy-reviewer-user']
       })
     })
 
@@ -245,12 +220,12 @@ describe('Auto Add Reviewer - Real Tests', () => {
         owner: 'test-owner',
         repo: 'test-repo',
         pull_number: 123,
-        reviewers: ['revu-bot[bot]']
+        reviewers: ['proxy-reviewer-user']
       })
 
       // Verify the correct log message was produced
       expect(mockLogInfo).toHaveBeenCalledWith(
-        'Successfully added bot as reviewer for PR #123'
+        'Successfully added proxy user as reviewer for PR #123'
       )
 
       // Verify no errors were logged

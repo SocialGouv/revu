@@ -1,18 +1,21 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   isReviewRequestedForBot,
   extractPRInfo,
   isPullRequestOpened
 } from '../src/github/reviewer-utils.ts'
 
+// Mock environment variables
+vi.stubEnv('PROXY_REVIEWER_USERNAME', 'proxy-reviewer-user')
+
 describe('On-Demand Review - Real Tests', () => {
   describe('isReviewRequestedForBot', () => {
-    it('should return true when review is requested for revu-bot', () => {
+    it('should return true when review is requested for proxy user', () => {
       const event = {
         action: 'requested',
         requested_reviewer: {
-          login: 'revu-bot[bot]',
-          type: 'Bot'
+          login: 'proxy-reviewer-user',
+          type: 'User'
         },
         pull_request: {
           number: 123
@@ -25,7 +28,7 @@ describe('On-Demand Review - Real Tests', () => {
         }
       }
 
-      expect(isReviewRequestedForBot(event, 'revu-bot[bot]')).toBe(true)
+      expect(isReviewRequestedForBot(event, 'proxy-reviewer-user')).toBe(true)
     })
 
     it('should return false when review is requested for another user', () => {
@@ -46,15 +49,15 @@ describe('On-Demand Review - Real Tests', () => {
         }
       }
 
-      expect(isReviewRequestedForBot(event, 'revu-bot[bot]')).toBe(false)
+      expect(isReviewRequestedForBot(event, 'proxy-reviewer-user')).toBe(false)
     })
 
     it('should return false when action is not "requested"', () => {
       const event = {
         action: 'submitted',
         requested_reviewer: {
-          login: 'revu-bot[bot]',
-          type: 'Bot'
+          login: 'proxy-reviewer-user',
+          type: 'User'
         },
         pull_request: {
           number: 123
@@ -67,7 +70,7 @@ describe('On-Demand Review - Real Tests', () => {
         }
       }
 
-      expect(isReviewRequestedForBot(event, 'revu-bot[bot]')).toBe(false)
+      expect(isReviewRequestedForBot(event, 'proxy-reviewer-user')).toBe(false)
     })
 
     it('should return false when requested_reviewer is undefined', () => {
@@ -84,7 +87,7 @@ describe('On-Demand Review - Real Tests', () => {
         }
       }
 
-      expect(isReviewRequestedForBot(event, 'revu-bot[bot]')).toBe(false)
+      expect(isReviewRequestedForBot(event, 'proxy-reviewer-user')).toBe(false)
     })
 
     it('should handle edge cases with missing properties', () => {
@@ -103,7 +106,7 @@ describe('On-Demand Review - Real Tests', () => {
       }
 
       expect(
-        isReviewRequestedForBot(eventWithNullReviewer, 'revu-bot[bot]')
+        isReviewRequestedForBot(eventWithNullReviewer, 'proxy-reviewer-user')
       ).toBe(false)
     })
   })
