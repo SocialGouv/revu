@@ -159,7 +159,7 @@ describe('Integration Tests - Real Workflows', () => {
   describe('Review Request Detection Workflow', () => {
     it('should correctly detect review requests for the bot', () => {
       const reviewRequestEvent = {
-        action: 'requested',
+        action: 'review_requested',
         requested_reviewer: {
           login: 'revu-bot[bot]',
           type: 'Bot'
@@ -182,7 +182,7 @@ describe('Integration Tests - Real Workflows', () => {
 
     it('should ignore review requests for other reviewers', () => {
       const reviewRequestEvent = {
-        action: 'requested',
+        action: 'review_requested',
         requested_reviewer: {
           login: 'human-reviewer',
           type: 'User'
@@ -352,7 +352,7 @@ describe('Integration Tests - Real Workflows', () => {
 
       // Step 2: Developer requests review from proxy user
       const reviewRequestEvent = {
-        action: 'requested',
+        action: 'review_requested',
         requested_reviewer: {
           login: 'proxy-reviewer-user',
           type: 'User'
