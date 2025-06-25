@@ -41,6 +41,7 @@ export function isReviewRequestedForBot(
 ): boolean {
   console.log(`ENV: "${botUsername}"`)
   console.log(`GITHUB: "${event.requested_reviewer?.login}"`)
+  console.log(`ACTION: "${event.action}"`)
   return !!(
     event.action === 'requested' &&
     event.requested_reviewer &&
