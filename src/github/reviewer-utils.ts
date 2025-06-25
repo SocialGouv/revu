@@ -10,6 +10,13 @@ export function resetBotUsernameCache(): void {
   cachedBotUsername = null
 }
 
+/**
+ * Gets the proxy reviewer username from environment variables
+ */
+export function getProxyReviewerUsername(): string | null {
+  return process.env.PROXY_REVIEWER_USERNAME || null
+}
+
 interface GitHubEvent {
   action: string
   requested_reviewer?: {
@@ -62,7 +69,7 @@ export function extractPRInfo(event: GitHubEvent): {
 }
 
 /**
- * Adds the Revu bot as a reviewer to a pull request
+ * Adds the proxy user as a reviewer to a pull request
  */
 export async function addBotAsReviewer(context: Context): Promise<void> {
   try {
@@ -75,9 +82,16 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
     const pr = payload.pull_request
     const repo = context.repo()
 
-    // Get the bot username dynamically
-    const botUsername = await getBotUsername(context)
-    context.log.info(`Bot username resolved to: ${botUsername}`)
+    // Get the proxy reviewer username
+    const proxyUsername = getProxyReviewerUsername()
+    if (!proxyUsername) {
+      context.log.error(
+        'PROXY_REVIEWER_USERNAME not configured, skipping reviewer assignment'
+      )
+      return
+    }
+
+    context.log.info(`Proxy username resolved to: ${proxyUsername}`)
 
     // Log current requested reviewers
     context.log.info(
@@ -93,15 +107,15 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
       context.log.info(`  No current requested reviewers`)
     }
 
-    // Check if bot is already a requested reviewer
-    const isBotAlreadyRequested = pr.requested_reviewers?.some(
+    // Check if proxy user is already a requested reviewer
+    const isProxyAlreadyRequested = pr.requested_reviewers?.some(
       (reviewer: { login: string; type: string }) =>
-        reviewer.login === botUsername
+        reviewer.login === proxyUsername
     )
 
-    if (isBotAlreadyRequested) {
+    if (isProxyAlreadyRequested) {
       context.log.info(
-        `Bot is already a requested reviewer for PR #${pr.number}`
+        `Proxy user is already a requested reviewer for PR #${pr.number}`
       )
       return
     }
@@ -111,14 +125,14 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
       owner: repo.owner,
       repo: repo.repo,
       pull_number: pr.number,
-      reviewers: [botUsername]
+      reviewers: [proxyUsername]
     }
     context.log.info(
       `Making requestReviewers API call with params:`,
       requestParams
     )
 
-    // Add bot as reviewer
+    // Add proxy user as reviewer
     const response = await context.octokit.pulls.requestReviewers(requestParams)
 
     // Response logging with JSON content
@@ -136,7 +150,9 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
       context.log.info(`Response data is null/undefined`)
     }
 
-    context.log.info(`Successfully added bot as reviewer for PR #${pr.number}`)
+    context.log.info(
+      `Successfully added proxy user as reviewer for PR #${pr.number}`
+    )
   } catch (error) {
     // Enhanced error logging
     context.log.error(`Error adding bot as reviewer: ${error}`)
