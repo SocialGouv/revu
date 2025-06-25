@@ -7,6 +7,9 @@ import {
   resetBotUsernameCache
 } from '../src/github/reviewer-utils.ts'
 
+// Mock environment variables
+vi.stubEnv('PROXY_REVIEWER_USERNAME', 'proxy-reviewer-user')
+
 // Mock octokit methods for integration testing
 const mockRequestReviewers = vi.fn()
 const mockGetAuthenticated = vi.fn()
@@ -117,15 +120,15 @@ describe('Integration Tests - Real Workflows', () => {
       // Step 1: Add bot as reviewer (happens when PR is opened)
       await addBotAsReviewer(context)
 
-      // Verify bot was added
+      // Verify proxy user was added
       expect(mockRequestReviewers).toHaveBeenCalledWith({
         owner: 'test-owner',
         repo: 'test-repo',
         pull_number: 123,
-        reviewers: ['revu-bot[bot]']
+        reviewers: ['proxy-reviewer-user']
       })
       expect(mockLogInfo).toHaveBeenCalledWith(
-        'Successfully added bot as reviewer for PR #123'
+        'Successfully added proxy user as reviewer for PR #123'
       )
 
       // Step 2: Verify bot username can be retrieved
@@ -133,22 +136,22 @@ describe('Integration Tests - Real Workflows', () => {
       expect(botUsername).toBe('revu-bot[bot]')
     })
 
-    it('should handle the case where bot is already a reviewer', async () => {
+    it('should handle the case where proxy user is already a reviewer', async () => {
       const context = createIntegrationContext({
         existingReviewers: [
           {
-            login: 'revu-bot[bot]',
-            type: 'Bot'
+            login: 'proxy-reviewer-user',
+            type: 'User'
           }
         ]
       })
 
-      // Bot should not be added again
+      // Proxy user should not be added again
       await addBotAsReviewer(context)
 
       expect(mockRequestReviewers).not.toHaveBeenCalled()
       expect(mockLogInfo).toHaveBeenCalledWith(
-        'Bot is already a requested reviewer for PR #123'
+        'Proxy user is already a requested reviewer for PR #123'
       )
     })
   })
@@ -248,12 +251,9 @@ describe('Integration Tests - Real Workflows', () => {
       // Adding reviewer should not throw even if API fails
       await expect(addBotAsReviewer(context)).resolves.not.toThrow()
 
-      // With the new behavior, getBotUsername fails first, then addBotAsReviewer catches and logs that error
+      // With proxy user, we expect error about adding reviewer, not getting bot username
       expect(mockLogError).toHaveBeenCalledWith(
-        'Failed to get bot username: Error: Auth Error'
-      )
-      expect(mockLogError).toHaveBeenCalledWith(
-        'Error adding bot as reviewer: Error: Auth Error'
+        'Error adding bot as reviewer: Error: Network Error'
       )
 
       // Getting bot username should throw an error
@@ -262,13 +262,6 @@ describe('Integration Tests - Real Workflows', () => {
     })
 
     it('should handle missing context properties gracefully', async () => {
-      // Make sure the getAuthenticated mock works for this test
-      mockGetAuthenticated.mockResolvedValue({
-        data: {
-          slug: 'revu-bot'
-        }
-      })
-
       const contextWithMissingData = {
         payload: {
           pull_request: {
@@ -296,12 +289,12 @@ describe('Integration Tests - Real Workflows', () => {
 
       await addBotAsReviewer(contextWithMissingData)
 
-      // Should still try to add reviewer since requested_reviewers is undefined
+      // Should still try to add proxy user since requested_reviewers is undefined
       expect(mockRequestReviewers).toHaveBeenCalledWith({
         owner: 'test-owner',
         repo: 'test-repo',
         pull_number: 456,
-        reviewers: ['revu-bot[bot]']
+        reviewers: ['proxy-reviewer-user']
       })
     })
   })
@@ -327,7 +320,7 @@ describe('Integration Tests - Real Workflows', () => {
           owner: repoConfig.owner,
           repo: repoConfig.repo,
           pull_number: repoConfig.prNumber,
-          reviewers: ['revu-bot[bot]']
+          reviewers: ['proxy-reviewer-user']
         })
       }
 
@@ -353,16 +346,16 @@ describe('Integration Tests - Real Workflows', () => {
     it('should simulate the complete on-demand review workflow', async () => {
       const context = createIntegrationContext()
 
-      // Step 1: PR is opened, bot is added as reviewer
+      // Step 1: PR is opened, proxy user is added as reviewer
       await addBotAsReviewer(context)
       expect(mockRequestReviewers).toHaveBeenCalled()
 
-      // Step 2: Developer requests review from bot
+      // Step 2: Developer requests review from proxy user
       const reviewRequestEvent = {
         action: 'requested',
         requested_reviewer: {
-          login: 'revu-bot[bot]',
-          type: 'Bot'
+          login: 'proxy-reviewer-user',
+          type: 'User'
         },
         pull_request: {
           number: 123
@@ -375,21 +368,21 @@ describe('Integration Tests - Real Workflows', () => {
         }
       }
 
-      // Step 3: System detects review request for bot
-      const isForBot = isReviewRequestedForBot(
+      // Step 3: System detects review request for proxy user
+      const isForProxy = isReviewRequestedForBot(
         reviewRequestEvent,
-        'revu-bot[bot]'
+        'proxy-reviewer-user'
       )
-      expect(isForBot).toBe(true)
+      expect(isForProxy).toBe(true)
 
-      // Step 4: Get bot username for further processing
+      // Step 4: Get bot username for further processing (still needed for actual review posting)
       const botUsername = await getBotUsername(context)
       expect(botUsername).toBe('revu-bot[bot]')
 
       // This would trigger the actual code review process
       // (which would be tested in separate integration tests)
       expect(mockLogInfo).toHaveBeenCalledWith(
-        'Successfully added bot as reviewer for PR #123'
+        'Successfully added proxy user as reviewer for PR #123'
       )
     })
   })

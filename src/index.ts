@@ -6,8 +6,8 @@ import { errorCommentHandler } from './comment-handlers/error-comment-handler.ts
 import { getCommentHandler } from './comment-handlers/index.ts'
 import {
   addBotAsReviewer,
-  getBotUsername,
-  isReviewRequestedForBot
+  isReviewRequestedForBot,
+  getProxyReviewerUsername
 } from './github/reviewer-utils.ts'
 import type { PromptContext } from './prompt-strategies/prompt-strategy.ts'
 import { sendToAnthropic } from './send-to-anthropic.ts'
@@ -66,19 +66,17 @@ export default async (app: Probot, { getRouter }) => {
       }
     }
 
-    // Get the bot username dynamically to avoid race conditions
-    let botUsername: string
-    try {
-      botUsername = await getBotUsername(context)
-    } catch (error) {
+    // Get the proxy username for review detection
+    const proxyUsername = getProxyReviewerUsername()
+    if (!proxyUsername) {
       app.log.error(
-        `Failed to get bot username, aborting review request: ${error}`
+        'PROXY_REVIEWER_USERNAME not configured, aborting review request'
       )
       return
     }
 
-    // Check if the review request is for our bot
-    if (!isReviewRequestedForBot(reviewPayload, botUsername)) {
+    // Check if the review request is for our proxy user
+    if (!isReviewRequestedForBot(reviewPayload, proxyUsername)) {
       app.log.info('Review requested for someone else, ignoring')
       return
     }
