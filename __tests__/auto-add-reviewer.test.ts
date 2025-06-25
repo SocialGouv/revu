@@ -1,8 +1,9 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Context } from 'probot'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   addBotAsReviewer,
   getBotUsername,
+  isPRCreatedByBot,
   resetBotUsernameCache
 } from '../src/github/reviewer-utils.ts'
 
@@ -268,6 +269,41 @@ describe('Auto Add Reviewer - Real Tests', () => {
       const username = await getBotUsername(context)
 
       expect(username).toBe('my-custom-bot[bot]')
+    })
+  })
+
+  describe('isPRCreatedByBot', () => {
+    it('should return true for users with type "Bot"', () => {
+      const botUser = { login: 'renovate[bot]', type: 'Bot' }
+      expect(isPRCreatedByBot(botUser)).toBe(true)
+    })
+
+    it('should return false for users with type "User"', () => {
+      const humanUser = { login: 'john-doe', type: 'User' }
+      expect(isPRCreatedByBot(humanUser)).toBe(false)
+    })
+
+    it('should return false for users with type "Organization"', () => {
+      const orgUser = { login: 'my-org', type: 'Organization' }
+      expect(isPRCreatedByBot(orgUser)).toBe(false)
+    })
+
+    it('should handle different bot usernames correctly', () => {
+      const dependabotUser = { login: 'dependabot[bot]', type: 'Bot' }
+      const renovateUser = { login: 'renovate[bot]', type: 'Bot' }
+      const customBotUser = { login: 'custom-bot', type: 'Bot' }
+
+      expect(isPRCreatedByBot(dependabotUser)).toBe(true)
+      expect(isPRCreatedByBot(renovateUser)).toBe(true)
+      expect(isPRCreatedByBot(customBotUser)).toBe(true)
+    })
+
+    it('should be case insensitive for type field', () => {
+      const botLowercase = { login: 'bot-user', type: 'bot' }
+      const botMixedCase = { login: 'bot-user', type: 'bOt' }
+
+      expect(isPRCreatedByBot(botLowercase)).toBe(true)
+      expect(isPRCreatedByBot(botMixedCase)).toBe(true)
     })
   })
 })

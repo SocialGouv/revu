@@ -17,6 +17,16 @@ export function getProxyReviewerUsername(): string | null {
   return process.env.PROXY_REVIEWER_USERNAME || null
 }
 
+/**
+ * Checks if a PR was created by a bot based on the user type
+ */
+export function isPRCreatedByBot(user: {
+  login: string
+  type: string
+}): boolean {
+  return user.type.toLowerCase() === 'bot'
+}
+
 interface GitHubEvent {
   action: string
   requested_reviewer?: {
