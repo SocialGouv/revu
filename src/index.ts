@@ -48,6 +48,13 @@ export default async (app: Probot, { getRouter }) => {
 
   // Listen for review requests to perform on-demand analysis
   app.on(['pull_request.review_requested'], async (context) => {
+    const pr = context.payload.pull_request
+    const repo = context.repo()
+
+    app.log.info(
+      `Review request event received for PR #${pr.number} in ${repo.owner}/${repo.repo}`
+    )
+
     // Cast payload to a more flexible type for the review request check
     const reviewPayload = context.payload as {
       action: string
@@ -81,21 +88,7 @@ export default async (app: Probot, { getRouter }) => {
       return
     }
 
-    const payload = context.payload as {
-      pull_request: {
-        number: number
-        head: { ref: string }
-        title: string
-        body: string | null
-      }
-      installation: { id: number }
-    }
-    const pr = payload.pull_request
-    const repo = context.repo()
-
-    app.log.info(
-      `Performing on-demand review for PR #${pr.number} in ${repo.owner}/${repo.repo}`
-    )
+    app.log.info(`Starting analysis for PR #${pr.number}`)
 
     try {
       // Get repository URL and branch from PR
@@ -103,7 +96,7 @@ export default async (app: Probot, { getRouter }) => {
       const branch = pr.head.ref
 
       // Get an installation token for authentication with private repositories
-      const installationId = payload.installation.id
+      const installationId = context.payload.installation.id
       const installationAccessToken = await context.octokit.apps
         .createInstallationAccessToken({
           installation_id: installationId
