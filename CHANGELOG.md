@@ -1,3 +1,10 @@
+## [1.18.3](https://github.com/SocialGouv/revu/compare/v1.18.2...v1.18.3) (2025-06-25)
+
+
+### Bug Fixes
+
+* add reviewer request logs ([b3ac8cf](https://github.com/SocialGouv/revu/commit/b3ac8cfa4a48724c168a8851ec2b616b2c72698b))
+
 ## [1.18.2](https://github.com/SocialGouv/revu/compare/v1.18.1...v1.18.2) (2025-06-25)
 
 
