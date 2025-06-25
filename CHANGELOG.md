@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/SocialGouv/revu/compare/v1.18.6...v1.19.0) (2025-06-25)
+
+
+### Features
+
+* Don't review PRs made by bots ([8893965](https://github.com/SocialGouv/revu/commit/8893965e2bc211dd7b3329d7ad4b226a03f83baa))
+
 ## [1.18.6](https://github.com/SocialGouv/revu/compare/v1.18.5...v1.18.6) (2025-06-25)
 
 
