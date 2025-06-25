@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/SocialGouv/revu/compare/v1.17.0...v1.18.0) (2025-06-25)
+
+
+### Features
+
+* Hash line changes to avoid replacing conversations if no change ([28743ee](https://github.com/SocialGouv/revu/commit/28743ee71a351cd892148809a44e9313426e2b26))
+
 # [1.17.0](https://github.com/SocialGouv/revu/compare/v1.16.1...v1.17.0) (2025-06-25)
 
 
