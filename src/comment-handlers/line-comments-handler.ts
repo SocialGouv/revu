@@ -54,20 +54,7 @@ export async function lineCommentsHandler(
   const repo = context.repo()
 
   try {
-    // Create proxy client for posting reviews as the proxy user
-    const proxyClient = createProxyClient()
-    if (!proxyClient) {
-      console.error(
-        'Failed to create proxy client, falling back to error comment'
-      )
-      return errorCommentHandler(
-        context,
-        prNumber,
-        'PROXY_REVIEWER_TOKEN not configured - cannot post reviews as proxy user'
-      )
-    }
-
-    // Parse the JSON response
+    // Parse the JSON response first
     const rawParsedAnalysis = JSON.parse(analysis)
 
     // Validate the structure with Zod
@@ -104,7 +91,7 @@ export async function lineCommentsHandler(
     // Fetch PR diff to identify changed lines
     const diffMap = await fetchPrDiffFileMap(context, prNumber)
 
-    // Clean up obsolete comments first
+    // Clean up obsolete comments first - this should happen regardless of proxy client status
     const deletedCount = await cleanupObsoleteComments(
       context,
       prNumber,
@@ -113,6 +100,16 @@ export async function lineCommentsHandler(
 
     // Get existing review comments AFTER cleanup
     const existingComments = await findExistingComments(context, prNumber)
+
+    // Now check if we can create proxy client for posting new/updated comments
+    const proxyClient = createProxyClient()
+    if (!proxyClient) {
+      console.error(
+        'Failed to create proxy client - cleanup completed but cannot post new comments'
+      )
+      // Return cleanup results even though we can't post new comments
+      return `PR #${prNumber}: Deleted ${deletedCount} obsolete comments, but cannot post new comments - PROXY_REVIEWER_TOKEN not configured`
+    }
 
     // Track created/updated comments
     let createdCount = 0
