@@ -1,5 +1,8 @@
 import { type Context, ProbotOctokit } from 'probot'
-import { lineCommentsHandler } from './line-comments-handler.ts'
+import {
+  lineCommentsHandler,
+  createProxyClient
+} from './line-comments-handler.ts'
 
 /**
  * Callback type for comment handlers
@@ -23,18 +26,25 @@ export async function upsertComment(
   prNumber: number
 ) {
   const repo = context.repo()
+  const proxyClient = createProxyClient()
+
+  if (!proxyClient) {
+    throw new Error(
+      'PROXY_REVIEWER_TOKEN not configured, cannot post summary comment'
+    )
+  }
 
   if (existingComment) {
-    // Update the existing comment
-    await context.octokit.issues.updateComment({
+    // Update the existing comment using proxy client
+    await proxyClient.issues.updateComment({
       ...repo,
       comment_id: existingComment.id,
       body: formattedAnalysis
     })
     return `Updated existing analysis comment on PR #${prNumber}`
   } else {
-    // Post a new comment
-    await context.octokit.issues.createComment({
+    // Post a new comment using proxy client
+    await proxyClient.issues.createComment({
       ...repo,
       issue_number: prNumber,
       body: formattedAnalysis
