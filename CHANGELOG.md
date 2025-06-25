@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/SocialGouv/revu/compare/v1.19.0...v1.20.0) (2025-06-25)
+
+
+### Features
+
+* Don't review draft PRs ([be18d64](https://github.com/SocialGouv/revu/commit/be18d64b59bc85fe487438e26d10e4c22845174a))
+
 # [1.19.0](https://github.com/SocialGouv/revu/compare/v1.18.6...v1.19.0) (2025-06-25)
 
 
