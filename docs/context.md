@@ -8,10 +8,12 @@
 
 ## Architecture
 
-- **Event Triggers**: 
+- **Event Triggers**:
   - PR opened → add proxy user as reviewer
-  - PR review requested (for proxy user) → extract data → analyze → post comments
+  - PR review requested (for proxy user) → check if draft → extract data → analyze → post comments (skips draft PRs)
+  - PR ready for review → automatically extract data → analyze → post comments
 - **Proxy User System**: Uses a regular GitHub user account to enable manual review requests
+- **Draft PR Handling**: Skips review requests on draft PRs, automatically reviews when PR becomes ready
 - **Data Pipeline**:
   - Extract codebase (filtered by .revuignore)
   - Extract PR diff
