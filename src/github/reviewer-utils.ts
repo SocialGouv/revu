@@ -99,7 +99,7 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
 
     if (isProxyAlreadyRequested) {
       context.log.info(
-        `Proxy user ${proxyUsername} already requested for PR #${pr.number}`
+        `Proxy user is already a requested reviewer for PR #${pr.number}`
       )
       return
     }
@@ -112,7 +112,9 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
       reviewers: [proxyUsername]
     })
 
-    context.log.info(`Added ${proxyUsername} as reviewer for PR #${pr.number}`)
+    context.log.info(
+      `Successfully added proxy user as reviewer for PR #${pr.number}`
+    )
   } catch (error) {
     // Enhanced error logging
     context.log.error(`Error adding bot as reviewer: ${error}`)

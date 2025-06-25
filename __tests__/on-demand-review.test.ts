@@ -12,7 +12,7 @@ describe('On-Demand Review - Real Tests', () => {
   describe('isReviewRequestedForBot', () => {
     it('should return true when review is requested for proxy user', () => {
       const event = {
-        action: 'requested',
+        action: 'review_requested',
         requested_reviewer: {
           login: 'proxy-reviewer-user',
           type: 'User'
@@ -33,7 +33,7 @@ describe('On-Demand Review - Real Tests', () => {
 
     it('should return false when review is requested for another user', () => {
       const event = {
-        action: 'requested',
+        action: 'review_requested',
         requested_reviewer: {
           login: 'another-user',
           type: 'User'
@@ -75,7 +75,7 @@ describe('On-Demand Review - Real Tests', () => {
 
     it('should return false when requested_reviewer is undefined', () => {
       const event = {
-        action: 'requested',
+        action: 'review_requested',
         pull_request: {
           number: 123
         },
@@ -92,7 +92,7 @@ describe('On-Demand Review - Real Tests', () => {
 
     it('should handle edge cases with missing properties', () => {
       const eventWithNullReviewer = {
-        action: 'requested',
+        action: 'review_requested',
         requested_reviewer: null,
         pull_request: {
           number: 123
