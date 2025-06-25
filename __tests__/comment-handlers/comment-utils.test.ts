@@ -92,9 +92,8 @@ describe('prepareCommentContent', () => {
       body: 'This needs attention'
     }
 
-    const { markerId, commentBody } = prepareCommentContent(comment)
+    const commentBody = prepareCommentContent(comment)
 
-    expect(markerId).toBe('src_file.ts:10')
     expect(commentBody).toBe(
       '<!-- REVU-AI-COMMENT src_file.ts:10 -->\n\nThis needs attention'
     )
@@ -108,9 +107,8 @@ describe('prepareCommentContent', () => {
       body: 'Multi-line issue'
     }
 
-    const { markerId, commentBody } = prepareCommentContent(comment)
+    const commentBody = prepareCommentContent(comment)
 
-    expect(markerId).toBe('src_file.ts:10-15')
     expect(commentBody).toBe(
       '<!-- REVU-AI-COMMENT src_file.ts:10-15 -->\n\nMulti-line issue'
     )
@@ -124,9 +122,8 @@ describe('prepareCommentContent', () => {
       suggestion: 'const improved = true'
     }
 
-    const { markerId, commentBody } = prepareCommentContent(comment)
+    const commentBody = prepareCommentContent(comment)
 
-    expect(markerId).toBe('src_file.ts:10')
     expect(commentBody).toBe(
       '<!-- REVU-AI-COMMENT src_file.ts:10 -->\n\nThis can be improved\n\n```suggestion\nconst improved = true\n```'
     )
@@ -140,9 +137,8 @@ describe('prepareCommentContent', () => {
       suggestion: null
     }
 
-    const { markerId, commentBody } = prepareCommentContent(comment)
+    const commentBody = prepareCommentContent(comment)
 
-    expect(markerId).toBe('src_file.ts:10')
     expect(commentBody).toBe(
       '<!-- REVU-AI-COMMENT src_file.ts:10 -->\n\nComment without suggestion'
     )
@@ -157,9 +153,8 @@ describe('prepareCommentContent', () => {
       suggestion: 'const result = calculate()\nreturn result'
     }
 
-    const { markerId, commentBody } = prepareCommentContent(comment)
+    const commentBody = prepareCommentContent(comment)
 
-    expect(markerId).toBe('src_file.ts:10-15')
     expect(commentBody).toBe(
       '<!-- REVU-AI-COMMENT src_file.ts:10-15 -->\n\nRefactor this block\n\n```suggestion\nconst result = calculate()\nreturn result\n```'
     )
@@ -172,9 +167,8 @@ describe('prepareCommentContent', () => {
       body: 'Component issue'
     }
 
-    const { markerId, commentBody } = prepareCommentContent(comment)
+    const commentBody = prepareCommentContent(comment)
 
-    expect(markerId).toBe('src_components_my-component.tsx:10')
     expect(commentBody).toContain(
       '<!-- REVU-AI-COMMENT src_components_my-component.tsx:10 -->'
     )

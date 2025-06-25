@@ -10,7 +10,8 @@ import {
 export function createCommentMarkerId(
   path: string,
   line: number,
-  start_line?: number
+  start_line?: number,
+  hash?: string
 ): string {
   // Create a deterministic ID based on file path and line number(s)
   const lineRange =
@@ -19,7 +20,8 @@ export function createCommentMarkerId(
   // Sanitize the path by replacing special characters with underscores
   const sanitizedPath = path.replace(/[^a-zA-Z0-9-_:.]/g, '_')
 
-  return `${sanitizedPath}:${lineRange}`
+  const baseId = `${sanitizedPath}:${lineRange}`
+  return hash ? `${baseId} HASH:${hash}` : baseId
 }
 
 /**
@@ -42,8 +44,8 @@ export function extractMarkerIdFromComment(commentBody: string): string | null {
   // Validate the extracted marker ID format
   if (match && match[1]) {
     const markerId = match[1]
-    // Basic validation: should contain path:line format
-    if (/^[^:]+:\d+(-\d+)?$/.test(markerId)) {
+    // Basic validation: should contain path:line format, optionally with hash
+    if (/^[^:]+:\d+(-\d+)?( HASH:[a-f0-9]{8})?$/.test(markerId)) {
       return markerId
     }
   }
@@ -54,11 +56,12 @@ export function extractMarkerIdFromComment(commentBody: string): string | null {
 /**
  * Prepares the content of a comment with its marker ID
  */
-export function prepareCommentContent(comment: Comment) {
+export function prepareCommentContent(comment: Comment, hash?: string): string {
   const markerId = createCommentMarkerId(
     comment.path,
     comment.line,
-    comment.start_line
+    comment.start_line,
+    hash
   )
 
   let commentBody = `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}\n\n${comment.body}`
@@ -68,7 +71,7 @@ export function prepareCommentContent(comment: Comment) {
     commentBody += '\n\n```suggestion\n' + comment.suggestion + '\n```'
   }
 
-  return { markerId, commentBody }
+  return commentBody
 }
 
 /**
