@@ -1,3 +1,10 @@
+## [1.18.5](https://github.com/SocialGouv/revu/compare/v1.18.4...v1.18.5) (2025-06-25)
+
+
+### Bug Fixes
+
+* use review_requested action event ([d10a045](https://github.com/SocialGouv/revu/commit/d10a045f74adea443ef75c2f615918a833864198))
+
 ## [1.18.4](https://github.com/SocialGouv/revu/compare/v1.18.3...v1.18.4) (2025-06-25)
 
 
