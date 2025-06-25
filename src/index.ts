@@ -7,7 +7,8 @@ import { getCommentHandler } from './comment-handlers/index.ts'
 import {
   addBotAsReviewer,
   isReviewRequestedForBot,
-  getProxyReviewerUsername
+  getProxyReviewerUsername,
+  isPRCreatedByBot
 } from './github/reviewer-utils.ts'
 import type { PromptContext } from './prompt-strategies/prompt-strategy.ts'
 import { sendToAnthropic } from './send-to-anthropic.ts'
@@ -27,10 +28,19 @@ export default async (app: Probot, { getRouter }) => {
       pull_request: {
         number: number
         head: { ref: string }
+        user: { login: string; type: string }
       }
     }
     const pr = payload.pull_request
     const repo = context.repo()
+
+    // Check if PR is created by a bot
+    if (isPRCreatedByBot(pr.user)) {
+      app.log.info(
+        `Skipping bot-created PR #${pr.number} by ${pr.user.login} in ${repo.owner}/${repo.repo}`
+      )
+      return
+    }
 
     app.log.info(
       `Adding bot as reviewer for PR #${pr.number} in ${repo.owner}/${repo.repo}`
