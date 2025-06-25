@@ -93,22 +93,6 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
       return
     }
 
-    context.log.info(`Proxy username resolved to: ${proxyUsername}`)
-
-    // Log current requested reviewers
-    context.log.info(
-      `Current requested reviewers count for PR #${pr.number}: ${pr.requested_reviewers?.length || 0}`
-    )
-    if (pr.requested_reviewers && pr.requested_reviewers.length > 0) {
-      pr.requested_reviewers.forEach((reviewer, index) => {
-        context.log.info(
-          `  Reviewer ${index + 1}: ${reviewer.login} (${reviewer.type})`
-        )
-      })
-    } else {
-      context.log.info(`  No current requested reviewers`)
-    }
-
     // Check if proxy user is already a requested reviewer
     const isProxyAlreadyRequested = pr.requested_reviewers?.some(
       (reviewer: { login: string; type: string }) =>
@@ -117,44 +101,20 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
 
     if (isProxyAlreadyRequested) {
       context.log.info(
-        `Proxy user is already a requested reviewer for PR #${pr.number}`
+        `Proxy user ${proxyUsername} already requested for PR #${pr.number}`
       )
       return
     }
 
-    // Log the parameters before making the API call
-    const requestParams = {
+    // Add proxy user as reviewer
+    await context.octokit.pulls.requestReviewers({
       owner: repo.owner,
       repo: repo.repo,
       pull_number: pr.number,
       reviewers: [proxyUsername]
-    }
-    context.log.info(
-      `Making requestReviewers API call with params:`,
-      requestParams
-    )
+    })
 
-    // Add proxy user as reviewer
-    const response = await context.octokit.pulls.requestReviewers(requestParams)
-
-    // Response logging with JSON content
-    context.log.info(`API Response status: ${response.status}`)
-    context.log.info(`Response data exists: ${!!response.data}`)
-
-    if (response.data) {
-      context.log.info(
-        `Response data JSON: ${JSON.stringify(response.data, null, 2)}`
-      )
-      context.log.info(
-        `Requested reviewers JSON: ${JSON.stringify(response.data.requested_reviewers, null, 2)}`
-      )
-    } else {
-      context.log.info(`Response data is null/undefined`)
-    }
-
-    context.log.info(
-      `Successfully added proxy user as reviewer for PR #${pr.number}`
-    )
+    context.log.info(`Added ${proxyUsername} as reviewer for PR #${pr.number}`)
   } catch (error) {
     // Enhanced error logging
     context.log.error(`Error adding bot as reviewer: ${error}`)
