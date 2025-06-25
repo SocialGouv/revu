@@ -1,8 +1,9 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Context } from 'probot'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   addBotAsReviewer,
   getBotUsername,
+  isPRCreatedByBot,
   resetBotUsernameCache
 } from '../src/github/reviewer-utils.ts'
 
@@ -268,6 +269,22 @@ describe('Auto Add Reviewer - Real Tests', () => {
       const username = await getBotUsername(context)
 
       expect(username).toBe('my-custom-bot[bot]')
+    })
+  })
+
+  describe('isPRCreatedByBot', () => {
+    it('should correctly identify bots and non-bots', () => {
+      const testCases = [
+        { user: { login: 'renovate[bot]', type: 'Bot' }, expected: true },
+        { user: { login: 'john-doe', type: 'User' }, expected: false },
+        { user: { login: 'my-org', type: 'Organization' }, expected: false },
+        { user: { login: 'bot-user', type: 'bot' }, expected: true },
+        { user: { login: 'bot-user', type: 'bOt' }, expected: true }
+      ]
+
+      testCases.forEach(({ user, expected }) => {
+        expect(isPRCreatedByBot(user)).toBe(expected)
+      })
     })
   })
 })
