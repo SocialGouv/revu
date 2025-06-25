@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/SocialGouv/revu/compare/v1.16.1...v1.17.0) (2025-06-25)
+
+
+### Features
+
+* use proxy user ([#92](https://github.com/SocialGouv/revu/issues/92)) ([8181bc4](https://github.com/SocialGouv/revu/commit/8181bc427897f5118f0bf6dfa5d7cb63443b527f))
+
 ## [1.16.1](https://github.com/SocialGouv/revu/compare/v1.16.0...v1.16.1) (2025-06-24)
 
 
