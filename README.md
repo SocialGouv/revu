@@ -1,6 +1,6 @@
 # Revu - AI-Powered Code Review Assistant
 
-Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent, context-aware code reviews for pull requests. By analyzing the entire codebase, changes, and commit history, Revu offers comprehensive feedback that goes beyond simple style checks.
+Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent, context-aware code reviews for pull requests. By analyzing the entire codebase and changes, Revu offers comprehensive feedback that goes beyond simple style checks.
 
 ## Features
 
@@ -8,7 +8,7 @@ Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent
 - **Auto-Reviewer Assignment**: Automatically adds a proxy user as a reviewer on new PRs for easy access
 - **Contextual Analysis**: Understands code changes in the context of the entire codebase
 - **Intelligent Feedback**: Provides detailed explanations and suggestions for improvements
-- **Git-Aware**: Considers commit history and branch differences
+- **Git-Aware**: Considers branch differences and file changes
 - **GitHub Integration**: Seamlessly integrates with GitHub's PR workflow
 - **Customizable**: Configurable through environment variables, templates, and coding guidelines
 - **Coding Guidelines**: Enforce custom coding standards through configuration
@@ -24,12 +24,10 @@ graph TD
     D --> E[Extract Data]
     E --> F[Codebase Analysis]
     E --> G[PR Diff]
-    E --> H[Git History]
-    F --> I[Generate Prompt]
-    G --> I
-    H --> I
-    I --> J[Claude Analysis]
-    J --> K[Post PR Comments via Proxy User]
+    F --> H[Generate Prompt]
+    G --> H
+    H --> I[Claude Analysis]
+    I --> J[Post PR Comments via Proxy User]
 ```
 
 ### On-Demand Review Workflow
@@ -40,7 +38,6 @@ graph TD
 4. **Data Collection**:
    - Extracts full codebase for context
    - Generates diff to focus on changes
-   - Retrieves git history for background
 5. **Analysis**:
    - Combines data into a structured prompt
    - Sends to Claude for intelligent analysis
