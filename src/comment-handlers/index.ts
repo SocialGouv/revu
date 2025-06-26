@@ -1,7 +1,7 @@
 import { type Context, ProbotOctokit } from 'probot'
 import {
-  lineCommentsHandler,
-  createProxyClient
+  createProxyClient,
+  lineCommentsHandler
 } from './line-comments-handler.ts'
 
 /**
@@ -13,15 +13,15 @@ type CommentHandler = (
   analysis: string
 ) => Promise<string | void>
 
-type ListCommentsResponse = Awaited<
-  ReturnType<ProbotOctokit['rest']['issues']['listComments']>
+type ListReviewsResponse = Awaited<
+  ReturnType<ProbotOctokit['rest']['pulls']['listReviews']>
 >
 
-type SingleComment = ListCommentsResponse['data'][number]
+type SingleReview = ListReviewsResponse['data'][number]
 
 export async function upsertComment(
   context: Context,
-  existingComment: SingleComment,
+  existingComment: SingleReview | undefined,
   formattedAnalysis: string,
   prNumber: number
 ) {
@@ -34,22 +34,16 @@ export async function upsertComment(
     )
   }
 
+  await proxyClient.pulls.createReview({
+    ...repo,
+    pull_number: prNumber,
+    body: formattedAnalysis,
+    event: 'COMMENT'
+  })
   if (existingComment) {
-    // Update the existing comment using proxy client
-    await proxyClient.issues.updateComment({
-      ...repo,
-      comment_id: existingComment.id,
-      body: formattedAnalysis
-    })
-    return `Updated existing analysis comment on PR #${prNumber}`
+    return `Added follow-up review comment on PR #${prNumber}`
   } else {
-    // Post a new comment using proxy client
-    await proxyClient.issues.createComment({
-      ...repo,
-      issue_number: prNumber,
-      body: formattedAnalysis
-    })
-    return `Created new analysis comment on PR #${prNumber}`
+    return `Created new review on PR #${prNumber}`
   }
 }
 

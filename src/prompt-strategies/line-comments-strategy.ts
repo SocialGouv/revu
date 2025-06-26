@@ -97,7 +97,6 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
           context.repoOwner,
           context.repoName
         )
-
         for (const issueNumber of issueNumbers) {
           const issueDetails = await fetchIssueDetails(
             octokit,
