@@ -42,8 +42,6 @@ describe('Config Handler', () => {
 codingGuidelines:
   - "Test guideline 1"
   - "Test guideline 2"
-reviewSettings:
-  setting1: value1
 `
       // Mock successful file access
       vi.mocked(fs.access).mockResolvedValueOnce(undefined)
@@ -62,8 +60,6 @@ reviewSettings:
         'Test guideline 1',
         'Test guideline 2'
       ])
-
-      expect(config.reviewSettings).toEqual({ setting1: 'value1' })
     })
 
     it('should return default config on error', async () => {
@@ -79,8 +75,7 @@ reviewSettings:
   describe('formatCodingGuidelines', () => {
     it('should format guidelines as numbered list', () => {
       const config = {
-        codingGuidelines: ['Guideline 1', 'Guideline 2', 'Guideline 3'],
-        reviewSettings: {}
+        codingGuidelines: ['Guideline 1', 'Guideline 2', 'Guideline 3']
       }
 
       const formatted = formatCodingGuidelines(config)
@@ -89,8 +84,7 @@ reviewSettings:
 
     it('should handle empty guidelines array', () => {
       const config = {
-        codingGuidelines: [],
-        reviewSettings: {}
+        codingGuidelines: []
       }
 
       const formatted = formatCodingGuidelines(config)
@@ -99,9 +93,7 @@ reviewSettings:
 
     it('should handle missing guidelines', () => {
       // Create a config object without codingGuidelines
-      const config = {
-        reviewSettings: {}
-      } as CodingGuidelinesConfig
+      const config = {} as CodingGuidelinesConfig
 
       const formatted = formatCodingGuidelines(config)
       expect(formatted).toBe('No specific coding guidelines defined.')

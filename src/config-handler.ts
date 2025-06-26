@@ -23,7 +23,6 @@ async function fileExists(filePath: string): Promise<boolean> {
  */
 export interface CodingGuidelinesConfig {
   codingGuidelines: string[]
-  reviewSettings: Record<string, unknown>
   [key: string]: unknown // Allow for future configuration options
 }
 
@@ -36,10 +35,7 @@ const DEFAULT_CONFIG: CodingGuidelinesConfig = {
     'Naming: Use semantically significant names for functions, classes, and parameters.',
     'Comments: Add comments only for complex code; simple code should be self-explanatory.',
     'Documentation: Public functions must have concise docstrings explaining purpose and return values.'
-  ],
-  reviewSettings: {
-    // Future configuration options can be added here
-  }
+  ]
 }
 
 /**

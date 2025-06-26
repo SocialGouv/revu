@@ -121,7 +121,7 @@ Revu supports both single-line and multi-line code review comments, allowing for
 #### Multi-line Comment
 ```json
 {
-  "path": "src/auth.ts", 
+  "path": "src/auth.ts",
   "line": 25,
   "start_line": 20,
   "body": "This entire authentication block could be refactored into a separate function for better readability"
@@ -139,7 +139,7 @@ Revu supports both single-line and multi-line code review comments, allowing for
 
 Multi-line comments use GitHub's review comment API with additional parameters:
 - `start_line`: The first line of the comment range
-- `line`: The last line of the comment range  
+- `line`: The last line of the comment range
 - `side`: Set to 'RIGHT' for the new version of the file
 - `start_side`: Set to 'RIGHT' for consistency
 
@@ -207,7 +207,7 @@ Requirements:
    Permissions:
      - Pull requests: Read & write
      - Contents: Read
-   Events: 
+   Events:
      - Pull request
      - Pull request review
    ```
@@ -221,17 +221,17 @@ Requirements:
 
 ### Environment Configuration
 
-| Variable                 | Type   | Description                                                                |
-| ------------------------ | ------ | -------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`      | string | Your Anthropic API key for accessing Claude API                            |
-| `ANTHROPIC_MODEL`        | string | (Optional) Anthropic model to use (default: claude-sonnet-4-20250514)     |
-| `APP_ID`                 | number | GitHub App ID obtained after registering the app                           |
-| `PRIVATE_KEY`            | string | RSA private key generated for the GitHub App (including BEGIN/END markers) |
-| `WEBHOOK_SECRET`         | string | Secret string used to verify GitHub webhook payloads                       |
-| `WEBHOOK_PROXY_URL`      | string | (Optional) Smee.io URL for local development webhook forwarding            |
-| `REPOSITORY_FOLDER`      | string | Absolute path where repositories will be cloned                            |
-| `PROXY_REVIEWER_USERNAME`| string | Username of the proxy user account for manual review requests              |
-| `PROXY_REVIEWER_TOKEN`   | string | GitHub personal access token for the proxy user account                    |
+| Variable                  | Type   | Description                                                                |
+| ------------------------- | ------ | -------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`       | string | Your Anthropic API key for accessing Claude API                            |
+| `ANTHROPIC_MODEL`         | string | (Optional) Anthropic model to use (default: claude-sonnet-4-20250514)      |
+| `APP_ID`                  | number | GitHub App ID obtained after registering the app                           |
+| `PRIVATE_KEY`             | string | RSA private key generated for the GitHub App (including BEGIN/END markers) |
+| `WEBHOOK_SECRET`          | string | Secret string used to verify GitHub webhook payloads                       |
+| `WEBHOOK_PROXY_URL`       | string | (Optional) Smee.io URL for local development webhook forwarding            |
+| `REPOSITORY_FOLDER`       | string | Absolute path where repositories will be cloned                            |
+| `PROXY_REVIEWER_USERNAME` | string | Username of the proxy user account for manual review requests              |
+| `PROXY_REVIEWER_TOKEN`    | string | GitHub personal access token for the proxy user account                    |
 
 ## Running the App
 
@@ -272,7 +272,7 @@ docker run -d \
 #### Model Configuration
 
 - Model: Claude Sonnet 4 (configurable via `ANTHROPIC_MODEL`)
-- Available models: 
+- Available models:
   - `claude-sonnet-4-20250514` (default, recommended)
   - `claude-opus-4-20250514` (more powerful, higher cost)
   - `claude-3-7-sonnet-latest` (legacy)
@@ -291,9 +291,6 @@ codingGuidelines:
   - "Naming: Use semantically significant names for functions, classes, and parameters."
   - "Comments: Add comments only for complex code; simple code should be self-explanatory."
   - "Documentation: Public functions must have concise docstrings explaining purpose and return values."
-
-reviewSettings:
-  # Future configuration options for review behavior
 ```
 
 The configuration supports:
