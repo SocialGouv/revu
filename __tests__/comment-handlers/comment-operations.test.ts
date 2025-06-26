@@ -103,15 +103,18 @@ describe('findExistingComments', () => {
 describe('findExistingSummaryComment', () => {
   let mockContext: Context
   let mockOctokit: {
-    issues: {
-      listComments: ReturnType<typeof vi.fn>
+    pulls: {
+      listReviews: ReturnType<typeof vi.fn>
     }
   }
 
   beforeEach(() => {
+    // Mock the environment variable
+    vi.stubEnv('PROXY_REVIEWER_USERNAME', 'proxy-user')
+
     mockOctokit = {
-      issues: {
-        listComments: vi.fn()
+      pulls: {
+        listReviews: vi.fn()
       }
     }
 
@@ -122,31 +125,36 @@ describe('findExistingSummaryComment', () => {
   })
 
   it('should find comment with summary marker', async () => {
-    const mockComments = [
+    const mockReviews = [
       {
         id: 1,
-        body: 'Regular comment'
+        user: { login: 'other-user' },
+        body: 'Regular review'
       },
       {
         id: 2,
-        body: `${SUMMARY_MARKER}\n\nThis is the summary comment`
+        user: { login: 'proxy-user' },
+        body: `${SUMMARY_MARKER}\n\nThis is the summary review`,
+        submitted_at: '2023-01-02T00:00:00Z'
       },
       {
         id: 3,
-        body: 'Another regular comment'
+        user: { login: 'proxy-user' },
+        body: 'Another review without marker',
+        submitted_at: '2023-01-01T00:00:00Z'
       }
     ]
 
-    mockOctokit.issues.listComments.mockResolvedValue({
-      data: mockComments
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: mockReviews
     })
 
     const result = await findExistingSummaryComment(mockContext, 123)
 
-    expect(mockOctokit.issues.listComments).toHaveBeenCalledWith({
+    expect(mockOctokit.pulls.listReviews).toHaveBeenCalledWith({
       owner: 'test-owner',
       repo: 'test-repo',
-      issue_number: 123
+      pull_number: 123
     })
 
     expect(result).toBeDefined()
@@ -154,19 +162,23 @@ describe('findExistingSummaryComment', () => {
   })
 
   it('should return undefined when no summary comment exists', async () => {
-    const mockComments = [
+    const mockReviews = [
       {
         id: 1,
-        body: 'Regular comment'
+        user: { login: 'proxy-user' },
+        body: 'Review without marker',
+        submitted_at: '2023-01-01T00:00:00Z'
       },
       {
         id: 2,
-        body: '<!-- OTHER-MARKER -->\n\nOther comment'
+        user: { login: 'other-user' },
+        body: `${SUMMARY_MARKER}\n\nSummary from wrong user`,
+        submitted_at: '2023-01-01T00:00:00Z'
       }
     ]
 
-    mockOctokit.issues.listComments.mockResolvedValue({
-      data: mockComments
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: mockReviews
     })
 
     const result = await findExistingSummaryComment(mockContext, 123)
@@ -175,13 +187,34 @@ describe('findExistingSummaryComment', () => {
   })
 
   it('should return undefined when no comments exist', async () => {
-    mockOctokit.issues.listComments.mockResolvedValue({
+    mockOctokit.pulls.listReviews.mockResolvedValue({
       data: []
     })
 
     const result = await findExistingSummaryComment(mockContext, 123)
 
     expect(result).toBeUndefined()
+  })
+
+  it('should return undefined when PROXY_REVIEWER_USERNAME is not set', async () => {
+    vi.stubEnv('PROXY_REVIEWER_USERNAME', undefined)
+
+    // Create a separate mock context for this test to avoid API calls
+    const separateMockOctokit = {
+      pulls: {
+        listReviews: vi.fn()
+      }
+    }
+
+    const separateMockContext = {
+      octokit: separateMockOctokit,
+      repo: () => ({ owner: 'test-owner', repo: 'test-repo' })
+    } as unknown as Context
+
+    const result = await findExistingSummaryComment(separateMockContext, 123)
+
+    expect(result).toBeUndefined()
+    expect(separateMockOctokit.pulls.listReviews).not.toHaveBeenCalled()
   })
 })
 

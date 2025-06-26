@@ -33,16 +33,35 @@ export async function findExistingSummaryComment(
   context: Context,
   prNumber: number
 ) {
+  // Check for proxy username first before making any API calls
+  const proxyUsername = process.env.PROXY_REVIEWER_USERNAME
+  if (!proxyUsername) {
+    return undefined
+  }
+
   const repo = context.repo()
 
-  // Get all comments on the PR
-  const { data: comments } = await context.octokit.issues.listComments({
+  // Get all reviews on the PR
+  const { data: reviews } = await context.octokit.pulls.listReviews({
     ...repo,
-    issue_number: prNumber
+    pull_number: prNumber
   })
 
-  // Find the comment with our marker
-  return comments.find((comment) => comment.body.includes(SUMMARY_MARKER))
+  // Filter reviews by proxy user and containing our marker, get the most recent
+  const proxyReviews = reviews
+    .filter(
+      (review) =>
+        review.user?.login === proxyUsername &&
+        review.body &&
+        review.body.includes(SUMMARY_MARKER)
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.submitted_at || 0).getTime() -
+        new Date(a.submitted_at || 0).getTime()
+    )
+
+  return proxyReviews[0]
 }
 
 /**
