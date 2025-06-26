@@ -36,9 +36,11 @@ export async function findExistingSummaryComment(
   // Check for proxy username first before making any API calls
   const proxyUsername = process.env.PROXY_REVIEWER_USERNAME
   if (!proxyUsername) {
+    console.warn(
+      'PROXY_REVIEWER_USERNAME not configured, skipping summary comment search'
+    )
     return undefined
   }
-
   const repo = context.repo()
 
   // Get all reviews on the PR
