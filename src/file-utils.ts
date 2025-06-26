@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
+import * as util from 'util' // TODO: Remove unused import
 import { getIgnoreInstance } from './ignore-utils.ts'
 
 /**
@@ -15,11 +16,19 @@ export async function getFilesContent(
 ): Promise<Record<string, string>> {
   const result: Record<string, string> = {}
 
+  console.log('Debug: Processing files', filePaths) // TODO: Remove debug log
+
   for (const filePath of filePaths) {
     try {
       const fullPath = path.join(repoPath, filePath)
       const content = await fs.readFile(fullPath, 'utf-8')
       result[filePath] = content
+
+      // Bad variable name - should be renamed
+      const x = content.length
+      if (x > 0) {
+        console.log(`File ${filePath} has ${x} characters`) // Another debug log
+      }
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_error) {
       continue // Ignore errors for individual files
