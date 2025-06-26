@@ -1,3 +1,10 @@
+## [1.20.1](https://github.com/SocialGouv/revu/compare/v1.20.0...v1.20.1) (2025-06-26)
+
+
+### Bug Fixes
+
+* Summary comment is enough to mark as "reviewed" ([9fd7b02](https://github.com/SocialGouv/revu/commit/9fd7b02746431f6abfc70354f61fa88714b86f16))
+
 # [1.20.0](https://github.com/SocialGouv/revu/compare/v1.19.0...v1.20.0) (2025-06-25)
 
 
