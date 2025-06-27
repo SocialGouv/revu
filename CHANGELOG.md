@@ -1,3 +1,10 @@
+# [1.21.0](https://github.com/SocialGouv/revu/compare/v1.20.1...v1.21.0) (2025-06-27)
+
+
+### Features
+
+* implement structured JSON logging system ([#110](https://github.com/SocialGouv/revu/issues/110)) ([da732c5](https://github.com/SocialGouv/revu/commit/da732c5fd80641b22b2580d19a681619c0bc6831))
+
 ## [1.20.1](https://github.com/SocialGouv/revu/compare/v1.20.0...v1.20.1) (2025-06-26)
 
 
