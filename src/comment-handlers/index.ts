@@ -10,7 +10,10 @@ import {
 type CommentHandler = (
   context: Context,
   prNumber: number,
-  analysis: string
+  analysis: string,
+  reviewType?: 'on-demand' | 'automatic',
+  repository?: string,
+  reviewStartTime?: number
 ) => Promise<string | void>
 
 type ListReviewsResponse = Awaited<

@@ -13,12 +13,19 @@ import {
 } from './github/reviewer-utils.ts'
 import type { PromptContext } from './prompt-strategies/prompt-strategy.ts'
 import { sendToAnthropic } from './send-to-anthropic.ts'
+import {
+  logAppStarted,
+  logReviewStarted,
+  logReviewFailed,
+  logReviewerAdded,
+  logSystemError
+} from './utils/logger.ts'
 
 // Load environment variables
 config()
 
 export default async (app: Probot, { getRouter }) => {
-  app.log.info('Revu GitHub App started!')
+  logAppStarted()
 
   // Container health check route
   getRouter('/healthz').get('/', (req, res) => res.end('OK'))
@@ -37,30 +44,23 @@ export default async (app: Probot, { getRouter }) => {
 
     // Check if PR is created by a bot
     if (isPRCreatedByBot(pr.user)) {
-      app.log.info(
-        `Skipping bot-created PR #${pr.number} by ${pr.user.login} in ${repo.owner}/${repo.repo}`
-      )
+      // Skip bot-created PRs silently
       return
     }
 
-    app.log.info(
-      `Adding bot as reviewer for PR #${pr.number} in ${repo.owner}/${repo.repo}`
-    )
-
     try {
       await addBotAsReviewer(context)
-      app.log.info(`Successfully added bot as reviewer for PR #${pr.number}`)
+      logReviewerAdded(pr.number, `${repo.owner}/${repo.repo}`)
     } catch (error) {
-      app.log.error(
-        `Error adding bot as reviewer for PR #${pr.number}: ${error}`
+      logSystemError(
+        `Error adding bot as reviewer: ${error.message || String(error)}`,
+        { pr_number: pr.number, repository: `${repo.owner}/${repo.repo}` }
       )
     }
   })
 
   // Listen for review requests to perform on-demand analysis
   app.on(['pull_request.review_requested'], async (context) => {
-    const repo = context.repo()
-
     // Cast payload to a more flexible type for the review request check
     const reviewPayload = context.payload as {
       action: string
@@ -85,14 +85,10 @@ export default async (app: Probot, { getRouter }) => {
     }
     const pr = reviewPayload.pull_request
 
-    app.log.info(
-      `Review request event received for PR #${pr.number} in ${repo.owner}/${repo.repo}`
-    )
-
     // Get the proxy username for review detection
     const proxyUsername = getProxyReviewerUsername()
     if (!proxyUsername) {
-      app.log.error(
+      logSystemError(
         'PROXY_REVIEWER_USERNAME not configured, aborting review request'
       )
       return
@@ -100,15 +96,13 @@ export default async (app: Probot, { getRouter }) => {
 
     // Check if the review request is for our proxy user
     if (!isReviewRequestedForBot(reviewPayload, proxyUsername)) {
-      app.log.info('Review requested for someone else, ignoring')
+      // Skip reviews requested for other users silently
       return
     }
 
     // Check if PR is in draft status
     if (isPRDraft(pr)) {
-      app.log.info(
-        `Skipping review for draft PR #${pr.number} in ${repo.owner}/${repo.repo} - will review when ready`
-      )
+      // Skip draft PRs silently - will review when ready
       return
     }
 
@@ -131,10 +125,7 @@ export default async (app: Probot, { getRouter }) => {
 
     // Check if PR is created by a bot
     if (isPRCreatedByBot(pr.user)) {
-      const repo = context.repo()
-      app.log.info(
-        `Skipping bot-created PR #${pr.number} by ${pr.user.login} in ${repo.owner}/${repo.repo}`
-      )
+      // Skip bot-created PRs silently
       return
     }
 
@@ -161,12 +152,9 @@ export default async (app: Probot, { getRouter }) => {
   ) {
     const pr = payload.pull_request
     const repo = context.repo()
+    const repository = `${repo.owner}/${repo.repo}`
 
-    app.log.info(
-      reviewType === 'on-demand'
-        ? `Performing on-demand review for PR #${pr.number} in ${repo.owner}/${repo.repo}`
-        : `PR #${pr.number} is now ready for review in ${repo.owner}/${repo.repo} - performing automatic review`
-    )
+    logReviewStarted(pr.number, repository, reviewType)
 
     try {
       // Get repository URL and branch from PR
@@ -195,27 +183,27 @@ export default async (app: Probot, { getRouter }) => {
       }
 
       // Perform the complete review analysis with context
-      const result = await performReviewAnalysis(
+      const reviewStartTime = Date.now()
+      await performReviewAnalysis(
         context,
         pr.number,
         repositoryUrl,
         branch,
         installationAccessToken,
         strategyName,
-        promptContext
+        promptContext,
+        reviewType,
+        repository,
+        reviewStartTime
       )
 
-      app.log.info(result)
-      app.log.info(
-        reviewType === 'on-demand'
-          ? `Successfully completed on-demand review for PR #${pr.number}`
-          : `Successfully completed automatic review for ready PR #${pr.number}`
-      )
+      // Review completion will be logged in the comment handler
     } catch (error) {
-      app.log.error(
-        reviewType === 'on-demand'
-          ? `Error performing on-demand review for PR #${pr.number}: ${error}`
-          : `Error performing automatic review for ready PR #${pr.number}: ${error}`
+      logReviewFailed(
+        pr.number,
+        repository,
+        reviewType,
+        error.message || String(error)
       )
 
       // Use the sophisticated error comment handler from main
@@ -225,10 +213,10 @@ export default async (app: Probot, { getRouter }) => {
           pr.number,
           error.message || String(error)
         )
-        app.log.info(`Posted error comment on PR #${pr.number}`)
       } catch (commentError) {
-        app.log.error(
-          `Failed to post error comment on PR #${pr.number}: ${commentError}`
+        logSystemError(
+          `Failed to post error comment: ${commentError.message || String(commentError)}`,
+          { pr_number: pr.number, repository }
         )
       }
     }
@@ -260,7 +248,10 @@ export default async (app: Probot, { getRouter }) => {
     branch: string,
     installationAccessToken: string,
     strategyName?: string,
-    promptContext?: PromptContext
+    promptContext?: PromptContext,
+    reviewType?: 'on-demand' | 'automatic',
+    repository?: string,
+    reviewStartTime?: number
   ): Promise<string> {
     // Get the current strategy from configuration if not provided
     const finalStrategyName =
@@ -278,8 +269,15 @@ export default async (app: Probot, { getRouter }) => {
     // Get the appropriate comment handler based on the strategy
     const commentHandler = getCommentHandler(finalStrategyName)
 
-    // Handle the analysis with the appropriate handler
-    const result = await commentHandler(context, prNumber, analysis)
+    // Handle the analysis with the appropriate handler - pass additional params for structured logging
+    const result = await commentHandler(
+      context,
+      prNumber,
+      analysis,
+      reviewType,
+      repository,
+      reviewStartTime
+    )
 
     return result || 'Review completed successfully'
   }
