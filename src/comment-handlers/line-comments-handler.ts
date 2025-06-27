@@ -122,11 +122,11 @@ export async function lineCommentsHandler(
     const proxyClient = createProxyClient()
     if (!proxyClient) {
       logSystemError(
-        'Failed to create proxy client - PROXY_REVIEWER_TOKEN not configured',
+        'Failed to create proxy client - PROXY_REVIEWER_TOKEN not configured. Set PROXY_REVIEWER_TOKEN environment variable with a GitHub personal access token.',
         { pr_number: prNumber, repository: repoName }
       )
       // Return clear partial success message with configuration guidance
-      return `PR #${prNumber}: Partial success - cleaned up ${deletedCount} obsolete comments. Unable to post new comments due to missing PROXY_REVIEWER_TOKEN configuration. Please configure the proxy token to enable full review functionality.`
+      return `PR #${prNumber}: Cleaned up ${deletedCount} obsolete comments. New comments require PROXY_REVIEWER_TOKEN configuration.`
     }
 
     // Track created/updated comments

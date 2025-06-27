@@ -30,11 +30,13 @@ interface SystemLogEntry extends BaseLogEntry {
 function createLogEntry<T extends ReviewLogEntry | SystemLogEntry>(
   partial: Omit<T, 'timestamp' | 'service'>
 ): T {
-  return {
+  const entry = {
     timestamp: new Date().toISOString(),
-    service: 'revu',
+    service: 'revu' as const,
     ...partial
-  } as T
+  }
+
+  return entry as T
 }
 
 function log(entry: ReviewLogEntry | SystemLogEntry) {
