@@ -24,6 +24,11 @@ import { AnalysisSchema, SUMMARY_MARKER } from './types.ts'
 
 /**
  * Creates a GitHub client using the proxy user's token
+ *
+ * NOTE: This creates a separate Octokit instance because it uses a different
+ * authentication token (proxy user's personal access token) than the GitHub App
+ * token available in context.octokit. This is necessary for posting comments
+ * as the proxy user rather than as the GitHub App.
  */
 export function createProxyClient(): Octokit | null {
   const proxyToken = process.env.PROXY_REVIEWER_TOKEN

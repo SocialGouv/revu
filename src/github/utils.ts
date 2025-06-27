@@ -2,6 +2,19 @@ import { createAppAuth } from '@octokit/auth-app'
 import { Octokit } from '@octokit/rest'
 
 /**
+ * GitHub App Utilities
+ *
+ * This module provides utilities for creating GitHub App authenticated Octokit instances.
+ * These are necessary for:
+ * 1. CLI operations that don't have a Probot context
+ * 2. Installation-level authentication for private repositories
+ * 3. App-level operations like getting installation IDs
+ *
+ * NOTE: When working within Probot event handlers, prefer using context.octokit
+ * from the provided context instead of creating new instances.
+ */
+
+/**
  * Fetches GitHub App credentials from environment variables
  */
 function fetchGitHubCredentials(): {
