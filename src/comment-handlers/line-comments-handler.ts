@@ -125,8 +125,8 @@ export async function lineCommentsHandler(
         'Failed to create proxy client - PROXY_REVIEWER_TOKEN not configured',
         { pr_number: prNumber, repository: repoName }
       )
-      // Return cleanup results even though we can't post new comments
-      return `PR #${prNumber}: Deleted ${deletedCount} obsolete comments, but cannot post new comments - PROXY_REVIEWER_TOKEN not configured`
+      // Return clear partial success message with configuration guidance
+      return `PR #${prNumber}: Partial success - cleaned up ${deletedCount} obsolete comments. Unable to post new comments due to missing PROXY_REVIEWER_TOKEN configuration. Please configure the proxy token to enable full review functionality.`
     }
 
     // Track created/updated comments

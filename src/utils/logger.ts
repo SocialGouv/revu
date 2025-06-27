@@ -27,14 +27,14 @@ interface SystemLogEntry extends BaseLogEntry {
   error_message?: string
 }
 
-function createLogEntry(
-  partial: Partial<ReviewLogEntry | SystemLogEntry>
-): ReviewLogEntry | SystemLogEntry {
+function createLogEntry<T extends ReviewLogEntry | SystemLogEntry>(
+  partial: Omit<T, 'timestamp' | 'service'>
+): T {
   return {
     timestamp: new Date().toISOString(),
     service: 'revu',
     ...partial
-  } as ReviewLogEntry | SystemLogEntry
+  } as T
 }
 
 function log(entry: ReviewLogEntry | SystemLogEntry) {
@@ -44,7 +44,7 @@ function log(entry: ReviewLogEntry | SystemLogEntry) {
 // Specialized logging functions
 export function logAppStarted() {
   log(
-    createLogEntry({
+    createLogEntry<SystemLogEntry>({
       level: 'info',
       event_type: 'app_started'
     })
@@ -57,7 +57,7 @@ export function logReviewStarted(
   reviewType: 'on-demand' | 'automatic'
 ) {
   log(
-    createLogEntry({
+    createLogEntry<ReviewLogEntry>({
       level: 'info',
       event_type: 'review_started',
       pr_number: prNumber,
@@ -80,7 +80,7 @@ export function logReviewCompleted(
   }
 ) {
   log(
-    createLogEntry({
+    createLogEntry<ReviewLogEntry>({
       level: 'info',
       event_type: 'review_completed',
       pr_number: prNumber,
@@ -99,7 +99,7 @@ export function logReviewFailed(
   error: string
 ) {
   log(
-    createLogEntry({
+    createLogEntry<ReviewLogEntry>({
       level: 'error',
       event_type: 'review_failed',
       pr_number: prNumber,
@@ -112,7 +112,7 @@ export function logReviewFailed(
 
 export function logReviewerAdded(prNumber: number, repository: string) {
   log(
-    createLogEntry({
+    createLogEntry<SystemLogEntry>({
       level: 'info',
       event_type: 'reviewer_added',
       pr_number: prNumber,
@@ -126,7 +126,7 @@ export function logSystemError(
   context?: { pr_number?: number; repository?: string }
 ) {
   log(
-    createLogEntry({
+    createLogEntry<SystemLogEntry>({
       level: 'error',
       event_type: 'system_error',
       error_message: message,
