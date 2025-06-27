@@ -48,11 +48,6 @@ export async function sendToAnthropic({
     context
   })
 
-  console.log('PROMPT', prompt)
-  console.log('repositoryUrl', repositoryUrl)
-  console.log('branch', branch)
-  console.log('strategy', strategyName || 'default')
-
   // Get the appropriate sender based on the strategy
   const sender = getSender(strategyName)
 
