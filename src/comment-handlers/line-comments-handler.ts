@@ -21,6 +21,7 @@ import {
   shouldReplaceComment
 } from './line-content-hash.ts'
 import { AnalysisSchema, SUMMARY_MARKER } from './types.ts'
+import { logReviewCompleted, logSystemError } from '../utils/logger.ts'
 
 /**
  * Creates a GitHub client using the proxy user's token
@@ -60,9 +61,14 @@ export function createProxyClient(): Octokit | null {
 export async function lineCommentsHandler(
   context: Context,
   prNumber: number,
-  analysis: string
+  analysis: string,
+  reviewType: 'on-demand' | 'automatic' = 'on-demand',
+  repository?: string,
+  reviewStartTime?: number
 ) {
   const repo = context.repo()
+  const repoName = repository || `${repo.owner}/${repo.repo}`
+  const startTime = reviewStartTime || Date.now()
 
   try {
     // Parse the JSON response first
@@ -115,11 +121,12 @@ export async function lineCommentsHandler(
     // Now check if we can create proxy client for posting new/updated comments
     const proxyClient = createProxyClient()
     if (!proxyClient) {
-      console.error(
-        'Failed to create proxy client - cleanup completed but cannot post new comments'
+      logSystemError(
+        'Failed to create proxy client - PROXY_REVIEWER_TOKEN not configured. Set PROXY_REVIEWER_TOKEN environment variable with a GitHub personal access token.',
+        { pr_number: prNumber, repository: repoName }
       )
-      // Return cleanup results even though we can't post new comments
-      return `PR #${prNumber}: Deleted ${deletedCount} obsolete comments, but cannot post new comments - PROXY_REVIEWER_TOKEN not configured`
+      // Return clear partial success message with configuration guidance
+      return `PR #${prNumber}: Cleaned up ${deletedCount} obsolete comments. New comments require PROXY_REVIEWER_TOKEN configuration.`
     }
 
     // Track created/updated comments
@@ -238,6 +245,16 @@ export async function lineCommentsHandler(
         createdCount++
       }
     }
+
+    // Log successful review completion with metrics
+    const duration = Date.now() - startTime
+    const commentStats = {
+      created: createdCount,
+      updated: updatedCount,
+      deleted: deletedCount,
+      skipped: skippedCount
+    }
+    logReviewCompleted(prNumber, repoName, reviewType, duration, commentStats)
 
     return `PR #${prNumber}: Created ${createdCount}, updated ${updatedCount}, deleted ${deletedCount}, and skipped ${skippedCount} line comments`
   } catch (error) {
