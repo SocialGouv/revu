@@ -1,8 +1,8 @@
-import { Octokit } from '@octokit/rest'
 import { exec } from 'child_process'
 import * as fs from 'fs/promises'
 import * as os from 'os'
 import path from 'path'
+import type { ProbotOctokit } from 'probot'
 import { promisify } from 'util'
 
 const execAsync = promisify(exec)
@@ -148,7 +148,7 @@ export interface IssueDetails {
  * Fetches issue details including title, description, and comments
  */
 export async function fetchIssueDetails(
-  octokit: Octokit,
+  octokit: ProbotOctokit,
   owner: string,
   repo: string,
   issueNumber: number
