@@ -8,7 +8,7 @@ import {
   filterIgnoredFiles,
   getFilesContent
 } from '../file-utils.ts'
-import { createGithubAppOctokit } from '../github/utils.ts'
+import { getContextOctokit } from '../github/context-utils.ts'
 import {
   cleanUpRepository,
   extractIssueNumbers,
@@ -92,14 +92,9 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
       const issueNumbers = extractIssueNumbers(context.prBody)
       if (issueNumbers.length > 0) {
         console.log(`Found related issues: ${issueNumbers.join(', ')}`)
-
-        const octokit = await createGithubAppOctokit(
-          context.repoOwner,
-          context.repoName
-        )
         for (const issueNumber of issueNumbers) {
           const issueDetails = await fetchIssueDetails(
-            octokit,
+            getContextOctokit(context.githubContext),
             context.repoOwner,
             context.repoName,
             issueNumber
