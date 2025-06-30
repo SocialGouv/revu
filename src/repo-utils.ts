@@ -87,9 +87,6 @@ export async function prepareRepository(
   // Checkout the branch
   await execAsync(`git checkout ${branch}`, { cwd: tempFolder })
 
-  // Copy the .aidigestignore file to the repository
-  await fs.copyFile('.aidigestignore', path.join(tempFolder, '.aidigestignore'))
-
   return tempFolder
 }
 
@@ -133,7 +130,7 @@ export function extractIssueNumbers(text: string): number[] {
 /**
  * Interface for issue details
  */
-export interface IssueDetails {
+interface IssueDetails {
   number: number
   title: string
   body: string | null
