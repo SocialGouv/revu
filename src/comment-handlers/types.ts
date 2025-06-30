@@ -6,7 +6,7 @@ export const COMMENT_MARKER_PREFIX = '<!-- REVU-AI-COMMENT '
 export const COMMENT_MARKER_SUFFIX = ' -->'
 
 // Schema for individual comment validation
-export const CommentSchema = z
+const CommentSchema = z
   .object({
     path: z.string().min(1),
     line: z.number().int().positive(),
@@ -36,7 +36,7 @@ export const AnalysisSchema = z.object({
 })
 
 // Type for GitHub API errors
-export interface GitHubApiError {
+interface GitHubApiError {
   status: number
   message?: string
   documentation_url?: string
@@ -65,4 +65,3 @@ export type CommentExistenceResult =
 
 // Inferred types from schemas
 export type Comment = z.infer<typeof CommentSchema>
-export type Analysis = z.infer<typeof AnalysisSchema>
