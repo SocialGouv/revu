@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as os from 'os'
 import path from 'path'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock des dépendances externes avec vi.hoisted() pour éviter les problèmes de hoisting
 const mockMkdir = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
@@ -58,12 +58,6 @@ vi.mock('../src/repo-utils.ts', () => ({
       // Simuler les commandes git
       await mockExec('git fetch --all', { cwd: folderPath })
       await mockExec(`git checkout ${branch}`, { cwd: folderPath })
-
-      // Copie du fichier .aidigestignore
-      await mockCopyFile(
-        '.aidigestignore',
-        path.join(folderPath, '.aidigestignore')
-      )
 
       return folderPath
     }),
@@ -170,12 +164,6 @@ describe('prepareRepository', () => {
       repositoryUrl,
       destination: tempFolderPath
     })
-
-    // Check that .aidigestignore was copied
-    expect(mockCopyFile).toHaveBeenCalledWith(
-      '.aidigestignore',
-      path.join(tempFolderPath, '.aidigestignore')
-    )
   }, 5000)
 
   it('should use custom temp folder when provided', async () => {

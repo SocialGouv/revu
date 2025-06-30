@@ -17,14 +17,3 @@ export function getContextOctokit(context: Context): ProbotOctokit {
 
   return context.octokit
 }
-
-/**
- * Checks if a context has a valid octokit instance
- * @param context - The Probot context to check
- * @returns True if context has a valid octokit instance
- */
-export function hasValidOctokit(
-  context: Context | undefined
-): context is Context & { octokit: ProbotOctokit } {
-  return !!(context && context.octokit)
-}
