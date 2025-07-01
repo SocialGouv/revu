@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { logSystemError } from '../utils/logger.ts'
 
 // Type for code review response
 interface CodeReviewResponse {
@@ -98,10 +99,13 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
         // Return the structured response as a JSON string
         return JSON.stringify(content.input as CodeReviewResponse)
       } else {
-        console.error('Unexpected tool use response:', {
+        const errPayload = {
           name: content.name,
           input: content.input
-        })
+        }
+        logSystemError(
+          `Unexpected tool use response: ${JSON.stringify(errPayload)}`
+        )
         throw new Error(`Unexpected tool name: ${content.name}`)
       }
     } else if (content.type === 'text') {
@@ -144,7 +148,7 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
           fallbackResult = text
         }
       } catch (error) {
-        console.error('Error processing fallback text:', error)
+        logSystemError(`Error processing fallback text: ${error}`)
         // Continue to next content block
       }
     }

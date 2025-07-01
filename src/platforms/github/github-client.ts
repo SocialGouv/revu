@@ -5,6 +5,7 @@ import type {
   PlatformClient
 } from '../../core/models/platform-types.ts'
 import { cloneRepository } from '../../repo-utils.ts'
+import { logSystemError } from '../../utils/logger.ts'
 
 /**
  * Creates a GitHub-specific implementation of PlatformClient
@@ -70,7 +71,9 @@ export const createGitHubClient = (
           }))
         }
       } catch (error) {
-        console.error(`Error fetching issue #${issueNumber}:`, error)
+        logSystemError(`Error fetching issue #${issueNumber}: ${error}`, {
+          repository: `${owner}/${repo}`
+        })
         return null
       }
     },
@@ -189,7 +192,12 @@ export const createGitHubClient = (
           body: data.body
         }
       } catch (error) {
-        console.error(`Error fetching review comment #${commentId}`, error)
+        logSystemError(
+          `Error fetching review comment #${commentId}: ${error}`,
+          {
+            repository: `${owner}/${repo}`
+          }
+        )
         return null
       }
     }

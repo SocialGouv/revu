@@ -1,4 +1,5 @@
 import { type Context } from 'probot'
+import { logSystemError } from '../utils/logger.ts'
 import { extractMarkerIdFromComment } from './comment-utils.ts'
 import {
   COMMENT_MARKER_PREFIX,
@@ -196,7 +197,10 @@ export async function cleanupObsoleteComments(
         })
         deletedCount++
       } catch (error) {
-        console.error(`Failed to delete comment ${comment.id}:`, error)
+        logSystemError(`Failed to delete comment ${comment.id}: ${error}`, {
+          pr_number: prNumber,
+          repository: repo.owner + '/' + repo.repo
+        })
         // Continue processing other comments even if one fails
       }
     }
