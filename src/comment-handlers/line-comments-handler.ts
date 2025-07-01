@@ -131,12 +131,38 @@ export async function lineCommentsHandler(
     const pullRequest = await platformContext.client.getPullRequest(prNumber)
     const commitSha = pullRequest.head.sha
 
+    // Create a complete mock context with all required Octokit methods
+    const proxyClient = createProxyClient()
+    if (!proxyClient) {
+      throw new Error(
+        'PROXY_REVIEWER_TOKEN not configured - required for GitHub operations'
+      )
+    }
+
     const mockContext = {
       repo: () => repoParams,
       octokit: {
+        request: proxyClient.request.bind(proxyClient),
+        repos: {
+          getContent: proxyClient.repos.getContent.bind(proxyClient)
+        },
         pulls: {
           get: async () => ({ data: pullRequest }),
-          listReviewComments: async () => ({ data: [] })
+          listReviewComments: async (params) => {
+            const comments = await platformContext.client.listReviewComments(
+              params.pull_number
+            )
+            return { data: comments }
+          },
+          getReviewComment: async (params) => {
+            const comment = await platformContext.client.getReviewComment(
+              params.comment_id
+            )
+            return { data: comment }
+          },
+          deleteReviewComment:
+            proxyClient.pulls.deleteReviewComment.bind(proxyClient),
+          listReviews: proxyClient.pulls.listReviews.bind(proxyClient)
         }
       }
     } as unknown as Context
