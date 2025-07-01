@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
+import { logSystemError } from '../utils/logger.ts'
 import { lineCommentsPromptStrategy } from './line-comments-strategy.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
@@ -35,7 +36,7 @@ export async function getStrategyFromConfig(
     const strategyName = config.promptStrategy || 'default'
     return getStrategyByName(strategyName)
   } catch (error) {
-    console.error('Error reading configuration file:', error)
+    logSystemError(`Error reading configuration file: ${error}`)
     return lineCommentsPromptStrategy
   }
 }
