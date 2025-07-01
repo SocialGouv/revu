@@ -11,7 +11,7 @@ import {
   createGithubAppOctokit,
   generateInstallationToken
 } from '../github/utils.ts'
-import type { PromptContext } from '../prompt-strategies/prompt-strategy.ts'
+import { createPlatformContextFromGitHub } from '../platforms/github/github-adapter.ts'
 import { sendToAnthropic } from '../send-to-anthropic.ts'
 
 // Load environment variables
@@ -151,8 +151,9 @@ async function reviewPr(
     // Call sendToAnthropic
     console.log(chalk.yellow('Analyzing PR with Claude...'))
 
-    // Prepare context for prompt generation (includes PR body for issue extraction)
+    // Prepare platform-agnostic context for prompt generation
     let body = null
+    let title = ''
     try {
       const prResponse = await octokit.rest.pulls.get({
         owner,
@@ -160,24 +161,25 @@ async function reviewPr(
         pull_number: prNumber
       })
       body = prResponse.data.body
+      title = prResponse.data.title
     } catch (error) {
-      console.warn(chalk.yellow(`Could not fetch PR body: ${error.message}`))
+      console.warn(chalk.yellow(`Could not fetch PR details: ${error.message}`))
     }
 
-    const promptContext: PromptContext = {
-      prBody: body || undefined,
-      prNumber: prNumber,
-      repoOwner: owner,
-      repoName: repo,
-      githubContext: await createMinimalContext(owner, repo, octokit)
-    }
+    const githubContext = await createMinimalContext(owner, repo, octokit)
+    const platformContext = createPlatformContextFromGitHub(
+      githubContext,
+      prNumber,
+      title,
+      body || undefined,
+      token
+    )
 
     const analysis = await sendToAnthropic({
       repositoryUrl: repositoryUrl,
       branch: headBranch,
-      token: token,
       strategyName: strategyName,
-      context: promptContext
+      context: platformContext
     })
 
     // Calculate elapsed time
