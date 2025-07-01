@@ -1,3 +1,10 @@
+## [1.22.2](https://github.com/SocialGouv/revu/compare/v1.22.1...v1.22.2) (2025-07-01)
+
+
+### Bug Fixes
+
+* context.octokit.request is not a function ([422b4bf](https://github.com/SocialGouv/revu/commit/422b4bf97f8bb91d39b91586c906420f8352ee9d))
+
 ## [1.22.1](https://github.com/SocialGouv/revu/compare/v1.22.0...v1.22.1) (2025-07-01)
 
 
