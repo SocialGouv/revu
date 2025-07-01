@@ -13,6 +13,7 @@ import {
 } from '../github/utils.ts'
 import { createPlatformContextFromGitHub } from '../platforms/github/github-adapter.ts'
 import { sendToAnthropic } from '../send-to-anthropic.ts'
+import { logSystemError } from '../utils/logger.ts'
 
 // Load environment variables
 dotenv.config()
@@ -77,7 +78,10 @@ async function fetchPrBranch(
 
     return headBranch
   } catch (error) {
-    console.error(`error`, error)
+    logSystemError(`Error fetching PR branch: ${error}`, {
+      pr_number: prNumber,
+      repository: repo
+    })
     if (axios.isAxiosError(error) && error.response) {
       if (error.response.status === 404) {
         throw new Error(
@@ -209,9 +213,7 @@ async function reviewPr(
         console.log(chalk.green(result || 'Comments submitted successfully'))
       } catch (error) {
         console.error(
-          chalk.red(
-            `Error submitting comments: ${error instanceof Error ? error.message : String(error)}`
-          )
+          `Error submitting comments: ${error instanceof Error ? error.message : String(error)}`
         )
         process.exit(1)
       }

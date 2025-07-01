@@ -1,4 +1,5 @@
 import type { PlatformContext } from '../core/models/platform-types.ts'
+import { logSystemError } from '../utils/logger.ts'
 
 // Marker to identify our AI error comments
 const ERROR_COMMENT_MARKER = '<!-- REVU-AI-ERROR -->'
@@ -75,7 +76,10 @@ export async function errorCommentHandler(
     await platformContext.client.createReview(prNumber, formattedError)
     return `Posted error comment on PR #${prNumber}`
   } catch (error) {
-    console.error(`Failed to post error comment: ${error}`)
+    logSystemError(`Failed to post error comment: ${error}`, {
+      pr_number: prNumber,
+      repository: `${platformContext.repoOwner}/${platformContext.repoName}`
+    })
     return `Failed to post error comment: ${error.message || String(error)}`
   }
 }

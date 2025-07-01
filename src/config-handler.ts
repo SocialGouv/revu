@@ -2,6 +2,7 @@ import * as fs from 'fs/promises'
 import * as yaml from 'js-yaml'
 import * as path from 'path'
 import { merge } from 'ts-deepmerge'
+import { logSystemError } from './utils/logger.ts'
 
 /**
  * Check if a file exists
@@ -63,7 +64,8 @@ export async function readConfig(
     // Use the default behavior (overwrite arrays)
     return merge(DEFAULT_CONFIG, config) as CodingGuidelinesConfig
   } catch (error) {
-    console.error('Error reading .revu.yml configuration file:', error)
+    logSystemError(`Error reading .revu.yml configuration file: ${error}`)
+
     return DEFAULT_CONFIG
   }
 }

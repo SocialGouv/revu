@@ -2,6 +2,13 @@ import { Octokit } from '@octokit/rest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { extractIssueNumbers, fetchIssueDetails } from '../src/repo-utils.ts'
 
+// Mock the logger module
+vi.mock('../src/utils/logger.ts', () => ({
+  logSystemError: vi.fn()
+}))
+
+import { logSystemError } from '../src/utils/logger.ts'
+
 describe('Issue Extraction', () => {
   it('should extract direct issue references', () => {
     const text = 'This PR addresses #123 and also fixes #456'
@@ -174,11 +181,6 @@ describe('fetchIssueDetails', () => {
     // Mock API error
     mockOctokit.rest.issues.get.mockRejectedValue(new Error('GitHub API Error'))
 
-    // Spy on console.error
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {})
-
     const result = await fetchIssueDetails(
       mockOctokit as unknown as Octokit,
       'test-owner',
@@ -190,13 +192,9 @@ describe('fetchIssueDetails', () => {
     expect(result).toBeNull()
 
     // Verify error was logged
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error fetching issue #789:',
-      expect.any(Error)
+    expect(logSystemError).toHaveBeenCalledWith(
+      'Error fetching issue #789: Error: GitHub API Error'
     )
-
-    // Restore console.error
-    consoleErrorSpy.mockRestore()
   })
 
   it('should handle error when fetching comments', async () => {
@@ -215,11 +213,6 @@ describe('fetchIssueDetails', () => {
       new Error('Comments API Error')
     )
 
-    // Spy on console.error
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => {})
-
     const result = await fetchIssueDetails(
       mockOctokit as unknown as Octokit,
       'test-owner',
@@ -231,12 +224,8 @@ describe('fetchIssueDetails', () => {
     expect(result).toBeNull()
 
     // Verify error was logged
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error fetching issue #123:',
-      expect.any(Error)
+    expect(logSystemError).toHaveBeenCalledWith(
+      'Error fetching issue #123: Error: Comments API Error'
     )
-
-    // Restore console.error
-    consoleErrorSpy.mockRestore()
   })
 })

@@ -1,5 +1,6 @@
 import { createAppAuth } from '@octokit/auth-app'
 import { Octokit } from '@octokit/rest'
+import { logSystemError } from '../utils/logger.ts'
 
 /**
  * GitHub App Utilities
@@ -70,7 +71,9 @@ async function getInstallationId(owner: string, repo: string): Promise<number> {
 
     return installation.id
   } catch (error) {
-    console.error('Error getting installation ID:', error)
+    logSystemError(`Error getting installation ID: ${error}`, {
+      repository: `${owner}/${repo}`
+    })
     throw error
   }
 }

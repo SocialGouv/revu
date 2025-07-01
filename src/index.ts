@@ -239,7 +239,7 @@ export default async (app: Probot, { getRouter }) => {
       const config = JSON.parse(configContent)
       return config.promptStrategy || 'default'
     } catch (error) {
-      console.error('Error reading configuration:', error)
+      logSystemError(`Error reading configuration: ${error}`)
       return 'default'
     }
   }
