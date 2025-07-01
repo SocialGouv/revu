@@ -1,22 +1,42 @@
 import * as fs from 'fs/promises'
 import Handlebars from 'handlebars'
+import * as os from 'os'
 import * as path from 'path'
 import { getCodingGuidelines } from '../config-handler.ts'
-import { fetchPrDiff } from '../extract-diff.ts'
+import type {
+  IssueDetails,
+  PlatformContext
+} from '../core/models/platform-types.ts'
 import {
   extractModifiedFilePaths,
   filterIgnoredFiles,
   getFilesContent
 } from '../file-utils.ts'
-import { getContextOctokit } from '../github/context-utils.ts'
-import {
-  cleanUpRepository,
-  extractIssueNumbers,
-  fetchIssueDetails,
-  prepareRepository,
-  type IssueDetails
-} from '../repo-utils.ts'
-import type { PromptContext, PromptStrategy } from './prompt-strategy.ts'
+import { cleanUpRepository, extractIssueNumbers } from '../repo-utils.ts'
+import type { PromptStrategy } from './prompt-strategy.ts'
+
+/**
+ * Fetches related issues using the platform client
+ * @param context - Platform context containing client and PR information
+ * @returns Array of issue details
+ */
+const fetchRelatedIssues = async (
+  context?: PlatformContext
+): Promise<IssueDetails[]> => {
+  if (!context?.prBody || !context?.client) return []
+
+  const issueNumbers = extractIssueNumbers(context.prBody)
+  if (issueNumbers.length === 0) return []
+
+  console.log(`Found related issues: ${issueNumbers.join(', ')}`)
+
+  const issuePromises = issueNumbers.map((num) =>
+    context.client.fetchIssueDetails(num)
+  )
+  const issues = await Promise.all(issuePromises)
+
+  return issues.filter((issue): issue is IssueDetails => issue !== null)
+}
 
 /**
  * Line comments prompt generation strategy.
@@ -25,28 +45,39 @@ import type { PromptContext, PromptStrategy } from './prompt-strategy.ts'
  * - A summary of the PR
  * - Individual comments for specific lines of code
  *
- * @param repositoryUrl - The URL of the GitHub repository
+ * @param repositoryUrl - The URL of the repository
  * @param branch - The branch to analyze
+ * @param context - Platform-agnostic context including PR information and client
  * @param templatePath - Optional path to a custom template file
- * @param githubAccessToken - Optional GitHub access token for private repositories
- * @param context - Optional additional context including PR information
  * @returns A promise that resolves to the generated prompt string
  */
 export const lineCommentsPromptStrategy: PromptStrategy = async (
   repositoryUrl: string,
   branch: string,
-  templatePath?: string,
-  githubAccessToken?: string,
-  context?: PromptContext
+  context: PlatformContext,
+  templatePath?: string
 ): Promise<string> => {
-  // Prepare the repository for extraction with authentication if needed
-  const repoPath = await prepareRepository(
-    repositoryUrl,
-    branch,
-    undefined,
-    githubAccessToken
-  )
-  const diff = await fetchPrDiff(context.githubContext, context.prNumber)
+  // Fetch PR diff using platform client
+  if (!context.prNumber || !context.client) {
+    throw new Error('Platform context with PR number and client is required')
+  }
+
+  // Prepare the repository for extraction using platform client
+  const tempFolder = path.join(os.tmpdir(), 'revu-all-' + Date.now())
+
+  try {
+    await fs.rm(tempFolder, { recursive: true, force: true })
+  } catch {
+    // Ignore errors if folder doesn't exist
+  }
+  await fs.mkdir(tempFolder, { recursive: true })
+
+  // Clone repository using platform client
+  await context.client.cloneRepository(repositoryUrl, branch, tempFolder)
+
+  const repoPath = tempFolder
+
+  const diff = await context.client.fetchPullRequestDiff(context.prNumber)
 
   // Extract modified file paths from the diff
   const modifiedFiles = extractModifiedFilePaths(diff)
@@ -85,30 +116,8 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
     console.warn(`Failed to load coding guidelines: ${error.message}`)
   }
 
-  // Fetch related issues if PR context is provided
-  const relatedIssues: IssueDetails[] = []
-  if (context?.prBody && context?.repoOwner && context?.repoName) {
-    try {
-      const issueNumbers = extractIssueNumbers(context.prBody)
-      if (issueNumbers.length > 0) {
-        console.log(`Found related issues: ${issueNumbers.join(', ')}`)
-        for (const issueNumber of issueNumbers) {
-          const issueDetails = await fetchIssueDetails(
-            getContextOctokit(context.githubContext),
-            context.repoOwner,
-            context.repoName,
-            issueNumber
-          )
-
-          if (issueDetails) {
-            relatedIssues.push(issueDetails)
-          }
-        }
-      }
-    } catch (error) {
-      console.warn(`Failed to fetch related issues: ${error}`)
-    }
-  }
+  // Fetch related issues using platform client
+  const relatedIssues = await fetchRelatedIssues(context)
 
   // Populate the template with the data
   const result = template({
