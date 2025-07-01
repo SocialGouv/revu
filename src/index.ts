@@ -150,7 +150,7 @@ export default async (app: Probot, { getRouter }) => {
       installation: { id: number }
     },
     reviewType: 'on-demand' | 'automatic'
-  ) {
+  ): Promise<void> {
     const pr = payload.pull_request
     const repo = context.repo()
     const repository = `${repo.owner}/${repo.repo}`
@@ -164,14 +164,24 @@ export default async (app: Probot, { getRouter }) => {
         installation_id: installationId
       })
       .then((response) => response.data.token)
-    // Prepare platform-agnostic context for prompt generation
-    const platformContext = createPlatformContextFromGitHub(
-      context,
-      pr.number,
-      pr.title,
-      pr.body || undefined,
-      installationAccessToken
-    )
+
+    let platformContext: PlatformContext
+    try {
+      // Prepare platform-agnostic context for prompt generation
+      platformContext = createPlatformContextFromGitHub(
+        context,
+        pr.number,
+        pr.title,
+        pr.body || undefined,
+        installationAccessToken
+      )
+    } catch (error) {
+      logSystemError(
+        `Failed to create platform context: ${error.message || String(error)}`,
+        { pr_number: pr.number, repository }
+      )
+      return
+    }
 
     try {
       // Get repository URL and branch from PR
