@@ -2,6 +2,7 @@ import { Octokit } from '@octokit/rest'
 import type { Context } from 'probot'
 import type { PlatformContext } from '../core/models/platform-types.ts'
 import { fetchPrDiffFileMap } from '../extract-diff.ts'
+import { logReviewCompleted, logSystemError } from '../utils/logger.ts'
 import {
   checkCommentExistence,
   cleanupObsoleteComments,
@@ -19,7 +20,6 @@ import {
   shouldReplaceComment
 } from './line-content-hash.ts'
 import { AnalysisSchema, SUMMARY_MARKER } from './types.ts'
-import { logReviewCompleted, logSystemError } from '../utils/logger.ts'
 
 /**
  * Creates a proxy client for GitHub operations using the proxy reviewer token
@@ -99,10 +99,11 @@ export async function lineCommentsHandler(
     const analysisValidationResult = AnalysisSchema.safeParse(rawParsedAnalysis)
 
     if (!analysisValidationResult.success) {
-      console.error(
-        'Analysis validation failed:',
-        analysisValidationResult.error.format()
-      )
+      const errMsg = analysisValidationResult.error.format()
+      logSystemError(`Analysis validation failed: ${errMsg}`, {
+        pr_number: prNumber,
+        repository: repoName
+      })
       throw new Error(
         'Invalid analysis format: ' + analysisValidationResult.error.message
       )
@@ -118,19 +119,18 @@ export async function lineCommentsHandler(
     try {
       await platformContext.client.createReview(prNumber, formattedSummary)
     } catch (error) {
-      logSystemError(
-        `Failed to create review comment - PROXY_REVIEWER_TOKEN may not be configured. Set PROXY_REVIEWER_TOKEN environment variable with a GitHub personal access token. Error: ${error.message}`,
-        { pr_number: prNumber, repository: repoName }
-      )
-      return `PR #${prNumber}: Failed to create review comment - ${error.message}`
+      const errMsg = `Failed to create review comment - PROXY_REVIEWER_TOKEN may not be configured. Set PROXY_REVIEWER_TOKEN environment variable with a GitHub personal access token. Error: ${error.message}`
+      logSystemError(errMsg, {
+        pr_number: prNumber,
+        repository: repoName
+      })
+      throw new Error(errMsg)
     }
 
     // Get the commit SHA for the PR head using platform client
     const pullRequest = await platformContext.client.getPullRequest(prNumber)
     const commitSha = pullRequest.head.sha
 
-    // For now, we'll create a mock context for existing functions that need refactoring
-    // TODO: Refactor these functions to be platform-agnostic
     const mockContext = {
       repo: () => repoParams,
       octokit: {
@@ -283,9 +283,12 @@ export async function lineCommentsHandler(
     return createSuccessMessage(prNumber, commentStats)
   } catch (error) {
     // In case of error, fall back to the error comment handler
-    console.error(
-      'Error parsing or creating line comments, falling back to error comment:',
-      error
+    logSystemError(
+      `Error parsing or creating line comments, falling back to error comment: ${error}`,
+      {
+        pr_number: prNumber,
+        repository: repoName
+      }
     )
     return errorCommentHandler(
       platformContext,
