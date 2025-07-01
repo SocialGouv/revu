@@ -4,6 +4,7 @@ import * as os from 'os'
 import path from 'path'
 import type { ProbotOctokit } from 'probot'
 import { promisify } from 'util'
+import { logSystemError } from './utils/logger.ts'
 
 const execAsync = promisify(exec)
 
@@ -95,7 +96,7 @@ export async function cleanUpRepository(repoPath: string): Promise<void> {
   try {
     await fs.rm(repoPath, { recursive: true, force: true })
   } catch (cleanupError) {
-    console.error('Error during cleanup:', cleanupError)
+    logSystemError(`Error during cleanup: ${cleanupError}`)
   }
 }
 
@@ -176,7 +177,7 @@ export async function fetchIssueDetails(
       }))
     }
   } catch (error) {
-    console.error(`Error fetching issue #${issueNumber}:`, error)
+    logSystemError(`Error fetching issue #${issueNumber}: ${error}`)
     return null
   }
 }

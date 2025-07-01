@@ -1,12 +1,12 @@
-import { type Context } from 'probot'
 import { Octokit } from '@octokit/rest'
+import type { Context } from 'probot'
+import type { PlatformContext } from '../core/models/platform-types.ts'
 import { fetchPrDiffFileMap } from '../extract-diff.ts'
+import { logReviewCompleted, logSystemError } from '../utils/logger.ts'
 import {
   checkCommentExistence,
   cleanupObsoleteComments,
-  createCommentParams,
-  findExistingComments,
-  findExistingSummaryComment
+  findExistingComments
 } from './comment-operations.ts'
 import {
   createCommentMarkerId,
@@ -14,37 +14,57 @@ import {
   prepareCommentContent
 } from './comment-utils.ts'
 import { errorCommentHandler } from './error-comment-handler.ts'
-import { upsertComment } from './index.ts'
 import {
   createLineContentHash,
   getLineContent,
   shouldReplaceComment
 } from './line-content-hash.ts'
 import { AnalysisSchema, SUMMARY_MARKER } from './types.ts'
-import { logReviewCompleted, logSystemError } from '../utils/logger.ts'
 
 /**
- * Creates a GitHub client using the proxy user's token
- *
- * NOTE: This creates a separate Octokit instance because it uses a different
- * authentication token (proxy user's personal access token) than the GitHub App
- * token available in context.octokit. This is necessary for posting comments
- * as the proxy user rather than as the GitHub App.
+ * Creates a proxy client for GitHub operations using the proxy reviewer token
  */
 export function createProxyClient(): Octokit | null {
-  const proxyToken = process.env.PROXY_REVIEWER_TOKEN
-  if (!proxyToken) {
-    console.error('PROXY_REVIEWER_TOKEN not configured')
+  const token = process.env.PROXY_REVIEWER_TOKEN
+  if (!token) {
     return null
   }
-
-  return new Octokit({
-    auth: proxyToken
-  })
+  return new Octokit({ auth: token })
 }
 
 /**
- * Handles the creation of individual review comments on specific lines.
+ * Pure function to extract repository information from platform context
+ */
+const extractRepositoryInfo = (platformContext: PlatformContext) => ({
+  owner: platformContext.repoOwner,
+  name: platformContext.repoName,
+  fullName: `${platformContext.repoOwner}/${platformContext.repoName}`
+})
+
+/**
+ * Pure function to create summary comment with marker
+ */
+const createFormattedSummary = (summary: string): string =>
+  `${SUMMARY_MARKER}\n\n${summary}`
+
+/**
+ * Pure function to create success message
+ */
+const createSuccessMessage = (
+  prNumber: number,
+  stats: {
+    created: number
+    updated: number
+    deleted: number
+    skipped: number
+  }
+): string =>
+  `PR #${prNumber}: Created ${stats.created}, updated ${stats.updated}, deleted ${stats.deleted}, and skipped ${stats.skipped} line comments`
+
+/**
+ * Platform-agnostic line comments handler using functional programming principles
+ * Refactored from GitHub-specific to platform-agnostic implementation
+ *
  * This expects the analysis to be a JSON string with the following structure:
  * {
  *   "summary": "Overall PR summary",
@@ -59,15 +79,16 @@ export function createProxyClient(): Octokit | null {
  * }
  */
 export async function lineCommentsHandler(
-  context: Context,
+  platformContext: PlatformContext,
   prNumber: number,
   analysis: string,
   reviewType: 'on-demand' | 'automatic' = 'on-demand',
   repository?: string,
   reviewStartTime?: number
 ) {
-  const repo = context.repo()
-  const repoName = repository || `${repo.owner}/${repo.repo}`
+  const repositoryInfo = extractRepositoryInfo(platformContext)
+  const repoParams = { owner: repositoryInfo.owner, repo: repositoryInfo.name }
+  const repoName = repository || repositoryInfo.fullName
   const startTime = reviewStartTime || Date.now()
 
   try {
@@ -78,10 +99,11 @@ export async function lineCommentsHandler(
     const analysisValidationResult = AnalysisSchema.safeParse(rawParsedAnalysis)
 
     if (!analysisValidationResult.success) {
-      console.error(
-        'Analysis validation failed:',
-        analysisValidationResult.error.format()
-      )
+      const errMsg = analysisValidationResult.error.format()
+      logSystemError(`Analysis validation failed: ${errMsg}`, {
+        pr_number: prNumber,
+        repository: repoName
+      })
       throw new Error(
         'Invalid analysis format: ' + analysisValidationResult.error.message
       )
@@ -90,44 +112,73 @@ export async function lineCommentsHandler(
     // Use the validated and typed result
     const parsedAnalysis = analysisValidationResult.data
 
-    // Format the summary with our marker
-    const formattedSummary = `${SUMMARY_MARKER}\n\n${parsedAnalysis.summary}`
+    // Format the summary with our marker using pure function
+    const formattedSummary = createFormattedSummary(parsedAnalysis.summary)
 
-    // Handle the summary comment (global PR comment)
-    const existingSummary = await findExistingSummaryComment(context, prNumber)
+    // Create summary comment using platform client
+    try {
+      await platformContext.client.createReview(prNumber, formattedSummary)
+    } catch (error) {
+      const errMsg = `Failed to create review comment - PROXY_REVIEWER_TOKEN may not be configured. Set PROXY_REVIEWER_TOKEN environment variable with a GitHub personal access token. Error: ${error.message}`
+      logSystemError(errMsg, {
+        pr_number: prNumber,
+        repository: repoName
+      })
+      throw new Error(errMsg)
+    }
 
-    await upsertComment(context, existingSummary, formattedSummary, prNumber)
-
-    // Get the commit SHA for the PR head
-    const { data: pullRequest } = await context.octokit.pulls.get({
-      ...repo,
-      pull_number: prNumber
-    })
+    // Get the commit SHA for the PR head using platform client
+    const pullRequest = await platformContext.client.getPullRequest(prNumber)
     const commitSha = pullRequest.head.sha
 
-    // Fetch PR diff to identify changed lines
-    const diffMap = await fetchPrDiffFileMap(context, prNumber)
+    // Create a complete mock context with all required Octokit methods
+    const proxyClient = createProxyClient()
+    if (!proxyClient) {
+      throw new Error(
+        'PROXY_REVIEWER_TOKEN not configured - required for GitHub operations'
+      )
+    }
 
-    // Clean up obsolete comments first - this should happen regardless of proxy client status
+    const mockContext = {
+      repo: () => repoParams,
+      octokit: {
+        request: proxyClient.request.bind(proxyClient),
+        repos: {
+          getContent: proxyClient.repos.getContent.bind(proxyClient)
+        },
+        pulls: {
+          get: async () => ({ data: pullRequest }),
+          listReviewComments: async (params) => {
+            const comments = await platformContext.client.listReviewComments(
+              params.pull_number
+            )
+            return { data: comments }
+          },
+          getReviewComment: async (params) => {
+            const comment = await platformContext.client.getReviewComment(
+              params.comment_id
+            )
+            return { data: comment }
+          },
+          deleteReviewComment:
+            proxyClient.pulls.deleteReviewComment.bind(proxyClient),
+          listReviews: proxyClient.pulls.listReviews.bind(proxyClient)
+        }
+      }
+    } as unknown as Context
+
+    // Fetch PR diff to identify changed lines
+    const diffMap = await fetchPrDiffFileMap(mockContext, prNumber)
+
+    // Clean up obsolete comments first
     const deletedCount = await cleanupObsoleteComments(
-      context,
+      mockContext,
       prNumber,
       diffMap
     )
 
     // Get existing review comments AFTER cleanup
-    const existingComments = await findExistingComments(context, prNumber)
-
-    // Now check if we can create proxy client for posting new/updated comments
-    const proxyClient = createProxyClient()
-    if (!proxyClient) {
-      logSystemError(
-        'Failed to create proxy client - PROXY_REVIEWER_TOKEN not configured. Set PROXY_REVIEWER_TOKEN environment variable with a GitHub personal access token.',
-        { pr_number: prNumber, repository: repoName }
-      )
-      // Return clear partial success message with configuration guidance
-      return `PR #${prNumber}: Cleaned up ${deletedCount} obsolete comments. New comments require PROXY_REVIEWER_TOKEN configuration.`
-    }
+    const existingComments = await findExistingComments(mockContext, prNumber)
 
     // Track created/updated comments
     let createdCount = 0
@@ -145,9 +196,9 @@ export async function lineCommentsHandler(
         continue
       }
 
-      // Get line content and generate hash
+      // Get line content and generate hash using mock context
       const lineContent = await getLineContent(
-        context,
+        mockContext,
         comment.path,
         commitSha,
         comment.line,
@@ -185,17 +236,16 @@ export async function lineCommentsHandler(
       // Single decision: update or create with robust error handling
       if (existingComment && shouldReplace) {
         const existenceResult = await checkCommentExistence(
-          context,
+          mockContext,
           existingComment.id
         )
 
         if (existenceResult.exists) {
-          // Update existing comment using proxy client
-          await proxyClient.pulls.updateReviewComment({
-            ...repo,
-            comment_id: existingComment.id,
-            body: commentBody
-          })
+          // Update existing comment using platform client
+          await platformContext.client.updateReviewComment(
+            existingComment.id,
+            commentBody
+          )
           updatedCount++
         } else {
           // Cast to the correct union type since exists is false
@@ -208,14 +258,14 @@ export async function lineCommentsHandler(
             console.log(
               `Comment ${existingComment.id} no longer exists, creating new one`
             )
-            const commentParams = createCommentParams(
-              repo,
+            await platformContext.client.createReviewComment({
               prNumber,
               commitSha,
-              comment,
-              commentBody
-            )
-            await proxyClient.pulls.createReviewComment(commentParams)
+              path: comment.path,
+              line: comment.line,
+              startLine: comment.start_line,
+              body: commentBody
+            })
             createdCount++
           } else {
             // failedResult.reason === 'error'
@@ -233,15 +283,15 @@ export async function lineCommentsHandler(
           }
         }
       } else {
-        // Create new comment using proxy client
-        const commentParams = createCommentParams(
-          repo,
+        // Create new comment using platform client
+        await platformContext.client.createReviewComment({
           prNumber,
           commitSha,
-          comment,
-          commentBody
-        )
-        await proxyClient.pulls.createReviewComment(commentParams)
+          path: comment.path,
+          line: comment.line,
+          startLine: comment.start_line,
+          body: commentBody
+        })
         createdCount++
       }
     }
@@ -256,15 +306,18 @@ export async function lineCommentsHandler(
     }
     logReviewCompleted(prNumber, repoName, reviewType, duration, commentStats)
 
-    return `PR #${prNumber}: Created ${createdCount}, updated ${updatedCount}, deleted ${deletedCount}, and skipped ${skippedCount} line comments`
+    return createSuccessMessage(prNumber, commentStats)
   } catch (error) {
     // In case of error, fall back to the error comment handler
-    console.error(
-      'Error parsing or creating line comments, falling back to error comment:',
-      error
+    logSystemError(
+      `Error parsing or creating line comments, falling back to error comment: ${error}`,
+      {
+        pr_number: prNumber,
+        repository: repoName
+      }
     )
     return errorCommentHandler(
-      context,
+      platformContext,
       prNumber,
       `Error processing line comments: ${error.message || String(error)}`
     )

@@ -1,3 +1,25 @@
+## [1.22.2](https://github.com/SocialGouv/revu/compare/v1.22.1...v1.22.2) (2025-07-01)
+
+
+### Bug Fixes
+
+* context.octokit.request is not a function ([422b4bf](https://github.com/SocialGouv/revu/commit/422b4bf97f8bb91d39b91586c906420f8352ee9d))
+
+## [1.22.1](https://github.com/SocialGouv/revu/compare/v1.22.0...v1.22.1) (2025-07-01)
+
+
+### Bug Fixes
+
+* **deps:** update dependency dotenv to v17 ([f755f8c](https://github.com/SocialGouv/revu/commit/f755f8c411336f428ba9247d1ded63f26d8d1fa4))
+
+# [1.22.0](https://github.com/SocialGouv/revu/compare/v1.21.0...v1.22.0) (2025-07-01)
+
+
+### Features
+
+* add platform abstraction types ([c557cf5](https://github.com/SocialGouv/revu/commit/c557cf57b0863b8e913c6ef46b264ebbd77c3315))
+* implement GitHub platform adapter ([8f73474](https://github.com/SocialGouv/revu/commit/8f73474332451d31ff05e17bbe829f371c47d424))
+
 # [1.21.0](https://github.com/SocialGouv/revu/compare/v1.20.1...v1.21.0) (2025-06-27)
 
 
