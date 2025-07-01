@@ -1,3 +1,10 @@
+## [1.22.1](https://github.com/SocialGouv/revu/compare/v1.22.0...v1.22.1) (2025-07-01)
+
+
+### Bug Fixes
+
+* **deps:** update dependency dotenv to v17 ([f755f8c](https://github.com/SocialGouv/revu/commit/f755f8c411336f428ba9247d1ded63f26d8d1fa4))
+
 # [1.22.0](https://github.com/SocialGouv/revu/compare/v1.21.0...v1.22.0) (2025-07-01)
 
 
