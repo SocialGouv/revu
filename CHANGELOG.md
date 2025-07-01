@@ -1,3 +1,11 @@
+# [1.22.0](https://github.com/SocialGouv/revu/compare/v1.21.0...v1.22.0) (2025-07-01)
+
+
+### Features
+
+* add platform abstraction types ([c557cf5](https://github.com/SocialGouv/revu/commit/c557cf57b0863b8e913c6ef46b264ebbd77c3315))
+* implement GitHub platform adapter ([8f73474](https://github.com/SocialGouv/revu/commit/8f73474332451d31ff05e17bbe829f371c47d424))
+
 # [1.21.0](https://github.com/SocialGouv/revu/compare/v1.20.1...v1.21.0) (2025-06-27)
 
 
