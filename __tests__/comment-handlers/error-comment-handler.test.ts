@@ -1,27 +1,17 @@
-import { type Context } from 'probot'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { PlatformContext } from '../../src/core/models/platform-types.ts'
 import { errorCommentHandler } from '../../src/comment-handlers/error-comment-handler.ts'
 
-vi.mock('../../src/comment-handlers/index.ts', () => ({
-  upsertComment: vi.fn().mockResolvedValue('Upserted comment')
-}))
-
-// Import the mocked function after the mock setup
-import { upsertComment } from '../../src/comment-handlers/index.ts'
-
-const mockUpsertComment = vi.mocked(upsertComment)
-
 describe('errorCommentHandler', () => {
-  let mockContext: Context
-  let mockOctokit: {
-    issues: {
-      listComments: ReturnType<typeof vi.fn>
-    }
+  let mockPlatformContext: PlatformContext
+  let mockClient: {
+    createReview: ReturnType<typeof vi.fn>
   }
 
   // Mock Date.now() to return a consistent timestamp for testing
   const originalDateNow = Date.now
   const mockTimestamp = 1600000000000 // Fixed timestamp for testing
+  const mockTimestampFiveMinutesLater = mockTimestamp + 300000 // 5 minutes after mockTimestamp
   const mockTimestampFiveMinutesAgo = mockTimestamp - 300000 // 5 minutes before mockTimestamp
 
   beforeEach(() => {
@@ -31,18 +21,17 @@ describe('errorCommentHandler', () => {
     // Mock Date.now()
     Date.now = vi.fn(() => mockTimestamp)
 
-    // Setup mock octokit
-    mockOctokit = {
-      issues: {
-        listComments: vi.fn()
-      }
+    // Setup mock client
+    mockClient = {
+      createReview: vi.fn().mockResolvedValue('Posted error comment on PR #123')
     }
 
-    // Setup mock context
-    mockContext = {
-      octokit: mockOctokit,
-      repo: () => ({ owner: 'test-owner', repo: 'test-repo' })
-    } as unknown as Context
+    // Setup mock platform context
+    mockPlatformContext = {
+      repoOwner: 'test-owner',
+      repoName: 'test-repo',
+      client: mockClient
+    } as unknown as PlatformContext
   })
 
   afterEach(() => {
@@ -50,134 +39,83 @@ describe('errorCommentHandler', () => {
     Date.now = originalDateNow
   })
 
-  it('should create a new error comment when none exists', async () => {
-    // Setup mock to return no existing comments
-    mockOctokit.issues.listComments.mockResolvedValue({
-      data: []
-    })
-
+  it('should create an error comment with correct content', async () => {
     const errorMessage = 'Test error message'
-    const result = await errorCommentHandler(mockContext, 123, errorMessage)
+    const result = await errorCommentHandler(
+      mockPlatformContext,
+      123,
+      errorMessage
+    )
 
-    // Verify listComments was called to check for existing comments
-    expect(mockOctokit.issues.listComments).toHaveBeenCalledWith({
-      owner: 'test-owner',
-      repo: 'test-repo',
-      issue_number: 123
-    })
-
-    // Verify upsertComment was called with the correct parameters
-    expect(mockUpsertComment).toHaveBeenCalledWith(
-      mockContext,
-      undefined, // No existing comment
-      expect.stringContaining('<!-- REVU-AI-ERROR -->'),
-      123
+    // Verify createReview was called with the correct parameters
+    expect(mockClient.createReview).toHaveBeenCalledWith(
+      123,
+      expect.stringContaining('<!-- REVU-AI-ERROR -->')
     )
 
     // Verify the error message is included in the comment
-    expect(mockUpsertComment).toHaveBeenCalledWith(
-      expect.anything(),
-      undefined,
-      expect.stringContaining('An error occurred: Test error message'),
-      123
+    expect(mockClient.createReview).toHaveBeenCalledWith(
+      123,
+      expect.stringContaining('An error occurred: Test error message')
     )
 
     // Verify the Grafana logs URL includes the correct timestamps
-    expect(mockUpsertComment).toHaveBeenCalledWith(
-      expect.anything(),
-      undefined,
+    expect(mockClient.createReview).toHaveBeenCalledWith(
+      123,
       expect.stringContaining(
-        `from%22%3A%22${mockTimestampFiveMinutesAgo}%22%2C%22to%22%3A%22${mockTimestamp}%22`
-      ),
-      123
+        `from%22%3A%22${mockTimestampFiveMinutesAgo}%22%2C%22to%22%3A%22${mockTimestampFiveMinutesLater}%22`
+      )
     )
 
-    // Verify the result is returned from upsertComment
-    expect(result).toBe('Upserted comment')
-  })
-
-  it('should update an existing error comment', async () => {
-    // Setup mock to return an existing error comment
-    const existingComment = {
-      id: 456,
-      body: '<!-- REVU-AI-ERROR -->\n\nAn error occurred: Old error message'
-    }
-
-    mockOctokit.issues.listComments.mockResolvedValue({
-      data: [existingComment]
-    })
-
-    const errorMessage = 'New error message'
-    const result = await errorCommentHandler(mockContext, 123, errorMessage)
-
-    // Verify upsertComment was called with the existing comment
-    expect(mockUpsertComment).toHaveBeenCalledWith(
-      mockContext,
-      existingComment,
-      expect.stringContaining('<!-- REVU-AI-ERROR -->'),
-      123
-    )
-
-    // Verify the new error message is included in the comment
-    expect(mockUpsertComment).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.stringContaining('An error occurred: New error message'),
-      expect.anything()
-    )
-
-    // Verify the result is returned from upsertComment
-    expect(result).toBe('Upserted comment')
+    // Verify the result message
+    expect(result).toBe('Posted error comment on PR #123')
   })
 
   it('should generate a Grafana logs URL with dynamic timestamps', async () => {
-    // Setup mock to return no existing comments
-    mockOctokit.issues.listComments.mockResolvedValue({
-      data: []
-    })
-
-    await errorCommentHandler(mockContext, 123, 'Test error')
+    await errorCommentHandler(mockPlatformContext, 456, 'Test error')
 
     // Verify the Grafana logs URL includes the correct timestamps
-    expect(mockUpsertComment).toHaveBeenCalledWith(
-      expect.anything(),
-      undefined,
+    expect(mockClient.createReview).toHaveBeenCalledWith(
+      456,
       expect.stringContaining(
-        `from%22%3A%22${mockTimestampFiveMinutesAgo}%22%2C%22to%22%3A%22${mockTimestamp}%22`
-      ),
-      123
+        `from%22%3A%22${mockTimestampFiveMinutesAgo}%22%2C%22to%22%3A%22${mockTimestampFiveMinutesLater}%22`
+      )
     )
   })
 
-  it('should find the correct existing comment when multiple comments exist', async () => {
-    // Setup mock to return multiple comments, including an error comment
-    const errorComment = {
-      id: 789,
-      body: '<!-- REVU-AI-ERROR -->\n\nAn error occurred: Old error message'
-    }
-    const comments = [
-      {
-        id: 456,
-        body: '<!-- REVU-AI-SUMMARY -->\n\nSummary comment'
-      },
-      {
-        id: 111,
-        body: 'Regular comment without marker'
-      },
-      errorComment
-    ]
+  it('should handle createReview failure gracefully', async () => {
+    const error = new Error('Network error')
+    mockClient.createReview.mockRejectedValue(error)
 
-    mockOctokit.issues.listComments.mockResolvedValue({
-      data: comments
-    })
+    const result = await errorCommentHandler(
+      mockPlatformContext,
+      123,
+      'Test error'
+    )
 
-    await errorCommentHandler(mockContext, 123, 'New error message')
+    // Verify the error is handled and a failure message is returned
+    expect(result).toBe('Failed to post error comment: Network error')
+  })
 
-    expect(mockUpsertComment).toHaveBeenCalledWith(
-      mockContext,
-      errorComment, // The error comment with id 789
-      expect.any(String),
-      123
+  it('should include the error marker in the comment', async () => {
+    await errorCommentHandler(mockPlatformContext, 123, 'Test error')
+
+    // Verify the comment includes the error marker
+    expect(mockClient.createReview).toHaveBeenCalledWith(
+      123,
+      expect.stringContaining('<!-- REVU-AI-ERROR -->')
+    )
+  })
+
+  it('should include the Grafana logs link in the comment', async () => {
+    await errorCommentHandler(mockPlatformContext, 123, 'Test error')
+
+    // Verify the comment includes the Grafana logs link
+    expect(mockClient.createReview).toHaveBeenCalledWith(
+      123,
+      expect.stringContaining(
+        '[Revu logs](https://grafana.fabrique.social.gouv.fr/explore'
+      )
     )
   })
 })
