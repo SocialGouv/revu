@@ -2,17 +2,11 @@ import * as fsSync from 'fs'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type {
+  PlatformClient,
+  PlatformContext
+} from '../src/core/models/platform-types.ts'
 import { populateTemplate } from '../src/populate-template.ts'
-import type { PromptContext } from '../src/prompt-strategies/prompt-strategy.ts'
-
-// Mock the fetchPrDiff function
-vi.mock('../src/extract-diff.ts', () => ({
-  fetchPrDiff: vi.fn()
-}))
-
-// Import the mocked function after the mock setup
-import { fetchPrDiff } from '../src/extract-diff.ts'
-const mockFetchPrDiff = vi.mocked(fetchPrDiff)
 
 describe('populateTemplate', () => {
   const testRepo = 'https://github.com/SocialGouv/carnets.git'
@@ -20,29 +14,37 @@ describe('populateTemplate', () => {
   const configPath = path.join(process.cwd(), 'config.json')
   let originalConfig: string | null = null
 
+  // Create a mock platform client
+  const mockClient: PlatformClient = {
+    fetchPullRequestDiff: vi
+      .fn()
+      .mockResolvedValue(
+        'diff --git a/test.js b/test.js\nindex 1234567..abcdefg 100644\n--- a/test.js\n+++ b/test.js\n@@ -1,3 +1,4 @@\n console.log("hello")\n+console.log("world")\n'
+      ),
+    fetchIssueDetails: vi.fn().mockResolvedValue(null),
+    cloneRepository: vi.fn().mockResolvedValue(undefined),
+    createReview: vi.fn().mockResolvedValue(undefined),
+    createReviewComment: vi.fn().mockResolvedValue(undefined),
+    updateReviewComment: vi.fn().mockResolvedValue(undefined),
+    getPullRequest: vi.fn().mockResolvedValue(null),
+    listReviewComments: vi.fn().mockResolvedValue([]),
+    getReviewComment: vi.fn().mockResolvedValue(null)
+  }
+
   // Create a minimal mock context for tests that need it
-  const mockContext: PromptContext = {
-    githubContext: {
-      repo: () => ({ owner: 'test-owner', repo: 'test-repo' }),
-      octokit: {
-        request: vi.fn().mockResolvedValue({
-          data: 'diff --git a/test.js b/test.js\nindex 1234567..abcdefg 100644\n--- a/test.js\n+++ b/test.js\n@@ -1,3 +1,4 @@\n console.log("hello")\n+console.log("world")\n'
-        })
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any,
-    prNumber: 123
+  const mockContext: PlatformContext = {
+    repoOwner: 'test-owner',
+    repoName: 'test-repo',
+    prNumber: 123,
+    prTitle: 'Test PR',
+    prBody: 'Test PR body',
+    client: mockClient
   }
 
   // Save original config before tests
   beforeEach(async () => {
     // Reset mocks
     vi.clearAllMocks()
-
-    // Setup default mock for fetchPrDiff
-    mockFetchPrDiff.mockResolvedValue(
-      'diff --git a/test.js b/test.js\nindex 1234567..abcdefg 100644\n--- a/test.js\n+++ b/test.js\n@@ -1,3 +1,4 @@\n console.log("hello")\n+console.log("world")\n'
-    )
 
     try {
       if (fsSync.existsSync(configPath)) {
@@ -84,9 +86,8 @@ describe('populateTemplate', () => {
     expect(result).toMatch(/## Modified Files\n+/)
     expect(result).toMatch(/## Git Diff\n+/)
 
-    // Verify that fetchPrDiff was called with the correct parameters
-    expect(mockFetchPrDiff).toHaveBeenCalledWith(
-      mockContext.githubContext,
+    // Verify that the platform client was called with the correct parameters
+    expect(mockClient.fetchPullRequestDiff).toHaveBeenCalledWith(
       mockContext.prNumber
     )
   }, 60000) // Increase timeout since we're doing git operations
