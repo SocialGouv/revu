@@ -26,6 +26,13 @@ export interface PlatformClient {
 
   // Comment operations
   createReview: (prNumber: number, body: string) => Promise<void>
+  /**
+   * Creates a review comment on a pull request
+   * @param params.line - The last line of the comment range (required)
+   * @param params.startLine - The first line of the comment range (optional, for multi-line comments)
+   *                          Must be less than or equal to line. If equal to line, creates a single-line comment.
+   *                          If less than line, creates a multi-line comment spanning from startLine to line.
+   */
   createReviewComment: (params: {
     prNumber: number
     commitSha: string
@@ -40,6 +47,10 @@ export interface PlatformClient {
   getPullRequest: (prNumber: number) => Promise<{
     head: { sha: string }
     number: number
+    state: string
+    mergeable: boolean | null
+    title: string
+    body: string | null
   }>
 
   // Review comment operations
