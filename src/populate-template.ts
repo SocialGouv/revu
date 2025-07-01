@@ -1,16 +1,15 @@
+import type { PlatformContext } from './core/models/platform-types.ts'
 import {
   getStrategyByName,
   getStrategyFromConfig
 } from './prompt-strategies/index.ts'
-import type { PromptContext } from './prompt-strategies/prompt-strategy.ts'
 
 interface PopulateTemplateOptions {
   repositoryUrl: string
   branch: string
   templatePath?: string
-  token?: string
   strategyName?: string
-  context?: PromptContext
+  context: PlatformContext
 }
 
 /**
@@ -27,9 +26,8 @@ interface PopulateTemplateOptions {
  * @param {string} options.repositoryUrl - The URL of the GitHub repository
  * @param {string} options.branch - The branch to analyze
  * @param {string} [options.templatePath] - Optional path to the template file
- * @param {string} [options.token] - Optional GitHub access token for private repositories
  * @param {string} [options.strategyName] - Optional strategy name to use
- * @param {PromptContext} [options.context] - Optional additional context for prompt generation
+ * @param {PlatformContext} options.context - Platform-agnostic context for prompt generation (required)
  * @returns {Promise<string>} The populated template ready for Anthropic analysis
  * @throws {Error} If template reading or data extraction fails
  */
@@ -37,7 +35,6 @@ export async function populateTemplate({
   repositoryUrl,
   branch,
   templatePath,
-  token,
   strategyName,
   context
 }: PopulateTemplateOptions): Promise<string> {
@@ -47,5 +44,5 @@ export async function populateTemplate({
     : await getStrategyFromConfig()
 
   // Use the strategy to generate the prompt
-  return strategy(repositoryUrl, branch, templatePath, token, context)
+  return strategy(repositoryUrl, branch, context, templatePath)
 }
