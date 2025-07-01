@@ -3,7 +3,8 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { Context, Probot } from 'probot'
 import { errorCommentHandler } from './comment-handlers/error-comment-handler.ts'
-import { getCommentHandler } from './comment-handlers/index.ts'
+import { lineCommentsHandler } from './comment-handlers/line-comments-handler.ts'
+import type { PlatformContext } from './core/models/platform-types.ts'
 import {
   addBotAsReviewer,
   getProxyReviewerUsername,
@@ -11,12 +12,12 @@ import {
   isPRDraft,
   isReviewRequestedForBot
 } from './github/reviewer-utils.ts'
-import type { PromptContext } from './prompt-strategies/prompt-strategy.ts'
+import { createPlatformContextFromGitHub } from './platforms/github/github-adapter.ts'
 import { sendToAnthropic } from './send-to-anthropic.ts'
 import {
   logAppStarted,
-  logReviewStarted,
   logReviewFailed,
+  logReviewStarted,
   logReviewerAdded,
   logSystemError
 } from './utils/logger.ts'
@@ -156,42 +157,38 @@ export default async (app: Probot, { getRouter }) => {
 
     logReviewStarted(pr.number, repository, reviewType)
 
+    // Get an installation token for authentication with private repositories
+    const installationId = payload.installation.id
+    const installationAccessToken = await context.octokit.apps
+      .createInstallationAccessToken({
+        installation_id: installationId
+      })
+      .then((response) => response.data.token)
+    // Prepare platform-agnostic context for prompt generation
+    const platformContext = createPlatformContextFromGitHub(
+      context,
+      pr.number,
+      pr.title,
+      pr.body || undefined,
+      installationAccessToken
+    )
+
     try {
       // Get repository URL and branch from PR
       const repositoryUrl = `https://github.com/${repo.owner}/${repo.repo}.git`
       const branch = pr.head.ref
 
-      // Get an installation token for authentication with private repositories
-      const installationId = payload.installation.id
-      const installationAccessToken = await context.octokit.apps
-        .createInstallationAccessToken({
-          installation_id: installationId
-        })
-        .then((response) => response.data.token)
-
       // Get the current strategy from configuration
       const strategyName = await getStrategyNameFromConfig()
-
-      // Prepare context for prompt generation (includes PR title and body)
-      const promptContext = {
-        prNumber: pr.number,
-        prTitle: pr.title,
-        prBody: pr.body || undefined,
-        repoOwner: repo.owner,
-        repoName: repo.repo,
-        githubContext: context
-      }
 
       // Perform the complete review analysis with context
       const reviewStartTime = Date.now()
       await performReviewAnalysis(
-        context,
         pr.number,
         repositoryUrl,
         branch,
-        installationAccessToken,
+        platformContext,
         strategyName,
-        promptContext,
         reviewType,
         repository,
         reviewStartTime
@@ -206,10 +203,10 @@ export default async (app: Probot, { getRouter }) => {
         error.message || String(error)
       )
 
-      // Use the sophisticated error comment handler from main
+      // Use the platform-agnostic error comment handler
       try {
         await errorCommentHandler(
-          context,
+          platformContext,
           pr.number,
           error.message || String(error)
         )
@@ -238,17 +235,14 @@ export default async (app: Probot, { getRouter }) => {
   }
 
   /**
-   * Performs a complete review analysis for a PR
-   * This function encapsulates the common logic for analyzing PRs and posting comments
+   * Performs a complete review analysis for a PR using platform-agnostic context
    */
   async function performReviewAnalysis(
-    context: Context,
     prNumber: number,
     repositoryUrl: string,
     branch: string,
-    installationAccessToken: string,
+    platformContext: PlatformContext,
     strategyName?: string,
-    promptContext?: PromptContext,
     reviewType?: 'on-demand' | 'automatic',
     repository?: string,
     reviewStartTime?: number
@@ -261,17 +255,13 @@ export default async (app: Probot, { getRouter }) => {
     const analysis = await sendToAnthropic({
       repositoryUrl,
       branch,
-      token: installationAccessToken,
       strategyName: finalStrategyName,
-      context: promptContext
+      context: platformContext
     })
 
-    // Get the appropriate comment handler based on the strategy
-    const commentHandler = getCommentHandler(finalStrategyName)
-
-    // Handle the analysis with the appropriate handler - pass additional params for structured logging
-    const result = await commentHandler(
-      context,
+    // Use the platform-agnostic line comments handler
+    const result = await lineCommentsHandler(
+      platformContext,
       prNumber,
       analysis,
       reviewType,
