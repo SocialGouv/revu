@@ -24,11 +24,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ vars.REGISTRY_URL }}/${{ vars.PROJECT_NAME }}/${{ github.event.repository.name }}/app
-Consider adjusting the tag logic:
-tags: |
-  type=semver,pattern=v{{version}},priority=900
-  type=sha,prefix=sha-,format=long,priority=890
-  type=raw,value=latest,enable={{is_default_branch}},priority=200
+          tags: |
+            type=semver,pattern=v{{version}},priority=900
+            type=sha,prefix=sha-,format=long,priority=890
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }},priority=200
 
       - name: 📦 Build and push Docker image for app
