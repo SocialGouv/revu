@@ -1,9 +1,12 @@
 import { Octokit } from '@octokit/rest'
 import type { ProbotOctokit } from 'probot'
+import type { DiffFileMap } from '../../core/models/diff-types.ts'
 import type {
   IssueDetails,
-  PlatformClient
+  PlatformClient,
+  Review
 } from '../../core/models/platform-types.ts'
+import { parseDiff } from '../../core/services/diff-parser.ts'
 import { cloneRepository } from '../../repo-utils.ts'
 import { logSystemError } from '../../utils/logger.ts'
 
@@ -128,8 +131,11 @@ export const createGitHubClient = (
         path: params.path,
         line: params.line,
         body: params.body,
-        side: 'RIGHT',
-        start_line: params.startLine
+        side: 'RIGHT' as const,
+        ...(params.startLine !== undefined && {
+          start_line: params.startLine,
+          start_side: 'RIGHT' as const
+        })
       }
 
       await proxyClient.pulls.createReviewComment(commentParams)
@@ -161,7 +167,11 @@ export const createGitHubClient = (
       })
       return {
         head: { sha: data.head.sha },
-        number: data.number
+        number: data.number,
+        state: data.state,
+        mergeable: data.mergeable,
+        title: data.title,
+        body: data.body
       }
     },
 
@@ -200,6 +210,90 @@ export const createGitHubClient = (
         )
         return null
       }
+    },
+
+    deleteReviewComment: async (commentId: number): Promise<void> => {
+      const proxyClient = createProxyClient()
+      if (!proxyClient) {
+        throw new Error('PROXY_REVIEWER_TOKEN not configured')
+      }
+
+      await proxyClient.pulls.deleteReviewComment({
+        owner,
+        repo,
+        comment_id: commentId
+      })
+    },
+
+    // New platform-agnostic methods to replace legacy functions
+    fetchPullRequestDiffMap: async (prNumber: number): Promise<DiffFileMap> => {
+      try {
+        const response = await octokit.request(
+          'GET /repos/{owner}/{repo}/pulls/{pull_number}',
+          {
+            owner,
+            repo,
+            pull_number: prNumber,
+            headers: {
+              accept: 'application/vnd.github.v3.diff'
+            }
+          }
+        )
+        if (typeof response.data !== 'string') {
+          throw new Error('Expected diff response to be a string')
+        }
+        return parseDiff(response.data)
+      } catch (error) {
+        logSystemError(
+          `Failed to fetch PR diff map for PR #${prNumber}: ${error}`,
+          {
+            repository: `${owner}/${repo}`
+          }
+        )
+        throw error
+      }
+    },
+
+    getFileContent: async (
+      filePath: string,
+      commitSha: string
+    ): Promise<string> => {
+      try {
+        const response = await octokit.repos.getContent({
+          owner,
+          repo,
+          path: filePath,
+          ref: commitSha
+        })
+
+        const data = response.data
+        if (!('content' in data) || !data.content) {
+          return ''
+        }
+
+        // Decode base64 content
+        const fileContent = Buffer.from(data.content, 'base64').toString(
+          'utf-8'
+        )
+        return fileContent
+      } catch (error) {
+        console.warn(`Failed to fetch file content for ${filePath}:`, error)
+        return ''
+      }
+    },
+
+    listReviews: async (prNumber: number): Promise<Array<Review>> => {
+      const { data } = await octokit.pulls.listReviews({
+        owner,
+        repo,
+        pull_number: prNumber
+      })
+      return data.map((review) => ({
+        id: review.id,
+        user: review.user,
+        body: review.body,
+        submitted_at: review.submitted_at
+      }))
     }
   }
 }

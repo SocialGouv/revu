@@ -1,59 +1,11 @@
-import { type Context } from 'probot'
-
-interface DiffInfo {
-  changedLines: Set<number> // Set of line numbers that were changed in the diff
-}
-
-/**
- * Fetches the diff for a PR using the GitHub API
- * @param context GitHub API context
- * @param prNumber PR number
- * @returns The diff as a string
- */
-async function fetchPrDiff(
-  context: Context,
-  prNumber: number
-): Promise<string> {
-  const repo = context.repo()
-
-  // Fetch the PR diff with the 'application/vnd.github.v3.diff' media type
-  const response = await context.octokit.request(
-    'GET /repos/{owner}/{repo}/pulls/{pull_number}',
-    {
-      ...repo,
-      pull_number: prNumber,
-      headers: {
-        accept: 'application/vnd.github.v3.diff'
-      }
-    }
-  )
-
-  return response.data as unknown as string
-}
-
-/**
- * Fetches the diff for a PR and parses it to identify changed lines
- * @param context GitHub API context
- * @param prNumber PR number
- * @returns Map of file paths to their diff information
- */
-export async function fetchPrDiffFileMap(
-  context: Context,
-  prNumber: number
-): Promise<Map<string, DiffInfo>> {
-  // The response will be a string when using the diff media type
-  const diffText = await fetchPrDiff(context, prNumber)
-
-  // Parse the diff to extract changed lines
-  return parseDiff(diffText)
-}
+import type { DiffFileMap, DiffInfo } from '../models/diff-types.ts'
 
 /**
  * Parses a git diff to extract changed lines and their hunks
  * @param diff Git diff string
  * @returns Map of file paths to their diff information
  */
-function parseDiff(diff: string): Map<string, DiffInfo> {
+export function parseDiff(diff: string): DiffFileMap {
   const fileMap = new Map<string, DiffInfo>()
 
   // Split the diff into file sections

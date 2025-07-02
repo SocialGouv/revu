@@ -8,6 +8,7 @@ import {
   type Comment,
   type CommentExistenceResult
 } from './types.ts'
+import { parseLineString, isLineInfoInDiff } from '../core/utils/line-parser.ts'
 
 /**
  * Finds all existing review comments on a PR that have our marker
@@ -146,47 +147,15 @@ export async function cleanupObsoleteComments(
       continue // Skip malformed marker IDs
     }
 
-    // Check if it's a range (multi-line) or single line
-    const isRange = lineStr.includes('-')
-    let shouldDelete = false
-
-    // First, validate line numbers before checking diff
-    if (isRange) {
-      // Multi-line comment: validate line numbers first
-      const [startStr, endStr] = lineStr.split('-')
-      const startLine = parseInt(startStr, 10)
-      const endLine = parseInt(endStr, 10)
-
-      if (isNaN(startLine) || isNaN(endLine)) {
-        continue // Skip if we can't parse the line numbers
-      }
-
-      const fileInfo = diffMap.get(path)
-      if (!fileInfo) {
-        shouldDelete = true
-      } else {
-        // Check if all lines in the range are still in the diff
-        const allLinesInDiff = Array.from(
-          { length: endLine - startLine + 1 },
-          (_, i) => startLine + i
-        ).every((line) => fileInfo.changedLines.has(line))
-
-        shouldDelete = !allLinesInDiff
-      }
-    } else {
-      // Single line comment: validate line number first
-      const line = parseInt(lineStr, 10)
-      if (isNaN(line)) {
-        continue // Skip if we can't parse the line number
-      }
-
-      const fileInfo = diffMap.get(path)
-      if (!fileInfo) {
-        shouldDelete = true
-      } else {
-        shouldDelete = !fileInfo.changedLines.has(line)
-      }
+    // Parse and validate line numbers using utility function
+    const parseResult = parseLineString(lineStr)
+    if (!parseResult.success) {
+      continue // Skip if we can't parse the line numbers
     }
+
+    // Check if the lines are still relevant in the current diff
+    const fileInfo = diffMap.get(path)
+    const shouldDelete = !isLineInfoInDiff(parseResult.lineInfo, fileInfo)
 
     if (shouldDelete) {
       try {
