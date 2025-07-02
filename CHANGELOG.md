@@ -1,3 +1,10 @@
+## [1.22.3](https://github.com/SocialGouv/revu/compare/v1.22.2...v1.22.3) (2025-07-02)
+
+
+### Bug Fixes
+
+* buildkit in gh ([#118](https://github.com/SocialGouv/revu/issues/118)) ([18313fe](https://github.com/SocialGouv/revu/commit/18313fe1a90a4ea071b55ba9b4a1d5e9ee05e07c))
+
 ## [1.22.2](https://github.com/SocialGouv/revu/compare/v1.22.1...v1.22.2) (2025-07-01)
 
 
