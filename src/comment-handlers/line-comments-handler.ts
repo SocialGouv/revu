@@ -1,36 +1,22 @@
-import { Octokit } from '@octokit/rest'
-import type { Context } from 'probot'
 import type { PlatformContext } from '../core/models/platform-types.ts'
-import { fetchPrDiffFileMap } from '../extract-diff.ts'
-import { logReviewCompleted, logSystemError } from '../utils/logger.ts'
 import {
   checkCommentExistence,
   cleanupObsoleteComments,
   findExistingComments
-} from './comment-operations.ts'
+} from '../core/services/comment-service.ts'
+import {
+  createLineContentHash,
+  extractLineContent,
+  shouldReplaceComment
+} from '../core/services/line-content-service.ts'
+import { logReviewCompleted, logSystemError } from '../utils/logger.ts'
 import {
   createCommentMarkerId,
   isCommentValidForDiff,
   prepareCommentContent
 } from './comment-utils.ts'
 import { errorCommentHandler } from './error-comment-handler.ts'
-import {
-  createLineContentHash,
-  getLineContent,
-  shouldReplaceComment
-} from './line-content-hash.ts'
 import { AnalysisSchema, SUMMARY_MARKER } from './types.ts'
-
-/**
- * Creates a proxy client for GitHub operations using the proxy reviewer token
- */
-export function createProxyClient(): Octokit | null {
-  const token = process.env.PROXY_REVIEWER_TOKEN
-  if (!token) {
-    return null
-  }
-  return new Octokit({ auth: token })
-}
 
 /**
  * Pure function to extract repository information from platform context
@@ -87,7 +73,6 @@ export async function lineCommentsHandler(
   reviewStartTime?: number
 ) {
   const repositoryInfo = extractRepositoryInfo(platformContext)
-  const repoParams = { owner: repositoryInfo.owner, repo: repositoryInfo.name }
   const repoName = repository || repositoryInfo.fullName
   const startTime = reviewStartTime || Date.now()
 
@@ -127,58 +112,37 @@ export async function lineCommentsHandler(
       throw new Error(errMsg)
     }
 
-    // Get the commit SHA for the PR head using platform client
-    const pullRequest = await platformContext.client.getPullRequest(prNumber)
-    const commitSha = pullRequest.head.sha
-
-    // Create a complete mock context with all required Octokit methods
-    const proxyClient = createProxyClient()
-    if (!proxyClient) {
-      throw new Error(
-        'PROXY_REVIEWER_TOKEN not configured - required for GitHub operations'
-      )
+    let pullRequest
+    let commitSha
+    try {
+      // Get the commit SHA for the PR head using platform client
+      pullRequest = await platformContext.client.getPullRequest(prNumber)
+      commitSha = pullRequest.head.sha
+    } catch (error) {
+      logSystemError(`Failed to get pull request: ${error}`, {
+        pr_number: prNumber,
+        repository: repoName
+      })
+      throw error
     }
 
-    const mockContext = {
-      repo: () => repoParams,
-      octokit: {
-        request: proxyClient.request.bind(proxyClient),
-        repos: {
-          getContent: proxyClient.repos.getContent.bind(proxyClient)
-        },
-        pulls: {
-          get: async () => ({ data: pullRequest }),
-          listReviewComments: async (params) => {
-            const comments = await platformContext.client.listReviewComments(
-              params.pull_number
-            )
-            return { data: comments }
-          },
-          getReviewComment: async (params) => {
-            const comment = await platformContext.client.getReviewComment(
-              params.comment_id
-            )
-            return { data: comment }
-          },
-          deleteReviewComment:
-            proxyClient.pulls.deleteReviewComment.bind(proxyClient),
-          listReviews: proxyClient.pulls.listReviews.bind(proxyClient)
-        }
-      }
-    } as unknown as Context
+    // Fetch PR diff to identify changed lines using platform client
+    const diffMap =
+      await platformContext.client.fetchPullRequestDiffMap(prNumber)
 
-    // Fetch PR diff to identify changed lines
-    const diffMap = await fetchPrDiffFileMap(mockContext, prNumber)
-
-    // Clean up obsolete comments first
+    // Clean up obsolete comments first using platform client
     const deletedCount = await cleanupObsoleteComments(
-      mockContext,
+      platformContext.client,
       prNumber,
-      diffMap
+      diffMap,
+      repoName
     )
 
-    // Get existing review comments AFTER cleanup
-    const existingComments = await findExistingComments(mockContext, prNumber)
+    // Get existing review comments AFTER cleanup using platform client
+    const existingComments = await findExistingComments(
+      platformContext.client,
+      prNumber
+    )
 
     // Track created/updated comments
     let createdCount = 0
@@ -196,11 +160,13 @@ export async function lineCommentsHandler(
         continue
       }
 
-      // Get line content and generate hash using mock context
-      const lineContent = await getLineContent(
-        mockContext,
+      // Get file content and extract line content using platform client
+      const fileContent = await platformContext.client.getFileContent(
         comment.path,
-        commitSha,
+        commitSha
+      )
+      const lineContent = extractLineContent(
+        fileContent,
         comment.line,
         comment.start_line
       )
@@ -236,7 +202,7 @@ export async function lineCommentsHandler(
       // Single decision: update or create with robust error handling
       if (existingComment && shouldReplace) {
         const existenceResult = await checkCommentExistence(
-          mockContext,
+          platformContext.client,
           existingComment.id
         )
 

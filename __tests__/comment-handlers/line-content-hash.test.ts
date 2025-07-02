@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { type Context } from 'probot'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { getLineContent } from '../../src/comment-handlers/line-content-hash.ts'
 import {
   createLineContentHash,
   extractHashFromComment,
-  getLineContent,
   shouldReplaceComment
-} from '../../src/comment-handlers/line-content-hash.ts'
+} from '../../src/core/services/line-content-service.ts'
 
 // Mock GitHub API
 const mockOctokit = {

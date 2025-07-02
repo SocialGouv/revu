@@ -1,3 +1,5 @@
+import type { DiffFileMap } from './diff-types.ts'
+
 /**
  * Interface for issue details that can be fetched from any platform
  */
@@ -10,6 +12,18 @@ export interface IssueDetails {
     id: number
     body: string
   }>
+}
+
+/**
+ * Interface for review details
+ */
+export interface Review {
+  id: number
+  user: {
+    login: string
+  } | null
+  body: string | null
+  submitted_at: string | null
 }
 
 /**
@@ -66,6 +80,12 @@ export interface PlatformClient {
     id: number
     body: string
   } | null>
+  deleteReviewComment: (commentId: number) => Promise<void>
+
+  // New platform-agnostic methods to replace legacy functions
+  fetchPullRequestDiffMap: (prNumber: number) => Promise<DiffFileMap>
+  getFileContent: (filePath: string, commitSha: string) => Promise<string>
+  listReviews: (prNumber: number) => Promise<Array<Review>>
 }
 
 /**
