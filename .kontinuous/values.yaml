@@ -1,6 +1,5 @@
 app:
   ~chart: app
-  ~needs: [build-app]
   probesPath: /healthz
   imagePackage: app
   volumes:
@@ -14,12 +13,3 @@ app:
       name: app
   - configMapRef:
       name: app
-
-jobs:
-  ~chart: jobs
-  runs:
-    build-app:
-      use: build
-      memoryLimit: 8Gi
-      with:
-        imagePackage: app
