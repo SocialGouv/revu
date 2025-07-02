@@ -16,7 +16,27 @@ import {
   prepareCommentContent
 } from './comment-utils.ts'
 import { errorCommentHandler } from './error-comment-handler.ts'
-import { AnalysisSchema, SUMMARY_MARKER } from './types.ts'
+import { AnalysisSchema, SUMMARY_MARKER, type Comment } from './types.ts'
+
+// Types for internal use
+type ProcessingStats = {
+  created: number
+  updated: number
+  deleted: number
+  skipped: number
+}
+
+type PRContext = {
+  commitSha: string
+  diffMap: Map<string, { changedLines: Set<number> }>
+  existingComments: Array<{ id: number; body: string; path: string }>
+  deletedCount: number
+}
+
+type ValidatedAnalysis = {
+  summary: string
+  comments: Comment[]
+}
 
 /**
  * Pure function to extract repository information from platform context
@@ -38,14 +58,289 @@ const createFormattedSummary = (summary: string): string =>
  */
 const createSuccessMessage = (
   prNumber: number,
-  stats: {
-    created: number
-    updated: number
-    deleted: number
-    skipped: number
-  }
+  stats: ProcessingStats
 ): string =>
   `PR #${prNumber}: Created ${stats.created}, updated ${stats.updated}, deleted ${stats.deleted}, and skipped ${stats.skipped} line comments`
+
+/**
+ * Processes and validates the analysis
+ */
+async function processAnalysis(
+  analysis: string,
+  prNumber: number,
+  repoName: string
+): Promise<ValidatedAnalysis> {
+  // Parse the JSON response first
+  const rawParsedAnalysis = JSON.parse(analysis)
+
+  // Validate the structure with Zod
+  const analysisValidationResult = AnalysisSchema.safeParse(rawParsedAnalysis)
+
+  if (!analysisValidationResult.success) {
+    const errMsg = analysisValidationResult.error.format()
+    logSystemError(`Analysis validation failed: ${errMsg}`, {
+      pr_number: prNumber,
+      repository: repoName
+    })
+    throw new Error(
+      'Invalid analysis format: ' + analysisValidationResult.error.message
+    )
+  }
+
+  return analysisValidationResult.data as ValidatedAnalysis
+}
+
+/**
+ * Handles creating the summary comment
+ */
+async function handleSummaryComment(
+  platformContext: PlatformContext,
+  prNumber: number,
+  summary: string,
+  repoName: string
+): Promise<void> {
+  const formattedSummary = createFormattedSummary(summary)
+
+  try {
+    await platformContext.client.createReview(prNumber, formattedSummary)
+  } catch (error) {
+    const errMsg = `Failed to create review comment - PROXY_REVIEWER_TOKEN may not be configured. Set PROXY_REVIEWER_TOKEN environment variable with a GitHub personal access token. Error: ${error.message}`
+    logSystemError(errMsg, {
+      pr_number: prNumber,
+      repository: repoName
+    })
+    throw new Error(errMsg)
+  }
+}
+
+/**
+ * Fetches PR context including commit SHA, diff map, and existing comments
+ */
+async function fetchPRContext(
+  platformContext: PlatformContext,
+  prNumber: number,
+  repoName: string
+): Promise<PRContext> {
+  let pullRequest
+  let commitSha
+  try {
+    // Get the commit SHA for the PR head using platform client
+    pullRequest = await platformContext.client.getPullRequest(prNumber)
+    commitSha = pullRequest.head.sha
+  } catch (error) {
+    logSystemError(`Failed to get pull request: ${error}`, {
+      pr_number: prNumber,
+      repository: repoName
+    })
+    throw error
+  }
+
+  // Fetch PR diff to identify changed lines using platform client
+  const diffMap = await platformContext.client.fetchPullRequestDiffMap(prNumber)
+
+  // Clean up obsolete comments first using platform client
+  const deletedCount = await cleanupObsoleteComments(
+    platformContext.client,
+    prNumber,
+    diffMap,
+    repoName
+  )
+
+  // Get existing review comments AFTER cleanup using platform client
+  const existingComments = await findExistingComments(
+    platformContext.client,
+    prNumber
+  )
+
+  return {
+    commitSha,
+    diffMap,
+    existingComments,
+    deletedCount
+  }
+}
+
+/**
+ * Handles the case where a comment existence check fails
+ * - If the comment is not found, it creates a new comment
+ * - If there is an error, it logs a warning and skips the update
+ */
+function handleCommentExistenceFailure(
+  failedResult: {
+    exists: false
+    reason: 'not_found' | 'error'
+    error?: unknown
+  },
+  existingCommentID: number
+): 'created' | 'skipped' {
+  if (failedResult.reason === 'not_found') {
+    console.log(
+      `Comment ${existingCommentID} no longer exists, creating new one`
+    )
+    return 'created'
+  } else {
+    console.warn(
+      `Unable to verify comment ${existingCommentID} existence, skipping update:`,
+      failedResult.error
+    )
+    return 'skipped'
+  }
+}
+
+/**
+ * Handles individual comment operation (create, update, or skip)
+ */
+async function handleCommentOperation(
+  platformContext: PlatformContext,
+  comment: Comment,
+  prContext: PRContext,
+  prNumber: number
+): Promise<'created' | 'updated' | 'skipped'> {
+  const { commitSha, existingComments } = prContext
+
+  // Get file content and extract line content using platform client
+  const fileContent = await platformContext.client.getFileContent(
+    comment.path,
+    commitSha
+  )
+  const lineContent = extractLineContent(
+    fileContent,
+    comment.line,
+    comment.start_line
+  )
+  const contentHash = createLineContentHash(lineContent)
+
+  // Generate the comment content with hash
+  const commentBody = prepareCommentContent(comment, contentHash)
+
+  // Find the existing comment (look for comments with same path and line range)
+  const baseMarkerId = createCommentMarkerId(
+    comment.path,
+    comment.line,
+    comment.start_line
+  )
+
+  const existingComment = existingComments.find(
+    (existing) =>
+      existing.body.includes(`<!-- REVU-AI-COMMENT ${baseMarkerId}`) &&
+      existing.path === comment.path
+  )
+
+  // Check if we should replace the comment based on content hash
+  const shouldReplace = shouldReplaceComment(existingComment, contentHash)
+
+  if (!shouldReplace && existingComment) {
+    console.log(
+      `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - content unchanged`
+    )
+    return 'skipped'
+  }
+
+  // Single decision: update or create with robust error handling
+  if (existingComment && shouldReplace) {
+    const existenceResult = await checkCommentExistence(
+      platformContext.client,
+      existingComment.id
+    )
+
+    if (existenceResult.exists) {
+      // Update existing comment using platform client
+      await platformContext.client.updateReviewComment(
+        existingComment.id,
+        commentBody
+      )
+      return 'updated'
+    } else {
+      // Cast to the correct union type since exists is false
+      const failedResult = existenceResult as
+        | { exists: false; reason: 'not_found' }
+        | { exists: false; reason: 'error'; error: unknown }
+
+      const existenceAction = handleCommentExistenceFailure(
+        failedResult,
+        existingComment.id
+      )
+      if (existenceAction === 'created') {
+        const createCommentParams = {
+          prNumber,
+          commitSha,
+          path: comment.path,
+          line: comment.line,
+          startLine: comment.start_line,
+          body: commentBody
+        }
+        await platformContext.client.createReviewComment(createCommentParams)
+        return 'created'
+      } else {
+        // action === 'skipped'
+        return 'skipped'
+      }
+    }
+  } else {
+    // Create new comment using platform client
+    await platformContext.client.createReviewComment({
+      prNumber,
+      commitSha,
+      path: comment.path,
+      line: comment.line,
+      startLine: comment.start_line,
+      body: commentBody
+    })
+    return 'created'
+  }
+}
+
+/**
+ * Processes all comments and returns processing statistics
+ */
+async function processComments(
+  platformContext: PlatformContext,
+  comments: Comment[],
+  prContext: PRContext,
+  prNumber: number
+): Promise<Omit<ProcessingStats, 'deleted'>> {
+  const { diffMap } = prContext
+  let createdCount = 0
+  let updatedCount = 0
+  let skippedCount = 0
+
+  // Process each comment
+  for (const comment of comments) {
+    // Validate that the file/line is in the diff first
+    if (!isCommentValidForDiff(comment, diffMap)) {
+      console.log(
+        `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - not valid for current diff`
+      )
+      skippedCount++
+      continue
+    }
+
+    const result = await handleCommentOperation(
+      platformContext,
+      comment,
+      prContext,
+      prNumber
+    )
+
+    switch (result) {
+      case 'created':
+        createdCount++
+        break
+      case 'updated':
+        updatedCount++
+        break
+      case 'skipped':
+        skippedCount++
+        break
+    }
+  }
+
+  return {
+    created: createdCount,
+    updated: updatedCount,
+    skipped: skippedCount
+  }
+}
 
 /**
  * Platform-agnostic line comments handler using functional programming principles
@@ -77,201 +372,40 @@ export async function lineCommentsHandler(
   const startTime = reviewStartTime || Date.now()
 
   try {
-    // Parse the JSON response first
-    const rawParsedAnalysis = JSON.parse(analysis)
-
-    // Validate the structure with Zod
-    const analysisValidationResult = AnalysisSchema.safeParse(rawParsedAnalysis)
-
-    if (!analysisValidationResult.success) {
-      const errMsg = analysisValidationResult.error.format()
-      logSystemError(`Analysis validation failed: ${errMsg}`, {
-        pr_number: prNumber,
-        repository: repoName
-      })
-      throw new Error(
-        'Invalid analysis format: ' + analysisValidationResult.error.message
-      )
-    }
-
-    // Use the validated and typed result
-    const parsedAnalysis = analysisValidationResult.data
-
-    // Format the summary with our marker using pure function
-    const formattedSummary = createFormattedSummary(parsedAnalysis.summary)
-
-    // Create summary comment using platform client
-    try {
-      await platformContext.client.createReview(prNumber, formattedSummary)
-    } catch (error) {
-      const errMsg = `Failed to create review comment - PROXY_REVIEWER_TOKEN may not be configured. Set PROXY_REVIEWER_TOKEN environment variable with a GitHub personal access token. Error: ${error.message}`
-      logSystemError(errMsg, {
-        pr_number: prNumber,
-        repository: repoName
-      })
-      throw new Error(errMsg)
-    }
-
-    let pullRequest
-    let commitSha
-    try {
-      // Get the commit SHA for the PR head using platform client
-      pullRequest = await platformContext.client.getPullRequest(prNumber)
-      commitSha = pullRequest.head.sha
-    } catch (error) {
-      logSystemError(`Failed to get pull request: ${error}`, {
-        pr_number: prNumber,
-        repository: repoName
-      })
-      throw error
-    }
-
-    // Fetch PR diff to identify changed lines using platform client
-    const diffMap =
-      await platformContext.client.fetchPullRequestDiffMap(prNumber)
-
-    // Clean up obsolete comments first using platform client
-    const deletedCount = await cleanupObsoleteComments(
-      platformContext.client,
+    // Step 1: Process and validate analysis input
+    const validatedAnalysis = await processAnalysis(
+      analysis,
       prNumber,
-      diffMap,
       repoName
     )
 
-    // Get existing review comments AFTER cleanup using platform client
-    const existingComments = await findExistingComments(
-      platformContext.client,
+    // Step 2: Handle summary comment
+    await handleSummaryComment(
+      platformContext,
+      prNumber,
+      validatedAnalysis.summary,
+      repoName
+    )
+
+    // Step 3: Fetch PR context (commit SHA, diff map, existing comments)
+    const prContext = await fetchPRContext(platformContext, prNumber, repoName)
+
+    // Step 4: Process all comments
+    const processingStats = await processComments(
+      platformContext,
+      validatedAnalysis.comments,
+      prContext,
       prNumber
     )
 
-    // Track created/updated comments
-    let createdCount = 0
-    let updatedCount = 0
-    let skippedCount = 0
-
-    // Process each comment
-    for (const comment of parsedAnalysis.comments) {
-      // Validate that the file/line is in the diff first
-      if (!isCommentValidForDiff(comment, diffMap)) {
-        console.log(
-          `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - not valid for current diff`
-        )
-        skippedCount++
-        continue
-      }
-
-      // Get file content and extract line content using platform client
-      const fileContent = await platformContext.client.getFileContent(
-        comment.path,
-        commitSha
-      )
-      const lineContent = extractLineContent(
-        fileContent,
-        comment.line,
-        comment.start_line
-      )
-      const contentHash = createLineContentHash(lineContent)
-
-      // Generate the comment content with hash
-      const commentBody = prepareCommentContent(comment, contentHash)
-
-      // Find the existing comment (look for comments with same path and line range)
-      const baseMarkerId = createCommentMarkerId(
-        comment.path,
-        comment.line,
-        comment.start_line
-      )
-
-      const existingComment = existingComments.find(
-        (existing) =>
-          existing.body.includes(`<!-- REVU-AI-COMMENT ${baseMarkerId}`) &&
-          existing.path === comment.path
-      )
-
-      // Check if we should replace the comment based on content hash
-      const shouldReplace = shouldReplaceComment(existingComment, contentHash)
-
-      if (!shouldReplace && existingComment) {
-        console.log(
-          `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - content unchanged`
-        )
-        skippedCount++
-        continue
-      }
-
-      // Single decision: update or create with robust error handling
-      if (existingComment && shouldReplace) {
-        const existenceResult = await checkCommentExistence(
-          platformContext.client,
-          existingComment.id
-        )
-
-        if (existenceResult.exists) {
-          // Update existing comment using platform client
-          await platformContext.client.updateReviewComment(
-            existingComment.id,
-            commentBody
-          )
-          updatedCount++
-        } else {
-          // Cast to the correct union type since exists is false
-          const failedResult = existenceResult as
-            | { exists: false; reason: 'not_found' }
-            | { exists: false; reason: 'error'; error: unknown }
-
-          if (failedResult.reason === 'not_found') {
-            // Comment was deleted, create a new one
-            console.log(
-              `Comment ${existingComment.id} no longer exists, creating new one`
-            )
-            await platformContext.client.createReviewComment({
-              prNumber,
-              commitSha,
-              path: comment.path,
-              line: comment.line,
-              startLine: comment.start_line,
-              body: commentBody
-            })
-            createdCount++
-          } else {
-            // failedResult.reason === 'error'
-            console.warn(
-              `Unable to verify comment ${existingComment.id} existence, skipping update:`,
-              (
-                failedResult as {
-                  exists: false
-                  reason: 'error'
-                  error: unknown
-                }
-              ).error
-            )
-            skippedCount++
-          }
-        }
-      } else {
-        // Create new comment using platform client
-        await platformContext.client.createReviewComment({
-          prNumber,
-          commitSha,
-          path: comment.path,
-          line: comment.line,
-          startLine: comment.start_line,
-          body: commentBody
-        })
-        createdCount++
-      }
-    }
-
-    // Log successful review completion with metrics
+    // Step 5: Log successful completion and return result
     const duration = Date.now() - startTime
-    const commentStats = {
-      created: createdCount,
-      updated: updatedCount,
-      deleted: deletedCount,
-      skipped: skippedCount
+    const commentStats: ProcessingStats = {
+      ...processingStats,
+      deleted: prContext.deletedCount
     }
-    logReviewCompleted(prNumber, repoName, reviewType, duration, commentStats)
 
+    logReviewCompleted(prNumber, repoName, reviewType, duration, commentStats)
     return createSuccessMessage(prNumber, commentStats)
   } catch (error) {
     // In case of error, fall back to the error comment handler
