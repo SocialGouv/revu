@@ -15,12 +15,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@anthropic-ai/sdk@npm:^0.55.0":
-  version: 0.55.1
-  resolution: "@anthropic-ai/sdk@npm:0.55.1"
+"@anthropic-ai/sdk@npm:^0.56.0":
+  version: 0.56.0
+  resolution: "@anthropic-ai/sdk@npm:0.56.0"
   bin:
     anthropic-ai-sdk: bin/cli
-  checksum: 10c0/b6c5d0d47c2314ad49d147e300438f3a6ad8291db421091ee069e5e976f86a11ad107a203aa887456761fd4e16be7071926aadc429c8f8e4452f81fe85ca194a
+  checksum: 10c0/b8506daa740b3700c56cf7e7cd16c5f3c092b96ad0bca893530d3e12ed543bdae174ea5e34b270ba86958f193a8ac31559f17ed4a79ba9219771d3c457e15c06
   languageName: node
   linkType: hard
 
@@ -5281,7 +5281,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "revu@workspace:."
   dependencies:
-    "@anthropic-ai/sdk": "npm:^0.55.0"
+    "@anthropic-ai/sdk": "npm:^0.56.0"
     "@eslint/eslintrc": "npm:^3.3.1"
     "@eslint/js": "npm:^9.25.1"
     "@octokit/auth-app": "npm:^8.0.0"
