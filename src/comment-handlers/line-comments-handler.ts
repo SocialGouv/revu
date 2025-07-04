@@ -210,8 +210,26 @@ async function handleCommentOperation(
   )
   const contentHash = createLineContentHash(lineContent)
 
-  // Generate the comment content with hash
-  const commentBody = prepareCommentContent(comment, contentHash)
+  // Generate the comment content with hash and process SEARCH/REPLACE blocks
+  let commentBody: string
+  let updatedComment: Comment
+  try {
+    const result = await prepareCommentContent(
+      comment,
+      fileContent,
+      contentHash
+    )
+    commentBody = result.content
+    updatedComment = result.updatedComment
+  } catch (error) {
+    logSystemError(
+      `Failed to prepare comment content for ${comment.path}:${comment.start_line || comment.line}-${comment.line}: ${error.message}`,
+      {
+        pr_number: prNumber
+      }
+    )
+    return 'skipped'
+  }
 
   // Find the existing comment (look for comments with same path and line range)
   const baseMarkerId = createCommentMarkerId(
@@ -231,7 +249,7 @@ async function handleCommentOperation(
 
   if (!shouldReplace && existingComment) {
     console.log(
-      `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - content unchanged`
+      `Skipping comment on ${updatedComment.path}:${updatedComment.start_line || updatedComment.line}-${updatedComment.line} - content unchanged`
     )
     return 'skipped'
   }
@@ -264,9 +282,9 @@ async function handleCommentOperation(
         const createCommentParams = {
           prNumber,
           commitSha,
-          path: comment.path,
-          line: comment.line,
-          startLine: comment.start_line,
+          path: updatedComment.path,
+          line: updatedComment.line,
+          startLine: updatedComment.start_line,
           body: commentBody
         }
         await platformContext.client.createReviewComment(createCommentParams)
@@ -281,9 +299,9 @@ async function handleCommentOperation(
     await platformContext.client.createReviewComment({
       prNumber,
       commitSha,
-      path: comment.path,
-      line: comment.line,
-      startLine: comment.start_line,
+      path: updatedComment.path,
+      line: updatedComment.line,
+      startLine: updatedComment.start_line,
       body: commentBody
     })
     return 'created'
@@ -354,7 +372,12 @@ async function processComments(
  *       "path": "file/path.ts",
  *       "line": 42,
  *       "body": "Comment text",
- *       "suggestion": "Optional suggested code"
+ *       "search_replace_blocks": [
+ *         {
+ *           "search": "exact code to find",
+ *           "replace": "replacement code"
+ *         }
+ *       ]
  *     }
  *   ]
  * }
