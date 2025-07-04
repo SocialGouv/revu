@@ -5,6 +5,12 @@ export const SUMMARY_MARKER = '<!-- REVU-AI-SUMMARY -->'
 export const COMMENT_MARKER_PREFIX = '<!-- REVU-AI-COMMENT '
 export const COMMENT_MARKER_SUFFIX = ' -->'
 
+// Schema for SEARCH/REPLACE blocks
+const SearchReplaceBlockSchema = z.object({
+  search: z.string().min(1),
+  replace: z.string()
+})
+
 // Schema for individual comment validation
 const CommentSchema = z
   .object({
@@ -12,7 +18,7 @@ const CommentSchema = z
     line: z.number().int().positive(),
     start_line: z.number().int().positive().optional(),
     body: z.string().min(1),
-    suggestion: z.string().optional().nullable()
+    search_replace_blocks: z.array(SearchReplaceBlockSchema).optional()
   })
   .refine(
     (data) => {
@@ -65,3 +71,4 @@ export type CommentExistenceResult =
 
 // Inferred types from schemas
 export type Comment = z.infer<typeof CommentSchema>
+export type SearchReplaceBlock = z.infer<typeof SearchReplaceBlockSchema>
