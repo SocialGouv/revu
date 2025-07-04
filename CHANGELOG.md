@@ -1,3 +1,10 @@
+# [1.23.0](https://github.com/SocialGouv/revu/compare/v1.22.3...v1.23.0) (2025-07-04)
+
+
+### Features
+
+* Add warn system logging ([53266a0](https://github.com/SocialGouv/revu/commit/53266a00b627d2c1b21d6121f74fa1983655d558))
+
 ## [1.22.3](https://github.com/SocialGouv/revu/compare/v1.22.2...v1.22.3) (2025-07-02)
 
 
