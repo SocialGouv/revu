@@ -1,4 +1,9 @@
 import {
+  generateGitHubSuggestion,
+  processSearchReplaceBlocks
+} from '../core/services/search-replace-processor.ts'
+import { logSystemWarning } from '../utils/logger.ts'
+import {
   COMMENT_MARKER_PREFIX,
   COMMENT_MARKER_SUFFIX,
   type Comment
@@ -54,9 +59,20 @@ export function extractMarkerIdFromComment(commentBody: string): string | null {
 }
 
 /**
- * Prepares the content of a comment with its marker ID
+ * Prepares the content of a comment with its marker ID and processes SEARCH/REPLACE blocks
+ * Returns both the comment content and an updated comment with precise line positioning
  */
-export function prepareCommentContent(comment: Comment, hash?: string): string {
+export async function prepareCommentContent(
+  comment: Comment,
+  fileContent: string,
+  hash?: string
+): Promise<{
+  content: string
+  updatedComment: Comment
+}> {
+  // Start with the original comment
+  let updatedComment: Comment = { ...comment }
+
   const markerId = createCommentMarkerId(
     comment.path,
     comment.line,
@@ -66,12 +82,71 @@ export function prepareCommentContent(comment: Comment, hash?: string): string {
 
   let commentBody = `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}\n\n${comment.body}`
 
-  // Add suggested code if available
-  if (comment.suggestion) {
-    commentBody += '\n\n```suggestion\n' + comment.suggestion + '\n```'
+  // Process SEARCH/REPLACE blocks if present
+  if (
+    comment.search_replace_blocks &&
+    comment.search_replace_blocks.length > 0
+  ) {
+    try {
+      const result = await processSearchReplaceBlocks(
+        fileContent,
+        comment.search_replace_blocks
+      )
+
+      if (result.success && result.modifiedContent) {
+        // Generate GitHub suggestion block from the modified content
+        const suggestion = generateGitHubSuggestion(result.modifiedContent)
+        commentBody += '\n\n' + suggestion
+
+        // Update comment positioning with precise line ranges from SEARCH/REPLACE processing
+        if (
+          result.originalStartLine !== undefined &&
+          result.originalEndLine !== undefined
+        ) {
+          // Convert from 0-based internal indexing to 1-based GitHub API indexing
+          const startLine = result.originalStartLine + 1
+          const endLine = result.originalEndLine + 1
+
+          updatedComment = {
+            ...comment,
+            start_line: startLine,
+            line: endLine
+          }
+
+          // Update the marker ID to reflect the new line positioning
+          const updatedMarkerId = createCommentMarkerId(
+            updatedComment.path,
+            updatedComment.line,
+            updatedComment.start_line,
+            hash
+          )
+          commentBody = commentBody.replace(
+            `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}`,
+            `${COMMENT_MARKER_PREFIX}${updatedMarkerId}${COMMENT_MARKER_SUFFIX}`
+          )
+        }
+      } else {
+        logSystemWarning(
+          `SEARCH/REPLACE block matching failed for ${comment.path}:${comment.line}. Errors: ${result.errors.join('; ')}. Applied blocks: ${result.appliedBlocks}. Falling back to original comment positioning.`,
+          {
+            repository: `${comment.path}:${comment.line}`
+          }
+        )
+      }
+    } catch (error) {
+      logSystemWarning(
+        `SEARCH/REPLACE processing error for ${comment.path}:${comment.line}: ${error instanceof Error ? error.message : String(error)}. Falling back to original comment positioning.`,
+        {
+          repository: `${comment.path}:${comment.line}`
+        }
+      )
+    }
   }
 
-  return commentBody
+  return {
+    content: commentBody,
+    updatedComment
+  }
 }
 
 /**
