@@ -1,3 +1,10 @@
+# [1.25.0](https://github.com/SocialGouv/revu/compare/v1.24.1...v1.25.0) (2025-07-04)
+
+
+### Features
+
+* Implement comment suggestion with pattern matching for better accuracy ([679a11e](https://github.com/SocialGouv/revu/commit/679a11eb0bf3233176bc0f6e03af5189158bcf0e))
+
 ## [1.24.1](https://github.com/SocialGouv/revu/compare/v1.24.0...v1.24.1) (2025-07-04)
 
 
