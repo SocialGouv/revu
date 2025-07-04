@@ -9,7 +9,10 @@ interface CodeReviewResponse {
     line: number
     start_line?: number
     body: string
-    suggestion?: string
+    search_replace_blocks?: Array<{
+      search: string
+      replace: string
+    }>
   }>
 }
 
@@ -73,9 +76,26 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
                     type: 'string',
                     description: 'Detailed comment about the issue'
                   },
-                  suggestion: {
-                    type: 'string',
-                    description: 'Suggested code to fix the issue (optional)'
+                  search_replace_blocks: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        search: {
+                          type: 'string',
+                          description:
+                            'Exact code content to find. Must match character-for-character including whitespace, indentation, and line endings.'
+                        },
+                        replace: {
+                          type: 'string',
+                          description:
+                            'New code content to replace the search content with.'
+                        }
+                      },
+                      required: ['search', 'replace']
+                    },
+                    description:
+                      'SEARCH/REPLACE blocks for precise code modifications. Each search block must match existing code exactly.'
                   }
                 },
                 required: ['path', 'line', 'body']

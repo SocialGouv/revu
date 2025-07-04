@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createCommentMarkerId,
   extractMarkerIdFromComment,
-  isCommentValidForDiff,
-  prepareCommentContent
+  isCommentValidForDiff
 } from '../../src/comment-handlers/comment-utils.ts'
 import type { Comment } from '../../src/comment-handlers/types.ts'
 
@@ -81,97 +80,6 @@ describe('extractMarkerIdFromComment', () => {
       'Some text\n<!-- REVU-AI-COMMENT file.ts:5 -->\nMore text'
     const markerId = extractMarkerIdFromComment(commentBody)
     expect(markerId).toBe('file.ts:5')
-  })
-})
-
-describe('prepareCommentContent', () => {
-  it('should prepare single-line comment without suggestion', () => {
-    const comment: Comment = {
-      path: 'src/file.ts',
-      line: 10,
-      body: 'This needs attention'
-    }
-
-    const commentBody = prepareCommentContent(comment)
-
-    expect(commentBody).toBe(
-      '<!-- REVU-AI-COMMENT src_file.ts:10 -->\n\nThis needs attention'
-    )
-  })
-
-  it('should prepare multi-line comment without suggestion', () => {
-    const comment: Comment = {
-      path: 'src/file.ts',
-      line: 15,
-      start_line: 10,
-      body: 'Multi-line issue'
-    }
-
-    const commentBody = prepareCommentContent(comment)
-
-    expect(commentBody).toBe(
-      '<!-- REVU-AI-COMMENT src_file.ts:10-15 -->\n\nMulti-line issue'
-    )
-  })
-
-  it('should prepare comment with suggestion', () => {
-    const comment: Comment = {
-      path: 'src/file.ts',
-      line: 10,
-      body: 'This can be improved',
-      suggestion: 'const improved = true'
-    }
-
-    const commentBody = prepareCommentContent(comment)
-
-    expect(commentBody).toBe(
-      '<!-- REVU-AI-COMMENT src_file.ts:10 -->\n\nThis can be improved\n\n```suggestion\nconst improved = true\n```'
-    )
-  })
-
-  it('should handle null suggestion', () => {
-    const comment: Comment = {
-      path: 'src/file.ts',
-      line: 10,
-      body: 'Comment without suggestion',
-      suggestion: null
-    }
-
-    const commentBody = prepareCommentContent(comment)
-
-    expect(commentBody).toBe(
-      '<!-- REVU-AI-COMMENT src_file.ts:10 -->\n\nComment without suggestion'
-    )
-  })
-
-  it('should handle multi-line suggestion', () => {
-    const comment: Comment = {
-      path: 'src/file.ts',
-      line: 15,
-      start_line: 10,
-      body: 'Refactor this block',
-      suggestion: 'const result = calculate()\nreturn result'
-    }
-
-    const commentBody = prepareCommentContent(comment)
-
-    expect(commentBody).toBe(
-      '<!-- REVU-AI-COMMENT src_file.ts:10-15 -->\n\nRefactor this block\n\n```suggestion\nconst result = calculate()\nreturn result\n```'
-    )
-  })
-
-  it('should sanitize file path in markerId', () => {
-    const comment: Comment = {
-      path: 'src/components/my-component.tsx',
-      line: 10,
-      body: 'Component issue'
-    }
-
-    const commentBody = prepareCommentContent(comment)
-
-    expect(commentBody).toContain(
-      '<!-- REVU-AI-COMMENT src_components_my-component.tsx:10 -->'
-    )
   })
 })
 
