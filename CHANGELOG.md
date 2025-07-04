@@ -1,3 +1,10 @@
+# [1.24.0](https://github.com/SocialGouv/revu/compare/v1.23.0...v1.24.0) (2025-07-04)
+
+
+### Features
+
+* Add a search/replace processor for file editing ([de1121f](https://github.com/SocialGouv/revu/commit/de1121f8cfc5a15335e8caa3385edd49b0424ba6))
+
 # [1.23.0](https://github.com/SocialGouv/revu/compare/v1.22.3...v1.23.0) (2025-07-04)
 
 
