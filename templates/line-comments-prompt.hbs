@@ -111,11 +111,98 @@ Only comment on issues that fall into these categories (don't write down what th
 - Include specific code suggestions when possible
 - Focus on the most critical issues first
 
+## Code Suggestions - SEARCH/REPLACE Block Format
+
+When providing code suggestions, use SEARCH/REPLACE blocks for precise modifications. This format ensures maximum accuracy and reliability.
+
+### SEARCH/REPLACE Block Rules
+
+**Critical Requirements:**
+1. **Exact Matching**: SEARCH content must match the file content character-for-character:
+   - Include exact whitespace, indentation, line endings
+   - Include all comments, docstrings, etc.
+   - Never truncate lines mid-way through
+
+2. **Concise Blocks**: Keep SEARCH/REPLACE blocks focused:
+   - Include just enough lines to uniquely identify the code section
+   - Break large changes into multiple smaller blocks
+   - Include a few surrounding lines if needed for uniqueness
+   - Process multiple blocks in the order they appear in the file
+
+3. **Complete Lines**: Each line in SEARCH blocks must be complete
+   - Never use partial lines or fragments
+   - Include the full line content exactly as it appears
+
+### Usage Examples
+
+**Single Line Change:**
+```json
+{
+  "path": "src/utils/helper.ts",
+  "line": 15,
+  "body": "This function should handle null values to prevent runtime errors.",
+  "search_replace_blocks": [
+    {
+      "search": "  return user.name.toUpperCase()",
+      "replace": "  return user?.name?.toUpperCase() ?? 'Unknown'"
+    }
+  ]
+}
+```
+
+**Multi-Line Change:**
+```json
+{
+  "path": "src/components/Form.tsx",
+  "line": 25,
+  "start_line": 20,
+  "body": "Add proper error handling and validation to this form submission.",
+  "search_replace_blocks": [
+    {
+      "search": "const handleSubmit = () => {\n  saveData(formData)\n  setLoading(false)\n}",
+      "replace": "const handleSubmit = async () => {\n  try {\n    setLoading(true)\n    await saveData(formData)\n    setSuccess(true)\n  } catch (error) {\n    setError(error.message)\n  } finally {\n    setLoading(false)\n  }\n}"
+    }
+  ]
+}
+```
+
+**Multiple Changes in Order:**
+```json
+{
+  "path": "src/api/client.ts",
+  "line": 45,
+  "body": "Improve error handling and add proper typing.",
+  "search_replace_blocks": [
+    {
+      "search": "import axios from 'axios'",
+      "replace": "import axios, { AxiosError } from 'axios'"
+    },
+    {
+      "search": "} catch (error) {\n  throw error\n}",
+      "replace": "} catch (error) {\n  if (error instanceof AxiosError) {\n    throw new Error(`API Error: ${error.response?.data?.message || error.message}`)\n  }\n  throw error\n}"
+    }
+  ]
+}
+```
+
+### Best Practices
+
+- **Accuracy First**: Only provide SEARCH/REPLACE blocks when you can see the exact code content
+- **Context Awareness**: Include enough surrounding lines to make searches unique
+- **Logical Grouping**: Group related changes into the same comment when they address the same issue
+- **Error Prevention**: Ensure search content matches exactly - any mismatch will cause the suggestion to be dropped
+
+### When NOT to Use SEARCH/REPLACE Blocks
+
+- When you cannot see the exact code content to match
+- For suggestions that require understanding broader context not visible in the diff
+- When the change is conceptual rather than specific code replacement
+
 ### Response Format
 
 You MUST use the "provide_code_review" tool with:
 - A concise summary focusing on the most important aspects of the PR
-- Each comment should include the problem, why it matters, and code suggestions where appropriate
+- Each comment should include the problem, why it matters, and precise code suggestions using SEARCH/REPLACE blocks
 - Targeted comments for significant issues only
 - Multiple specific comments targeting different issues with accurate file paths and line numbers
 - Use multi-line comments when your feedback applies to a range of consecutive lines
