@@ -104,26 +104,41 @@ export async function prepareCommentContent(
           result.originalEndLine !== undefined
         ) {
           // Convert from 0-based internal indexing to 1-based GitHub API indexing
-          const startLine = result.originalStartLine + 1
-          const endLine = result.originalEndLine + 1
+          const convertedStartLine = result.originalStartLine + 1
+          const convertedEndLine = result.originalEndLine + 1
 
-          updatedComment = {
-            ...comment,
-            start_line: startLine,
-            line: endLine
+          // Ensure proper ordering: start_line must be <= line (end line)
+          // GitHub API requires start_line to precede or equal the end line
+          const actualStartLine = Math.min(convertedStartLine, convertedEndLine)
+          const actualEndLine = Math.max(convertedStartLine, convertedEndLine)
+
+          // Validate the line range is reasonable
+          if (actualStartLine <= 0 || actualEndLine <= 0) {
+            logSystemWarning(
+              `Invalid line range from SEARCH/REPLACE processing for ${comment.path}: start=${convertedStartLine}, end=${convertedEndLine}. Falling back to original comment positioning.`,
+              {
+                repository: `${comment.path}:${comment.line}`
+              }
+            )
+          } else {
+            updatedComment = {
+              ...comment,
+              start_line: actualStartLine,
+              line: actualEndLine
+            }
+
+            // Update the marker ID to reflect the new line positioning
+            const updatedMarkerId = createCommentMarkerId(
+              updatedComment.path,
+              updatedComment.line,
+              updatedComment.start_line,
+              hash
+            )
+            commentBody = commentBody.replace(
+              `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}`,
+              `${COMMENT_MARKER_PREFIX}${updatedMarkerId}${COMMENT_MARKER_SUFFIX}`
+            )
           }
-
-          // Update the marker ID to reflect the new line positioning
-          const updatedMarkerId = createCommentMarkerId(
-            updatedComment.path,
-            updatedComment.line,
-            updatedComment.start_line,
-            hash
-          )
-          commentBody = commentBody.replace(
-            `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}`,
-            `${COMMENT_MARKER_PREFIX}${updatedMarkerId}${COMMENT_MARKER_SUFFIX}`
-          )
         }
       } else {
         logSystemWarning(
