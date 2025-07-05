@@ -20,6 +20,7 @@
   - Extract git history
   - Populate template with data
   - Send to Claude
+  - Process SEARCH/REPLACE blocks for precise code suggestions
   - Post comments to GitHub via proxy user
 
 ## Strategy System
@@ -27,7 +28,8 @@
 - **Prompt Strategies**: Different templates for Claude (default, line-comments)
 - **Anthropic Senders**: Format requests to Claude API based on strategy
 - **Comment Handlers**: Post reviews as global comments or line-specific comments
-- Current config: "line-comments" strategy (provides feedback as inline comments on specific code lines rather than a single PR comment)
+- **SEARCH/REPLACE Processing**: Pattern matching system for precise code suggestions with exact character-for-character matching
+- Current config: "line-comments" strategy (provides feedback as inline comments on specific code lines with precise code suggestions using SEARCH/REPLACE blocks)
 
 ## Key Files
 
@@ -41,6 +43,7 @@
 
 - `src/extract-*.ts`: Data extraction modules
 - `src/send-to-anthropic.ts`: Claude API integration
+- `src/core/services/search-replace-processor.ts`: SEARCH/REPLACE block processing and pattern matching
 
 ### Review Strategy
 
@@ -60,6 +63,7 @@
 - Requires GitHub App credentials and Anthropic API key
 - **Proxy User System**: Requires additional GitHub user account and personal access token for manual review requests
 - Supports both global comments and line-specific comments
+- **SEARCH/REPLACE Block System**: Provides precise code suggestions with pattern matching for better accuracy
 - Includes smart comment management to prevent comment accumulation
 - Configurable through environment variables and YAML files
 - Environment variables: `PROXY_REVIEWER_USERNAME`, `PROXY_REVIEWER_TOKEN` for proxy user functionality
