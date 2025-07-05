@@ -1,3 +1,10 @@
+## [1.25.3](https://github.com/SocialGouv/revu/compare/v1.25.2...v1.25.3) (2025-07-05)
+
+
+### Bug Fixes
+
+* Bad start and end lines for comment positionning ([0fc670e](https://github.com/SocialGouv/revu/commit/0fc670e88f5195d0c758e5f5e8811c7f002cd95d))
+
 ## [1.25.2](https://github.com/SocialGouv/revu/compare/v1.25.1...v1.25.2) (2025-07-05)
 
 
