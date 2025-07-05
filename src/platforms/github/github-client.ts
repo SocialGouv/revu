@@ -123,6 +123,27 @@ export const createGitHubClient = (
         throw new Error('PROXY_REVIEWER_TOKEN not configured')
       }
 
+      // Validate line parameters to prevent GitHub API errors
+      if (params.line <= 0) {
+        throw new Error(
+          `Invalid line number: ${params.line}. Line numbers must be positive.`
+        )
+      }
+
+      if (params.startLine !== undefined) {
+        if (params.startLine <= 0) {
+          throw new Error(
+            `Invalid start_line number: ${params.startLine}. Line numbers must be positive.`
+          )
+        }
+        if (params.startLine > params.line) {
+          throw new Error(
+            `Invalid line range: start_line (${params.startLine}) must be <= line (${params.line}). ` +
+              `GitHub API requires start_line to precede or equal the end line for multi-line comments.`
+          )
+        }
+      }
+
       const commentParams = {
         owner,
         repo,
@@ -138,7 +159,31 @@ export const createGitHubClient = (
         })
       }
 
-      await proxyClient.pulls.createReviewComment(commentParams)
+      try {
+        await proxyClient.pulls.createReviewComment(commentParams)
+      } catch (error) {
+        // Enhanced error reporting for GitHub API errors
+        if (error && typeof error === 'object' && 'status' in error) {
+          const apiError = error as {
+            status: number
+            message?: string
+            response?: { data?: unknown }
+          }
+          let errorMessage = `GitHub API error (${apiError.status})`
+
+          if (apiError.response?.data) {
+            errorMessage += `: ${JSON.stringify(apiError.response.data)}`
+          } else if (apiError.message) {
+            errorMessage += `: ${apiError.message}`
+          }
+
+          // Add context about the comment parameters for debugging
+          errorMessage += `. Comment params: path=${params.path}, line=${params.line}, startLine=${params.startLine}`
+
+          throw new Error(errorMessage)
+        }
+        throw error
+      }
     },
 
     updateReviewComment: async (

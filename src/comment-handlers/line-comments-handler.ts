@@ -203,11 +203,14 @@ async function handleCommentOperation(
     comment.path,
     commitSha
   )
+
+  // Extract line content for hash calculation
+  // For single-line comments, extract just that line
+  // For multi-line comments, extract the range from start_line to line
   const lineContent = extractLineContent(
     fileContent,
-    // Take a few lines before the comment line because the LLM might not be accurate
-    comment.line + 10,
-    comment.start_line
+    comment.line,
+    comment.start_line - 10 // Adjusted to -10 for better context
   )
   const contentHash = createLineContentHash(lineContent)
 
