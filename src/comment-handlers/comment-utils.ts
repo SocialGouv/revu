@@ -93,9 +93,9 @@ export async function prepareCommentContent(
         comment.search_replace_blocks
       )
 
-      if (result.success && result.modifiedContent) {
-        // Generate GitHub suggestion block from the modified content
-        const suggestion = generateGitHubSuggestion(result.modifiedContent)
+      if (result.success && result.replacementContent) {
+        // Generate GitHub suggestion block from the replacement content
+        const suggestion = generateGitHubSuggestion(result.replacementContent)
         commentBody += '\n\n' + suggestion
 
         // Update comment positioning with precise line ranges from SEARCH/REPLACE processing

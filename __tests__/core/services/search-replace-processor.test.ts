@@ -25,10 +25,7 @@ describe('processSearchReplaceBlocks', () => {
     expect(result.success).toBe(true)
     expect(result.appliedBlocks).toBe(1)
     expect(result.errors).toHaveLength(0)
-    expect(result.modifiedContent).toBe(`function test() {
-  const improved = true
-  return old
-}`)
+    expect(result.replacementContent).toBe('  const improved = true')
   })
 
   it('should handle line-trimmed fallback matching', async () => {
@@ -75,13 +72,12 @@ function Component() {
     expect(result.success).toBe(true)
     expect(result.appliedBlocks).toBe(2)
     expect(result.errors).toHaveLength(0)
-    expect(result.modifiedContent).toBe(
+    // For multiple blocks, replacementContent should contain the affected range
+    expect(result.replacementContent).toBe(
       `import React, { useState } from 'react'
 
 function Component() {
-  const [state, setState] = useState(true)
-  return <div>{old}</div>
-}`
+  const [state, setState] = useState(true)`
     )
   })
 
@@ -135,15 +131,13 @@ function Component() {
 
     expect(result.success).toBe(true)
     expect(result.appliedBlocks).toBe(1)
-    expect(result.modifiedContent).toBe(
-      `function test() {
-  if (condition) {
+    expect(result.replacementContent).toBe(
+      `  if (condition) {
     doSomething()
     doMore()
     doExtra()
     finish()
-  }
-}`
+  }`
     )
   })
 
