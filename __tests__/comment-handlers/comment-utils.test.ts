@@ -320,7 +320,6 @@ describe('prepareCommentContent', () => {
       ]
     }
     const fileContent = 'const x = 1;\nconst y = 2;'
-    const modifiedContent = 'const x = 2;\nconst y = 2;'
 
     // When originalStartLine and originalEndLine are 0, it typically means
     // the search/replace processor couldn't determine precise line positioning
@@ -329,7 +328,7 @@ describe('prepareCommentContent', () => {
       success: true,
       errors: [],
       appliedBlocks: 1,
-      modifiedContent,
+      replacementContent: 'const x = 2;',
       originalStartLine: 0,
       originalEndLine: 0
     })
@@ -340,12 +339,7 @@ describe('prepareCommentContent', () => {
       fileContent,
       comment.search_replace_blocks
     )
-    expect(result.content).toContain(
-      '```suggestion\nconst x = 2;\nconst y = 2;\n```'
-    )
-
-    // When originalStartLine/originalEndLine are 0, the positioning logic still executes
-    // and converts to 1-based indexing (0 + 1 = 1)
+    expect(result.content).toContain('```suggestion\nconst x = 2;\n```')
     expect(result.updatedComment.start_line).toBe(1) // 0 + 1 (converted to 1-based)
     expect(result.updatedComment.line).toBe(1) // 0 + 1 (converted to 1-based)
 
@@ -366,13 +360,12 @@ describe('prepareCommentContent', () => {
       ]
     }
     const fileContent = 'const x = 1;\nconst y = 2;'
-    const modifiedContent = 'const x = 2;\nconst y = 2;'
 
     vi.mocked(processSearchReplaceBlocks).mockResolvedValue({
       success: true,
       errors: [],
       appliedBlocks: 1,
-      modifiedContent,
+      replacementContent: 'const x = 2;',
       originalStartLine: 5,
       originalEndLine: 8
     })
@@ -469,7 +462,6 @@ describe('prepareCommentContent', () => {
       ]
     }
     const fileContent = 'const x = 1;\nconst y = 2;'
-    const modifiedContent = 'const x = 2;\nconst y = 2;'
 
     // When originalStartLine/originalEndLine are undefined (not provided),
     // the original comment positioning should be preserved
@@ -477,8 +469,8 @@ describe('prepareCommentContent', () => {
       success: true,
       errors: [],
       appliedBlocks: 1,
-      modifiedContent
-      // No originalStartLine/originalEndLine provided (undefined)
+      replacementContent: 'const x = 2;\nconst y = 2;'
+      // No originalStartLine/originalEndLine provided
     })
 
     const result = await prepareCommentContent(comment, fileContent)
@@ -520,13 +512,12 @@ describe('prepareCommentContent', () => {
       ]
     }
     const fileContent = 'interface User {\n  id: number;\n}'
-    const modifiedContent = 'interface UserData {\n  id: number;\n}'
 
     vi.mocked(processSearchReplaceBlocks).mockResolvedValue({
       success: true,
       errors: [],
       appliedBlocks: 1,
-      modifiedContent,
+      replacementContent: 'interface UserData',
       originalStartLine: 2,
       originalEndLine: 4
     })
