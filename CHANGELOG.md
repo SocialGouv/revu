@@ -1,3 +1,10 @@
+## [1.25.2](https://github.com/SocialGouv/revu/compare/v1.25.1...v1.25.2) (2025-07-05)
+
+
+### Bug Fixes
+
+* outdated test ([9b31b62](https://github.com/SocialGouv/revu/commit/9b31b622245999bd74ec5ce337913090cfdb4177))
+
 ## [1.25.1](https://github.com/SocialGouv/revu/compare/v1.25.0...v1.25.1) (2025-07-05)
 
 
