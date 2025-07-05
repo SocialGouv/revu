@@ -205,7 +205,8 @@ async function handleCommentOperation(
   )
   const lineContent = extractLineContent(
     fileContent,
-    comment.line,
+    // Take a few lines before the comment line because the LLM might not be accurate
+    comment.line + 10,
     comment.start_line
   )
   const contentHash = createLineContentHash(lineContent)
