@@ -1,3 +1,10 @@
+## [1.25.1](https://github.com/SocialGouv/revu/compare/v1.25.0...v1.25.1) (2025-07-05)
+
+
+### Bug Fixes
+
+* Comment suggestion now showing only replacement block ([2bf9f93](https://github.com/SocialGouv/revu/commit/2bf9f93f63057442b9da0e76bb1239981d730553))
+
 # [1.25.0](https://github.com/SocialGouv/revu/compare/v1.24.1...v1.25.0) (2025-07-04)
 
 
