@@ -9,6 +9,7 @@ Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent
 - **Contextual Analysis**: Understands code changes in the context of the entire codebase
 - **Intelligent Feedback**: Provides detailed explanations and suggestions for improvements
 - **Git-Aware**: Considers branch differences and file changes
+- **Precise Code Suggestions**: Uses SEARCH/REPLACE blocks for exact pattern matching and accurate code modifications
 - **GitHub Integration**: Seamlessly integrates with GitHub's PR workflow
 - **Customizable**: Configurable through environment variables, templates, and coding guidelines
 - **Coding Guidelines**: Enforce custom coding standards through configuration
@@ -144,6 +145,27 @@ Multi-line comments use GitHub's review comment API with additional parameters:
 - `start_side`: Set to 'RIGHT' for consistency
 
 The cleanup system intelligently handles multi-line comments by checking that all lines in the range (start_line to line) are still present in the current diff before preserving the comment.
+
+## SEARCH/REPLACE Block System
+
+Revu uses an advanced SEARCH/REPLACE block system for providing precise code suggestions that can be directly applied to files. This system ensures maximum accuracy and reliability by using exact pattern matching.
+
+### How It Works
+
+Instead of simple text suggestions, Revu now provides structured SEARCH/REPLACE blocks that:
+
+1. **Exact Matching**: Search for code with character-for-character precision
+2. **Pattern Recognition**: Identify exact code patterns in the file
+3. **Smart Positioning**: Automatically determine precise line ranges for suggestions
+4. **GitHub Integration**: Generate proper GitHub suggestion blocks that can be applied with one click
+
+### Key Benefits
+
+- **Higher Accuracy**: Eliminates ambiguity in code suggestions
+- **One-Click Application**: GitHub users can apply suggestions directly from the PR interface
+- **Precise Targeting**: Comments are positioned exactly where the code changes should occur
+- **Error Prevention**: Failed matches fall back gracefully to original comment positioning
+- **Better Context**: Shows only the relevant code that needs to change
 
 ## CLI Usage for Testing
 
