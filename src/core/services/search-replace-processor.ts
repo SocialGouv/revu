@@ -5,7 +5,7 @@ interface ProcessingResult {
   success: boolean
   errors: string[]
   appliedBlocks: number
-  modifiedContent?: string
+  replacementContent?: string // Only the lines that changed, in final form
   originalStartLine?: number // First line affected in original content
   originalEndLine?: number // Last line affected in original content
 }
@@ -92,9 +92,30 @@ export function processSearchReplaceBlocks(
     }
   }
 
+  // Extract only the affected lines in their final modified state
+  let replacementContent: string | undefined
+  if (
+    appliedBlocks > 0 &&
+    originalStartLine !== undefined &&
+    originalEndLine !== undefined
+  ) {
+    // Calculate how many lines the affected range now occupies in the final content
+    const originalLineCount = originalEndLine - originalStartLine + 1
+    const finalLineCount = originalLineCount + lineOffset
+
+    // Extract the affected lines from the working content
+    // The affected lines start at the same position as originalStartLine
+    // but may have a different count due to additions/removals
+    const affectedLines = workingLines.slice(
+      originalStartLine,
+      originalStartLine + finalLineCount
+    )
+    replacementContent = affectedLines.join('\n')
+  }
+
   return {
     success: appliedBlocks > 0 && errors.length === 0,
-    modifiedContent: appliedBlocks > 0 ? workingLines.join('\n') : undefined,
+    replacementContent,
     errors,
     appliedBlocks,
     originalStartLine,
