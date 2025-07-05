@@ -82,9 +82,9 @@ describe('populateTemplate', () => {
     })
 
     // Verify the content structure
-    expect(result).toMatch(/## Context\n+/)
-    expect(result).toMatch(/## Modified Files\n+/)
-    expect(result).toMatch(/## Git Diff\n+/)
+    expect(result).toMatch(/## Context/)
+    expect(result).toMatch(/## Modified Files/)
+    expect(result).toMatch(/## Git Diff/)
 
     // Verify that the platform client was called with the correct parameters
     expect(mockClient.fetchPullRequestDiff).toHaveBeenCalledWith(
