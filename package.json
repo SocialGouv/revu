@@ -1,7 +1,7 @@
 {
-  "name": "revu",
+  "name": "cq",
   "version": "1.25.4",
-  "description": "Automated PR reviews using Claude Sonnet API",
+  "description": "Automated security reviews using Claude Sonnet API",
   "main": "src/index.ts",
   "private": true,
   "type": "module",
