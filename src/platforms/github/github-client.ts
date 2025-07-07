@@ -144,6 +144,10 @@ export const createGitHubClient = (
         }
       }
 
+      // Only include startLine/start_side if startLine is defined and not equal nor supperior to line
+      const includeStartLine =
+        params.startLine !== undefined && params.startLine < params.line
+
       const commentParams = {
         owner,
         repo,
@@ -153,7 +157,7 @@ export const createGitHubClient = (
         line: params.line,
         body: params.body,
         side: 'RIGHT' as const,
-        ...(params.startLine !== undefined && {
+        ...(includeStartLine && {
           start_line: params.startLine,
           start_side: 'RIGHT' as const
         })
