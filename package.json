@@ -15,7 +15,9 @@
     "test:coverage": "vitest run --coverage",
     "prepare": "husky",
     "lint": "eslint --config eslint.config.mjs \"**/*.ts\" --fix",
-    "review-pr": "tsx src/cli/review-pr.ts"
+    "review-pr": "tsx src/cli/review-pr.ts",
+    "security-review": "tsx src/cli/security-review-cli.ts",
+    "security-review-demo": "tsx src/cli/security-review-demo.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",
