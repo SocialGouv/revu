@@ -1,3 +1,10 @@
+## [1.25.4](https://github.com/SocialGouv/revu/compare/v1.25.3...v1.25.4) (2025-07-07)
+
+
+### Bug Fixes
+
+* Stop sending equal start and end lines to github API ([eb01e93](https://github.com/SocialGouv/revu/commit/eb01e93e26428e32339cb140499e62524f20d6a4))
+
 ## [1.25.3](https://github.com/SocialGouv/revu/compare/v1.25.2...v1.25.3) (2025-07-05)
 
 
