@@ -1,3 +1,10 @@
+# [1.26.0](https://github.com/SocialGouv/revu/compare/v1.25.5...v1.26.0) (2025-07-09)
+
+
+### Features
+
+* Stop reviewing bad PRs and explain why ([5b2b832](https://github.com/SocialGouv/revu/commit/5b2b832ef8012762cfd5ed6f5937e070aafa2054))
+
 ## [1.25.5](https://github.com/SocialGouv/revu/compare/v1.25.4...v1.25.5) (2025-07-09)
 
 
