@@ -102,7 +102,24 @@ describe('isCommentValidForDiff', () => {
   const createDiffMap = (files: Record<string, number[]>) => {
     const diffMap = new Map()
     for (const [path, lines] of Object.entries(files)) {
-      diffMap.set(path, { changedLines: new Set(lines) })
+      // Create a simple hunk that covers all changed lines
+      const minLine = Math.min(...lines)
+      const maxLine = Math.max(...lines)
+      const hunks =
+        lines.length > 0
+          ? [
+              {
+                startLine: minLine,
+                endLine: maxLine,
+                header: `@@ -${minLine},${maxLine - minLine + 1} +${minLine},${maxLine - minLine + 1} @@`
+              }
+            ]
+          : []
+
+      diffMap.set(path, {
+        changedLines: new Set(lines),
+        hunks
+      })
     }
     return diffMap
   }

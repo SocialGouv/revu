@@ -1,4 +1,4 @@
-import type { DiffFileMap, DiffInfo } from '../models/diff-types.ts'
+import type { DiffFileMap, DiffHunk, DiffInfo } from '../models/diff-types.ts'
 
 /**
  * Parses a git diff to extract changed lines and their hunks
@@ -20,23 +20,31 @@ export function parseDiff(diff: string): DiffFileMap {
 
     const filePath = filePathMatch[1]
     const changedLines = new Set<number>()
+    const hunks: DiffHunk[] = []
 
     // Extract hunks
-    const hunks = section.split('\n@@').slice(1)
+    const hunkSections = section.split('\n@@').slice(1)
 
-    for (const hunk of hunks) {
+    for (const hunk of hunkSections) {
       // Extract hunk header
-      const hunkHeaderMatch = hunk.match(/^[ -+](-\d+,\d+ \+\d+,\d+) @@/)
+      const hunkHeaderMatch = hunk.match(/^[ -+](-\d+,\d+ \+\d+,\d+) @@(.*)/)
       if (!hunkHeaderMatch) continue
+
+      const hunkHeader = `@@${hunkHeaderMatch[1]} @@${hunkHeaderMatch[2] || ''}`
+
+      // Parse the hunk range for new file (+)
+      const newRangeMatch = hunkHeaderMatch[1].match(/\+(\d+),?(\d+)?/)
+      if (!newRangeMatch) continue
+
+      const startLine = parseInt(newRangeMatch[1], 10)
+      const lineCount = parseInt(newRangeMatch[2] || '1', 10)
+      const endLine = startLine + lineCount - 1
 
       // Split hunk into lines
       const lines = hunk.split('\n')
-      let lineNumber = parseInt(
-        hunkHeaderMatch[1].match(/\+(\d+)/)?.[1] || '0',
-        10
-      )
+      let currentLineNumber = startLine
 
-      // Process each line in the hunk
+      // Process each line in the hunk to track changed lines
       for (let j = 1; j < lines.length; j++) {
         const line = lines[j]
 
@@ -46,17 +54,24 @@ export function parseDiff(diff: string): DiffFileMap {
         // For added lines, track the line number
         if (line.startsWith('+')) {
           // This is an added/modified line
-          changedLines.add(lineNumber)
+          changedLines.add(currentLineNumber)
         }
 
         // Increment line number for context and added lines
         if (line.startsWith('+') || !line.startsWith('-')) {
-          lineNumber++
+          currentLineNumber++
         }
       }
+
+      // Store hunk information
+      hunks.push({
+        startLine,
+        endLine,
+        header: hunkHeader
+      })
     }
 
-    fileMap.set(filePath, { changedLines })
+    fileMap.set(filePath, { changedLines, hunks })
   }
 
   return fileMap
