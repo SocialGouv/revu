@@ -1,3 +1,4 @@
+import type { DiffFileMap } from '../core/models/diff-types.ts'
 import type { PlatformContext } from '../core/models/platform-types.ts'
 import {
   checkCommentExistence,
@@ -9,8 +10,13 @@ import {
   extractLineContent,
   shouldReplaceComment
 } from '../core/services/line-content-service.ts'
-import { logReviewCompleted, logSystemError } from '../utils/logger.ts'
 import {
+  logReviewCompleted,
+  logSystemError,
+  logSystemWarning
+} from '../utils/logger.ts'
+import {
+  constrainCommentToHunk,
   createCommentMarkerId,
   isCommentValidForDiff,
   prepareCommentContent
@@ -28,7 +34,7 @@ type ProcessingStats = {
 
 type PRContext = {
   commitSha: string
-  diffMap: Map<string, { changedLines: Set<number> }>
+  diffMap: DiffFileMap
   existingComments: Array<{ id: number; body: string; path: string }>
   deletedCount: number
 }
@@ -328,18 +334,48 @@ async function processComments(
 
   // Process each comment
   for (const comment of comments) {
-    // Validate that the file/line is in the diff first
+    let processableComment = comment
+
+    // First, validate that the file/line is in the diff
     if (!isCommentValidForDiff(comment, diffMap)) {
-      console.log(
-        `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - not valid for current diff`
-      )
-      skippedCount++
-      continue
+      // Try to constrain the comment to fit within a hunk
+      const fileInfo = diffMap.get(comment.path)
+      if (fileInfo && fileInfo.hunks.length > 0) {
+        const constrainedComment = constrainCommentToHunk(
+          comment,
+          fileInfo.hunks
+        )
+        if (
+          constrainedComment &&
+          isCommentValidForDiff(constrainedComment, diffMap)
+        ) {
+          logSystemWarning(
+            `Comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} was moved to first line of first overlapping hunk: ${constrainedComment.line}`,
+            {
+              pr_number: prNumber,
+              repository: `${comment.path}:${comment.line}`
+            }
+          )
+          processableComment = constrainedComment
+        } else {
+          console.log(
+            `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - cannot constrain to valid hunk`
+          )
+          skippedCount++
+          continue
+        }
+      } else {
+        console.log(
+          `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - not valid for current diff`
+        )
+        skippedCount++
+        continue
+      }
     }
 
     const result = await handleCommentOperation(
       platformContext,
-      comment,
+      processableComment,
       prContext,
       prNumber
     )

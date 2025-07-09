@@ -144,7 +144,7 @@ export const createGitHubClient = (
         }
       }
 
-      // Only include startLine/start_side if startLine is defined and not equal nor supperior to line
+      // Only include startLine/start_side if startLine is defined and less than line (GitHub API fails when start_line equals line)
       const includeStartLine =
         params.startLine !== undefined && params.startLine < params.line
 
@@ -183,6 +183,47 @@ export const createGitHubClient = (
 
           // Add context about the comment parameters for debugging
           errorMessage += `. Comment params: path=${params.path}, line=${params.line}, startLine=${params.startLine}`
+
+          // Check for hunk boundary violation error and provide fallback
+          if (apiError.status === 422 && apiError.response?.data) {
+            const responseData = apiError.response.data as {
+              message?: string
+              errors?: Array<{ message?: string }>
+            }
+            if (
+              responseData.message === 'Validation Failed' &&
+              responseData.errors?.some((err) =>
+                err.message?.includes('must be part of the same hunk')
+              )
+            ) {
+              // Try fallback to single-line comment if this was a multi-line comment
+              if (params.startLine !== undefined) {
+                console.warn(
+                  `Multi-line comment failed due to hunk boundary violation. Falling back to single-line comment at line ${params.line}`
+                )
+
+                const fallbackParams = {
+                  owner,
+                  repo,
+                  pull_number: params.prNumber,
+                  commit_id: params.commitSha,
+                  path: params.path,
+                  line: params.line,
+                  body: params.body,
+                  side: 'RIGHT' as const
+                }
+
+                try {
+                  await proxyClient.pulls.createReviewComment(fallbackParams)
+                  return // Success with fallback
+                } catch (fallbackError) {
+                  // Log fallback failure separately to avoid confusing error messages
+                  console.error(`Fallback to single-line comment failed:`, fallbackError)
+                  // Keep original error message clean
+                }
+              }
+            }
+          }
 
           throw new Error(errorMessage)
         }
