@@ -14,6 +14,7 @@ Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent
 - **Customizable**: Configurable through environment variables, templates, and coding guidelines
 - **Coding Guidelines**: Enforce custom coding standards through configuration
 - **Smart Comment Management**: Automatically cleans up obsolete comments to prevent accumulation across commits
+- **PR Validation Guardrails**: Automatically skips reviewing problematic PRs (too large, generated files, etc.) with helpful feedback
 
 ## How It Works
 
@@ -322,6 +323,25 @@ The configuration supports:
 - **Extensible Design**: Ready for future configuration options
 
 Guidelines are automatically included in code review comments to ensure consistent standards across your projects.
+
+#### PR Validation Guardrails Configuration
+
+Revu includes intelligent PR validation that automatically skips reviewing problematic PRs to save resources and provide better feedback. The bot will skip PRs that are too large, contain mostly generated files, or are otherwise unsuitable for automated review.
+
+When a PR is skipped, Revu posts an informative comment explaining why and provides suggestions for improvement. All validation settings are fully configurable through your `.revu.yml` file.
+
+**📖 For complete configuration details and examples, see: [PR Validation Guardrails Documentation](docs/pr-validation-guardrails.md)**
+
+Example configuration:
+
+```yaml
+# .revu.yml
+validation:
+  maxFilesChanged: 75        # Skip PRs with too many files
+  maxDiffSize: 15000         # Skip PRs with massive diffs
+  skipDocumentationOnly: true # Skip documentation-only PRs
+  # ... more configurable options
+```
 
 ## File Filtering with .revuignore
 
