@@ -1,3 +1,4 @@
+import type { DiffHunk } from '../core/models/diff-types.ts'
 import {
   generateGitHubSuggestion,
   processSearchReplaceBlocks
@@ -165,11 +166,76 @@ export async function prepareCommentContent(
 }
 
 /**
+ * Finds the hunk that contains a specific line number
+ */
+export function findHunkForLine(
+  hunks: DiffHunk[],
+  lineNumber: number
+): DiffHunk | null {
+  return (
+    hunks.find(
+      (hunk) => lineNumber >= hunk.startLine && lineNumber <= hunk.endLine
+    ) || null
+  )
+}
+
+/**
+ * Checks if two line numbers are in the same hunk
+ */
+export function areInSameHunk(
+  hunks: DiffHunk[],
+  startLine: number,
+  endLine: number
+): boolean {
+  const startHunk = findHunkForLine(hunks, startLine)
+  const endHunk = findHunkForLine(hunks, endLine)
+
+  return startHunk !== null && endHunk !== null && startHunk === endHunk
+}
+
+/**
+ * Constrains a comment's line range to fit within a single hunk
+ * Returns the adjusted comment or null if no valid range can be found
+ */
+export function constrainCommentToHunk(
+  comment: Comment,
+  hunks: DiffHunk[]
+): Comment | null {
+  if (!comment.start_line) {
+    // Single line comment - just check if it's in any hunk
+    const hunk = findHunkForLine(hunks, comment.line)
+    return hunk ? comment : null
+  }
+
+  // Multi-line comment - check if it fits in a single hunk
+  if (areInSameHunk(hunks, comment.start_line, comment.line)) {
+    return comment
+  }
+
+  // Comment spans multiple hunks - find the first hunk that overlaps with the comment range
+  const firstOverlappingHunk = hunks.find(
+    (hunk) =>
+      // Hunk overlaps if: hunk.startLine <= comment.line && hunk.endLine >= comment.start_line
+      hunk.startLine <= comment.line && hunk.endLine >= comment.start_line
+  )
+
+  if (firstOverlappingHunk) {
+    return {
+      ...comment,
+      line: firstOverlappingHunk.startLine,
+      start_line: undefined // Make it a single-line comment
+    }
+  }
+
+  return null
+}
+
+/**
  * Validates if a comment can be applied on the diff
  */
 export function isCommentValidForDiff(
   comment: Comment,
-  diffMap: Map<string, { changedLines: Set<number> }>
+  diffMap: Map<string, { changedLines: Set<number>; hunks: DiffHunk[] }>
 ): boolean {
   const fileInfo = diffMap.get(comment.path)
   if (!fileInfo) {
@@ -177,14 +243,25 @@ export function isCommentValidForDiff(
   }
 
   // For multi-line comments, check if ALL lines in the range are in the diff
+  // AND that they are in the same hunk
   if (comment.start_line !== undefined) {
     const allLinesInDiff = Array.from(
       { length: comment.line - comment.start_line + 1 },
       (_, i) => comment.start_line! + i
     ).every((line) => fileInfo.changedLines.has(line))
-    return allLinesInDiff
+
+    const inSameHunk = areInSameHunk(
+      fileInfo.hunks,
+      comment.start_line,
+      comment.line
+    )
+
+    return allLinesInDiff && inSameHunk
   } else {
-    // Single line comment
-    return fileInfo.changedLines.has(comment.line)
+    // Single line comment - check if it's in the diff and in a hunk
+    const inDiff = fileInfo.changedLines.has(comment.line)
+    const inHunk = findHunkForLine(fileInfo.hunks, comment.line) !== null
+
+    return inDiff && inHunk
   }
 }
