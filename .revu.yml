@@ -5,3 +5,34 @@ codingGuidelines:
   - "Naming: Use semantically significant names for functions, classes, and parameters."
   - "Comments: Add comments only for complex code; simple code should be self-explanatory if clean code principles are followed."
   - "Documentation: Public functions must have concise docstrings explaining purpose and return values."
+
+# PR validation settings - Configure when the bot should skip reviewing PRs
+validation:
+  # Maximum number of files that can be changed in a single PR
+  maxFilesChanged: 75
+
+  # Maximum total lines in the diff
+  maxDiffSize: 15000
+
+  # Maximum lines of changes in a single file
+  maxIndividualFileSize: 3000
+
+  # Skip PRs that are mostly deletions (cleanup PRs)
+  # Ratio of additions to deletions must be at least this value
+  minAdditionDeletionRatio: 0.1
+
+  # Skip PRs that are mostly additions without context
+  # Ratio of additions to deletions must not exceed this value
+  maxAdditionDeletionRatio: 10
+
+  # Skip PRs that only change documentation files
+  skipDocumentationOnly: true
+
+  # File extensions considered as documentation
+  documentationExtensions:
+    - ".md"
+    - ".txt"
+    - ".rst"
+    - ".adoc"
+    - ".tex"
+
