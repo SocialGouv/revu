@@ -9,7 +9,7 @@ codingGuidelines:
 # PR validation settings - Configure when the bot should skip reviewing PRs
 validation:
   # Maximum number of files that can be changed in a single PR
-  maxFilesChanged: 75
+  maxFilesChanged: 25
 
   # Maximum total lines in the diff
   maxDiffSize: 15000
@@ -35,4 +35,3 @@ validation:
     - ".rst"
     - ".adoc"
     - ".tex"
-
