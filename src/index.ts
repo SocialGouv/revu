@@ -6,7 +6,10 @@ import { errorCommentHandler } from './comment-handlers/error-comment-handler.ts
 import { lineCommentsHandler } from './comment-handlers/line-comments-handler.ts'
 import { getValidationConfig } from './config-handler.ts'
 import type { PlatformContext } from './core/models/platform-types.ts'
-import { PRValidationService } from './core/services/pr-validation-service.ts'
+import {
+  formatValidationIssues,
+  validatePR
+} from './core/services/pr-validation-service.ts'
 import {
   addBotAsReviewer,
   getProxyReviewerUsername,
@@ -192,22 +195,21 @@ export default async (app: Probot, { getRouter }) => {
 
       // Validate PR before proceeding with expensive operations
       const validationConfig = await getValidationConfig()
-      const validationService = new PRValidationService(
+
+      // The actual filtering will happen later in the review process
+      const validationResult = await validatePR(
         platformContext.client,
+        pr.number,
         validationConfig
       )
 
-      // We need a temporary repo path for filtering, but validation will work without it
-      // The actual filtering will happen later in the review process
-      const validationResult = await validationService.validatePR(pr.number)
-
       if (!validationResult.isValid) {
         // Post validation error comment and skip review
+        const issuesSection = formatValidationIssues(validationResult.issues)
+
         const validationMessage = `## ⚠️ PR Review Skipped
 
-**Reason:** ${validationResult.reason}
-
-**Suggestion:** ${validationResult.suggestion}
+${issuesSection}
 
 ### PR Metrics
 - **Total files changed:** ${validationResult.metrics.filesChanged}
