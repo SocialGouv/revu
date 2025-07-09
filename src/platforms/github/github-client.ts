@@ -218,7 +218,10 @@ export const createGitHubClient = (
                   return // Success with fallback
                 } catch (fallbackError) {
                   // Log fallback failure separately to avoid confusing error messages
-                  console.error(`Fallback to single-line comment failed:`, fallbackError)
+                  console.error(
+                    `Fallback to single-line comment failed:`,
+                    fallbackError
+                  )
                   // Keep original error message clean
                 }
               }
