@@ -1,3 +1,10 @@
+## [1.26.1](https://github.com/SocialGouv/revu/compare/v1.26.0...v1.26.1) (2025-07-09)
+
+
+### Bug Fixes
+
+* **deps:** update dependency zod to v4 ([6679ffd](https://github.com/SocialGouv/revu/commit/6679ffd646f522e56e42ab3cadfb8bcabc59fc9e))
+
 # [1.26.0](https://github.com/SocialGouv/revu/compare/v1.25.5...v1.26.0) (2025-07-09)
 
 
