@@ -23,7 +23,7 @@ function generateGrafanaLogsUrl(): string {
         queries: [
           {
             refId: 'A',
-            expr: '{cluster="ovh-prod", namespace="revu", container="app"} |= ``',
+            expr: '{cluster="ovh-prod", namespace="revu", container="app"} | json | level = `error`',
             queryType: 'range',
             datasource: {
               type: 'loki',
