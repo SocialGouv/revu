@@ -1,3 +1,10 @@
+## [1.25.5](https://github.com/SocialGouv/revu/compare/v1.25.4...v1.25.5) (2025-07-09)
+
+
+### Bug Fixes
+
+* Stop commenting on multi hunks and fallback to first hunk one-liner ([0ef6425](https://github.com/SocialGouv/revu/commit/0ef64252ba3be4e0bdb55d0c484603237880610a))
+
 ## [1.25.4](https://github.com/SocialGouv/revu/compare/v1.25.3...v1.25.4) (2025-07-07)
 
 
