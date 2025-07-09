@@ -2,20 +2,77 @@
 # This file contains patterns for files that should be ignored during code review
 # Individual repositories can override this by creating their own .revuignore file
 
-# Lock files
+# Lock files and package management
 *.lock
 yarn.lock
 package-lock.json
 pnpm-lock.yaml
+Cargo.lock
+Gemfile.lock
+composer.lock
+poetry.lock
 
-# Generated files
+# Generated files and build artifacts
 dist/
 build/
-*.min.js
-*.map
-
-# Dependencies
+coverage/
 node_modules/
+.next/
+.nuxt/
+target/
+bin/
+obj/
+*.min.js
+*.min.css
+*.bundle.js
+*.bundle.css
+*.map
+*.generated.*
+*-generated.*
+
+# Binary files - Images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.svg
+*.ico
+
+# Binary files - Documents
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# Binary files - Archives
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
+# Binary files - Media
+*.mp3
+*.mp4
+*.avi
+*.mov
+*.wav
+
+# Binary files - Executables and libraries
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Binary files - Fonts
+*.woff
+*.woff2
+*.ttf
+*.eot
 
 # OS files
 .DS_Store
@@ -29,19 +86,8 @@ Thumbs.db
 *.tmp
 *.temp
 
-# Build artifacts
-*.o
-*.so
-*.dylib
-*.dll
-*.exe
-
 # Logs
 *.log
 logs/
-
-# Coverage reports
-coverage/
-*.lcov
 
 CHANGELOG.md

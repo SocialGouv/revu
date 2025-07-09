@@ -2,6 +2,7 @@ import * as fs from 'fs/promises'
 import * as yaml from 'js-yaml'
 import * as path from 'path'
 import { merge } from 'ts-deepmerge'
+import type { PRValidationConfig } from './core/services/pr-validation-service.ts'
 import { logSystemError } from './utils/logger.ts'
 
 /**
@@ -20,23 +21,24 @@ async function fileExists(filePath: string): Promise<boolean> {
 }
 
 /**
- * Interface for the coding guidelines configuration
+ * Interface for the complete Revu configuration
  */
-export interface CodingGuidelinesConfig {
+export interface RevuConfig {
   codingGuidelines: string[]
-  [key: string]: unknown // Allow for future configuration options
+  validation: Partial<PRValidationConfig>
 }
 
 /**
  * Default coding guidelines configuration
  */
-const DEFAULT_CONFIG: CodingGuidelinesConfig = {
+const DEFAULT_CONFIG: RevuConfig = {
   codingGuidelines: [
     'Test coverage: Critical code requires 100% test coverage; non-critical paths require 60% coverage.',
     'Naming: Use semantically significant names for functions, classes, and parameters.',
     'Comments: Add comments only for complex code; simple code should be self-explanatory.',
     'Documentation: Public functions must have concise docstrings explaining purpose and return values.'
-  ]
+  ],
+  validation: {}
 }
 
 /**
@@ -47,7 +49,7 @@ const DEFAULT_CONFIG: CodingGuidelinesConfig = {
  */
 export async function readConfig(
   configPath = path.join(process.cwd(), '.revu.yml')
-): Promise<CodingGuidelinesConfig> {
+): Promise<RevuConfig> {
   try {
     // Check if the config file exists
     const exists = await fileExists(configPath)
@@ -58,11 +60,11 @@ export async function readConfig(
 
     // Read and parse the YAML file
     const configContent = await fs.readFile(configPath, 'utf-8')
-    const config = yaml.load(configContent) as CodingGuidelinesConfig
+    const config = yaml.load(configContent) as RevuConfig
 
     // Merge with default config to ensure all required fields exist
     // Use the default behavior (overwrite arrays)
-    return merge(DEFAULT_CONFIG, config) as CodingGuidelinesConfig
+    return merge(DEFAULT_CONFIG, config) as RevuConfig
   } catch (error) {
     logSystemError(`Error reading .revu.yml configuration file: ${error}`)
 
@@ -75,7 +77,7 @@ export async function readConfig(
  *
  * @returns The default configuration object
  */
-export function getDefaultConfig(): CodingGuidelinesConfig {
+export function getDefaultConfig(): RevuConfig {
   return { ...DEFAULT_CONFIG }
 }
 
@@ -85,7 +87,7 @@ export function getDefaultConfig(): CodingGuidelinesConfig {
  * @param config - The configuration object
  * @returns The coding guidelines as a formatted string
  */
-export function formatCodingGuidelines(config: CodingGuidelinesConfig): string {
+export function formatCodingGuidelines(config: RevuConfig): string {
   if (
     !config.codingGuidelines ||
     !Array.isArray(config.codingGuidelines) ||
@@ -119,4 +121,52 @@ export async function getCodingGuidelines(repoPath?: string): Promise<string> {
 
   const config = await readConfig(configPath)
   return formatCodingGuidelines(config)
+}
+
+/**
+ * Gets the PR validation configuration from the .revu.yml file
+ *
+ * @param repoPath - Optional path to the repository
+ * @returns The PR validation configuration merged with defaults
+ */
+export async function getValidationConfig(
+  repoPath?: string
+): Promise<PRValidationConfig> {
+  let configPath = path.join(process.cwd(), '.revu.yml')
+
+  // If a repository path is provided, check for a .revu.yml file there
+  if (repoPath) {
+    const repoConfigPath = path.join(repoPath, '.revu.yml')
+    const exists = await fileExists(repoConfigPath)
+    if (exists) {
+      configPath = repoConfigPath
+    }
+  }
+
+  try {
+    const config = await readConfig(configPath)
+
+    // Import the default validation config dynamically to avoid circular dependency
+    const { DEFAULT_VALIDATION_CONFIG } = await import(
+      './core/services/pr-validation-service.ts'
+    )
+
+    // Merge user validation config with defaults
+    if (config.validation) {
+      return merge(
+        DEFAULT_VALIDATION_CONFIG,
+        config.validation
+      ) as PRValidationConfig
+    }
+
+    return DEFAULT_VALIDATION_CONFIG
+  } catch (error) {
+    logSystemError(`Error loading validation configuration: ${error}`)
+
+    // Import default config as fallback
+    const { DEFAULT_VALIDATION_CONFIG } = await import(
+      './core/services/pr-validation-service.ts'
+    )
+    return DEFAULT_VALIDATION_CONFIG
+  }
 }
