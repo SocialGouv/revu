@@ -76,9 +76,10 @@ export async function errorCommentHandler(
     await platformContext.client.createReview(prNumber, formattedError)
     return `Posted error comment on PR #${prNumber}`
   } catch (error) {
-    logSystemError(`Failed to post error comment: ${error}`, {
+    logSystemError(error, {
       pr_number: prNumber,
-      repository: `${platformContext.repoOwner}/${platformContext.repoName}`
+      repository: `${platformContext.repoOwner}/${platformContext.repoName}`,
+      context_msg: 'Failed to post error comment'
     })
     return `Failed to post error comment: ${error.message || String(error)}`
   }

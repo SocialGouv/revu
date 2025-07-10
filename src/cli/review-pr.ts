@@ -78,9 +78,10 @@ async function fetchPrBranch(
 
     return headBranch
   } catch (error) {
-    logSystemError(`Error fetching PR branch: ${error}`, {
+    logSystemError(error, {
       pr_number: prNumber,
-      repository: repo
+      repository: repo,
+      context_msg: 'Failed to fetch PR branch'
     })
     if (axios.isAxiosError(error) && error.response) {
       if (error.response.status === 404) {

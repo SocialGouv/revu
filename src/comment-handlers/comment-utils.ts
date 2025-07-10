@@ -116,7 +116,9 @@ export async function prepareCommentContent(
           // Validate the line range is reasonable
           if (actualStartLine <= 0 || actualEndLine <= 0) {
             logSystemWarning(
-              `Invalid line range from SEARCH/REPLACE processing for ${comment.path}: start=${convertedStartLine}, end=${convertedEndLine}. Falling back to original comment positioning.`,
+              new Error(
+                `Invalid line range from SEARCH/REPLACE processing for ${comment.path}: start=${convertedStartLine}, end=${convertedEndLine}. Falling back to original comment positioning.`
+              ),
               {
                 repository: `${comment.path}:${comment.line}`
               }
@@ -143,19 +145,19 @@ export async function prepareCommentContent(
         }
       } else {
         logSystemWarning(
-          `SEARCH/REPLACE block matching failed for ${comment.path}:${comment.line}. Errors: ${result.errors.join('; ')}. Applied blocks: ${result.appliedBlocks}. Falling back to original comment positioning.`,
+          new Error(
+            `SEARCH/REPLACE block matching failed for ${comment.path}:${comment.line}. Errors: ${result.errors.join('; ')}. Applied blocks: ${result.appliedBlocks}. Falling back to original comment positioning.`
+          ),
           {
             repository: `${comment.path}:${comment.line}`
           }
         )
       }
     } catch (error) {
-      logSystemWarning(
-        `SEARCH/REPLACE processing error for ${comment.path}:${comment.line}: ${error instanceof Error ? error.message : String(error)}. Falling back to original comment positioning.`,
-        {
-          repository: `${comment.path}:${comment.line}`
-        }
-      )
+      logSystemWarning(error, {
+        repository: `${comment.path}:${comment.line}`,
+        context_msg: `SEARCH/REPLACE processing error for ${comment.path}:${comment.line}. Falling back to original comment positioning.`
+      })
     }
   }
 
