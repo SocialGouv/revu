@@ -71,8 +71,9 @@ async function getInstallationId(owner: string, repo: string): Promise<number> {
 
     return installation.id
   } catch (error) {
-    logSystemError(`Error getting installation ID: ${error}`, {
-      repository: `${owner}/${repo}`
+    logSystemError(error, {
+      repository: `${owner}/${repo}`,
+      context_msg: `Failed to get installation ID for ${owner}/${repo}`
     })
     throw error
   }

@@ -83,14 +83,12 @@ async function processAnalysis(
   const analysisValidationResult = AnalysisSchema.safeParse(rawParsedAnalysis)
 
   if (!analysisValidationResult.success) {
-    const errMsg = analysisValidationResult.error.format()
-    logSystemError(`Analysis validation failed: ${errMsg}`, {
+    logSystemError(analysisValidationResult.error, {
       pr_number: prNumber,
-      repository: repoName
+      repository: repoName,
+      context_msg: `Analysis validation failed`
     })
-    throw new Error(
-      'Invalid analysis format: ' + analysisValidationResult.error.message
-    )
+    throw analysisValidationResult.error
   }
 
   return analysisValidationResult.data as ValidatedAnalysis
@@ -110,12 +108,12 @@ async function handleSummaryComment(
   try {
     await platformContext.client.createReview(prNumber, formattedSummary)
   } catch (error) {
-    const errMsg = `Failed to create review comment - PROXY_REVIEWER_TOKEN may not be configured. Set PROXY_REVIEWER_TOKEN environment variable with a GitHub personal access token. Error: ${error.message}`
-    logSystemError(errMsg, {
+    logSystemError(error, {
       pr_number: prNumber,
-      repository: repoName
+      repository: repoName,
+      context_msg: `Failed to create review comment - PROXY_REVIEWER_TOKEN may not be configured. Set PROXY_REVIEWER_TOKEN environment variable with a GitHub personal access token.`
     })
-    throw new Error(errMsg)
+    throw error
   }
 }
 
@@ -134,9 +132,10 @@ async function fetchPRContext(
     pullRequest = await platformContext.client.getPullRequest(prNumber)
     commitSha = pullRequest.head.sha
   } catch (error) {
-    logSystemError(`Failed to get pull request: ${error}`, {
+    logSystemError(error, {
       pr_number: prNumber,
-      repository: repoName
+      repository: repoName,
+      context_msg: `Failed to fetch pull request details`
     })
     throw error
   }
@@ -232,12 +231,10 @@ async function handleCommentOperation(
     commentBody = result.content
     updatedComment = result.updatedComment
   } catch (error) {
-    logSystemError(
-      `Failed to prepare comment content for ${comment.path}:${comment.start_line || comment.line}-${comment.line}: ${error.message}`,
-      {
-        pr_number: prNumber
-      }
-    )
+    logSystemError(error, {
+      pr_number: prNumber,
+      context_msg: `Failed to prepare comment content for ${comment.path}:${comment.start_line || comment.line}-${comment.line}`
+    })
     return 'skipped'
   }
 
@@ -350,7 +347,9 @@ async function processComments(
           isCommentValidForDiff(constrainedComment, diffMap)
         ) {
           logSystemWarning(
-            `Comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} was moved to first line of first overlapping hunk: ${constrainedComment.line}`,
+            new Error(
+              `Comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} was moved to first line of first overlapping hunk: ${constrainedComment.line}`
+            ),
             {
               pr_number: prNumber,
               repository: `${comment.path}:${comment.line}`
@@ -472,13 +471,12 @@ export async function lineCommentsHandler(
     return createSuccessMessage(prNumber, commentStats)
   } catch (error) {
     // In case of error, fall back to the error comment handler
-    logSystemError(
-      `Error parsing or creating line comments, falling back to error comment: ${error}`,
-      {
-        pr_number: prNumber,
-        repository: repoName
-      }
-    )
+    logSystemError(error, {
+      pr_number: prNumber,
+      repository: repoName,
+      context_msg:
+        'Error parsing or creating line comments, falling back to error comment'
+    })
     return errorCommentHandler(
       platformContext,
       prNumber,

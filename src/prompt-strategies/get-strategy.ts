@@ -36,7 +36,10 @@ export async function getStrategyFromConfig(
     const strategyName = config.promptStrategy || 'default'
     return getStrategyByName(strategyName)
   } catch (error) {
-    logSystemError(`Error reading configuration file: ${error}`)
+    logSystemError(error, {
+      context_msg:
+        'Failed to read configuration file to get strategy name, using default strategy (line-comments)'
+    })
     return lineCommentsPromptStrategy
   }
 }

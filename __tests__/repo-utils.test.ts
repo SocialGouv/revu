@@ -192,9 +192,9 @@ describe('fetchIssueDetails', () => {
     expect(result).toBeNull()
 
     // Verify error was logged
-    expect(logSystemError).toHaveBeenCalledWith(
-      'Error fetching issue #789: Error: GitHub API Error'
-    )
+    expect(logSystemError).toHaveBeenCalledWith(new Error('GitHub API Error'), {
+      context_msg: 'Error fetching issue #789'
+    })
   })
 
   it('should handle error when fetching comments', async () => {
@@ -225,7 +225,10 @@ describe('fetchIssueDetails', () => {
 
     // Verify error was logged
     expect(logSystemError).toHaveBeenCalledWith(
-      'Error fetching issue #123: Error: Comments API Error'
+      new Error('Comments API Error'),
+      {
+        context_msg: 'Error fetching issue #123'
+      }
     )
   })
 })

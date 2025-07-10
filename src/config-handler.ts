@@ -66,7 +66,9 @@ export async function readConfig(
     // Use the default behavior (overwrite arrays)
     return merge(DEFAULT_CONFIG, config) as RevuConfig
   } catch (error) {
-    logSystemError(`Error reading .revu.yml configuration file: ${error}`)
+    logSystemError(error, {
+      context_msg: 'Error reading .revu.yml configuration file'
+    })
 
     return DEFAULT_CONFIG
   }
@@ -161,7 +163,9 @@ export async function getValidationConfig(
 
     return DEFAULT_VALIDATION_CONFIG
   } catch (error) {
-    logSystemError(`Error loading validation configuration: ${error}`)
+    logSystemError(error, {
+      context_msg: 'Error reading or parsing .revu.yml for validation config'
+    })
 
     // Import default config as fallback
     const { DEFAULT_VALIDATION_CONFIG } = await import(
