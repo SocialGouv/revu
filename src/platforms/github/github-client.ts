@@ -74,8 +74,9 @@ export const createGitHubClient = (
           }))
         }
       } catch (error) {
-        logSystemError(`Error fetching issue #${issueNumber}: ${error}`, {
-          repository: `${owner}/${repo}`
+        logSystemError(error, {
+          repository: `${owner}/${repo}`,
+          context_msg: `Error fetching issue #${issueNumber}`
         })
         return null
       }
@@ -295,12 +296,10 @@ export const createGitHubClient = (
           body: data.body
         }
       } catch (error) {
-        logSystemError(
-          `Error fetching review comment #${commentId}: ${error}`,
-          {
-            repository: `${owner}/${repo}`
-          }
-        )
+        logSystemError(error, {
+          repository: `${owner}/${repo}`,
+          context_msg: `Error fetching review comment ${commentId}`
+        })
         return null
       }
     },
@@ -337,12 +336,11 @@ export const createGitHubClient = (
         }
         return parseDiff(response.data)
       } catch (error) {
-        logSystemError(
-          `Failed to fetch PR diff map for PR #${prNumber}: ${error}`,
-          {
-            repository: `${owner}/${repo}`
-          }
-        )
+        logSystemError(error, {
+          repository: `${owner}/${repo}`,
+          pr_number: prNumber,
+          context_msg: 'Failed to fetch diff for PR'
+        })
         throw error
       }
     },

@@ -1,4 +1,5 @@
 import { type Context } from 'probot'
+import { isLineInfoInDiff, parseLineString } from '../core/utils/line-parser.ts'
 import { logSystemError } from '../utils/logger.ts'
 import { extractMarkerIdFromComment } from './comment-utils.ts'
 import {
@@ -8,7 +9,6 @@ import {
   type Comment,
   type CommentExistenceResult
 } from './types.ts'
-import { parseLineString, isLineInfoInDiff } from '../core/utils/line-parser.ts'
 
 /**
  * Finds all existing review comments on a PR that have our marker
@@ -166,9 +166,10 @@ export async function cleanupObsoleteComments(
         })
         deletedCount++
       } catch (error) {
-        logSystemError(`Failed to delete comment ${comment.id}: ${error}`, {
+        logSystemError(error, {
           pr_number: prNumber,
-          repository: repo.owner + '/' + repo.repo
+          repository: repo.owner + '/' + repo.repo,
+          context_msg: `Failed to delete obsolete comment ${comment.id} on ${path}:${lineStr}`
         })
         // Continue processing other comments even if one fails
       }

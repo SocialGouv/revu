@@ -69,9 +69,10 @@ export async function cleanupObsoleteComments(
     // Get existing review comments
     existingComments = await findExistingComments(client, prNumber)
   } catch (error) {
-    logSystemError(`Failed to fetch existing comments for cleanup: ${error}`, {
+    logSystemError(error, {
       pr_number: prNumber,
-      repository: repoName
+      repository: repoName,
+      context_msg: 'Failed to fetch existing comments for cleanup'
     })
     return 0 // Return 0 deleted count if we can't fetch comments
   }
@@ -111,9 +112,10 @@ export async function cleanupObsoleteComments(
         await client.deleteReviewComment(comment.id)
         deletedCount++
       } catch (error) {
-        logSystemError(`Failed to delete comment ${comment.id}: ${error}`, {
+        logSystemError(error, {
           pr_number: prNumber,
-          repository: repoName
+          repository: repoName,
+          context_msg: `Failed to delete obsolete comment ${comment.id} for marker ${markerId}`
         })
         // Continue processing other comments even if one fails
       }
