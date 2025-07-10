@@ -124,7 +124,9 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
           input: content.input
         }
         logSystemError(
-          `Unexpected tool use response: ${JSON.stringify(errPayload)}`
+          new Error(
+            `Unexpected tool use response: ${JSON.stringify(errPayload)}`
+          )
         )
         throw new Error(`Unexpected tool name: ${content.name}`)
       }
@@ -168,7 +170,7 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
           fallbackResult = text
         }
       } catch (error) {
-        logSystemError(`Error processing fallback text: ${error}`)
+        logSystemError(error, { context_msg: 'Error processing fallback text' })
         // Continue to next content block
       }
     }

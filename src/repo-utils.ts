@@ -96,7 +96,7 @@ export async function cleanUpRepository(repoPath: string): Promise<void> {
   try {
     await fs.rm(repoPath, { recursive: true, force: true })
   } catch (cleanupError) {
-    logSystemError(`Error during cleanup: ${cleanupError}`)
+    logSystemError(cleanupError, { context_msg: 'Error during cleanup' })
   }
 }
 
@@ -177,7 +177,9 @@ export async function fetchIssueDetails(
       }))
     }
   } catch (error) {
-    logSystemError(`Error fetching issue #${issueNumber}: ${error}`)
+    logSystemError(error, {
+      context_msg: `Error fetching issue #${issueNumber}`
+    })
     return null
   }
 }

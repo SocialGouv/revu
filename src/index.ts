@@ -58,10 +58,11 @@ export default async (app: Probot, { getRouter }) => {
       await addBotAsReviewer(context)
       logReviewerAdded(pr.number, `${repo.owner}/${repo.repo}`)
     } catch (error) {
-      logSystemError(
-        `Error adding bot as reviewer: ${error.message || String(error)}`,
-        { pr_number: pr.number, repository: `${repo.owner}/${repo.repo}` }
-      )
+      logSystemError(error, {
+        pr_number: pr.number,
+        repository: `${repo.owner}/${repo.repo}`,
+        context_msg: 'Failed to add bot as reviewer'
+      })
     }
   })
 
@@ -95,7 +96,9 @@ export default async (app: Probot, { getRouter }) => {
     const proxyUsername = getProxyReviewerUsername()
     if (!proxyUsername) {
       logSystemError(
-        'PROXY_REVIEWER_USERNAME not configured, aborting review request'
+        new Error(
+          'PROXY_REVIEWER_USERNAME not configured, aborting review request'
+        )
       )
       return
     }
@@ -181,10 +184,11 @@ export default async (app: Probot, { getRouter }) => {
         installationAccessToken
       )
     } catch (error) {
-      logSystemError(
-        `Failed to create platform context: ${error.message || String(error)}`,
-        { pr_number: pr.number, repository }
-      )
+      logSystemError(error, {
+        pr_number: pr.number,
+        repository,
+        context_msg: 'Failed to create platform context'
+      })
       return
     }
 
@@ -259,10 +263,11 @@ ${validationResult.metrics.additionDeletionRatio !== undefined ? `- **Addition/D
           error.message || String(error)
         )
       } catch (commentError) {
-        logSystemError(
-          `Failed to post error comment: ${commentError.message || String(commentError)}`,
-          { pr_number: pr.number, repository }
-        )
+        logSystemError(commentError, {
+          pr_number: pr.number,
+          repository,
+          context_msg: 'Failed to post error comment'
+        })
       }
     }
   }
@@ -277,7 +282,9 @@ ${validationResult.metrics.additionDeletionRatio !== undefined ? `- **Addition/D
       const config = JSON.parse(configContent)
       return config.promptStrategy || 'default'
     } catch (error) {
-      logSystemError(`Error reading configuration: ${error}`)
+      logSystemError(error, {
+        context_msg: 'Failed to read configuration file to get strategy name'
+      })
       return 'default'
     }
   }

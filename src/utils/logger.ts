@@ -25,6 +25,8 @@ interface SystemLogEntry extends BaseLogEntry {
   pr_number?: number
   repository?: string
   error_message?: string
+  error_stack?: string
+  error_name?: string
 }
 
 function createLogEntry<T extends ReviewLogEntry | SystemLogEntry>(
@@ -123,29 +125,47 @@ export function logReviewerAdded(prNumber: number, repository: string) {
   )
 }
 
+interface SystemErrorContext {
+  pr_number?: number
+  repository?: string
+  context_msg?: string
+}
+
 export function logSystemError(
-  message: string,
-  context?: { pr_number?: number; repository?: string }
+  error: Error | unknown,
+  context?: SystemErrorContext
 ) {
+  const errObj =
+    error instanceof Error
+      ? error
+      : new Error(typeof error === 'string' ? error : JSON.stringify(error))
   log(
     createLogEntry<SystemLogEntry>({
       level: 'error',
       event_type: 'system_error',
-      error_message: message,
+      error_message: errObj.message,
+      error_stack: errObj.stack,
+      error_name: errObj.name,
       ...context
     })
   )
 }
 
 export function logSystemWarning(
-  message: string,
-  context?: { pr_number?: number; repository?: string }
+  error: Error | unknown,
+  context?: SystemErrorContext
 ) {
+  const errObj =
+    error instanceof Error
+      ? error
+      : new Error(typeof error === 'string' ? error : JSON.stringify(error))
   log(
     createLogEntry<SystemLogEntry>({
       level: 'warn',
       event_type: 'system_warn',
-      error_message: message,
+      error_message: errObj.message,
+      error_stack: errObj.stack,
+      error_name: errObj.name,
       ...context
     })
   )

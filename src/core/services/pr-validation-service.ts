@@ -293,8 +293,9 @@ export async function validatePR(
       metrics
     }
   } catch (error) {
-    logSystemError(`PR validation failed: ${error.message}`, {
-      pr_number: prNumber
+    logSystemError(error, {
+      pr_number: prNumber,
+      context_msg: 'Failed to validate PR'
     })
 
     // On validation error, allow review to proceed (fail open)
