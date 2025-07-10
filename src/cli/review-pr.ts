@@ -5,14 +5,13 @@ import axios from 'axios'
 import chalk from 'chalk'
 import { program } from 'commander'
 import * as dotenv from 'dotenv'
-import { getCommentHandler } from '../comment-handlers/index.ts'
+import { performCompleteReview } from '../core/services/review-service.ts'
 import { createMinimalContext } from '../github/context-builder.ts'
 import {
   createGithubAppOctokit,
   generateInstallationToken
 } from '../github/utils.ts'
 import { createPlatformContextFromGitHub } from '../platforms/github/github-adapter.ts'
-import { sendToAnthropic } from '../send-to-anthropic.ts'
 import { logSystemError } from '../utils/logger.ts'
 
 // Load environment variables
@@ -106,18 +105,18 @@ async function fetchPrBranch(
 }
 
 /**
- * Review a PR by URL
+ * Review a PR by URL using the same logic as the production bot
  * @param prUrl GitHub PR URL
- * @param token GitHub access token
+ * @param submit Whether to submit comments to GitHub
+ * @param strategy Review strategy to use
  */
 async function reviewPr(
   prUrl: string,
-  strategyName: string,
-  submit: boolean
+  submit: boolean,
+  strategy?: string
 ): Promise<void> {
-  console.log(chalk.blue(`Reviewing PR: ${prUrl}`))
-  console.log(chalk.gray('Parsing PR URL...'))
-  console.log(chalk.gray(`Strategy: ${strategyName}`))
+  console.log(chalk.blue(`🔍 Reviewing PR: ${prUrl}`))
+  console.log(chalk.gray('⚡ Parsing PR URL...'))
 
   // Generate an installation token for private repositories if GitHub App credentials are available
   let token: string | undefined
@@ -130,31 +129,28 @@ async function reviewPr(
       token = await generateInstallationToken(owner, repo)
     }
   } catch (error) {
-    console.warn('Failed to generate installation token:', error)
+    console.warn(
+      chalk.yellow('⚠ Failed to generate installation token:'),
+      error
+    )
     // Continue without token if generation fails
   }
 
   try {
     // Parse PR URL
     const { owner, repo, prNumber } = parsePrUrl(prUrl)
-    console.log(chalk.gray(`Repository: ${owner}/${repo}, PR: #${prNumber}`))
+    console.log(chalk.gray(`📁 Repository: ${owner}/${repo}, PR: #${prNumber}`))
 
     // Create Octokit instance with GitHub App authentication
     const octokit = await createGithubAppOctokit(owner, repo)
 
     // Fetch PR details
-    console.log(chalk.gray('Fetching PR details from GitHub...'))
+    console.log(chalk.gray('⚡ Fetching PR details from GitHub...'))
     const headBranch = await fetchPrBranch(owner, repo, prNumber, octokit)
-    console.log(chalk.gray(`Head branch: ${headBranch}`))
+    console.log(chalk.gray(`🌿 Head branch: ${headBranch}`))
 
     // Construct repository URL
     const repositoryUrl = `https://github.com/${owner}/${repo}.git`
-
-    // Start timer for analysis
-    const startTime = Date.now()
-
-    // Call sendToAnthropic
-    console.log(chalk.yellow('Analyzing PR with Claude...'))
 
     // Prepare platform-agnostic context for prompt generation
     let body = null
@@ -168,7 +164,9 @@ async function reviewPr(
       body = prResponse.data.body
       title = prResponse.data.title
     } catch (error) {
-      console.warn(chalk.yellow(`Could not fetch PR details: ${error.message}`))
+      console.warn(
+        chalk.yellow(`⚠ Could not fetch PR details: ${error.message}`)
+      )
     }
 
     const githubContext = await createMinimalContext(owner, repo, octokit)
@@ -180,49 +178,50 @@ async function reviewPr(
       token
     )
 
-    const analysis = await sendToAnthropic({
-      repositoryUrl: repositoryUrl,
-      branch: headBranch,
-      strategyName: strategyName,
-      context: platformContext
-    })
-
-    // Calculate elapsed time
-    const elapsedTime = (Date.now() - startTime) / 1000
-
-    // Output analysis
-    console.log(chalk.green('\n=== PR Analysis Results ===\n'))
-    console.log(analysis)
-    console.log(chalk.green('\n=== End of Analysis ===\n'))
-    console.log(
-      chalk.gray(`Analysis completed in ${elapsedTime.toFixed(2)} seconds`)
+    // Use the same review service as the production bot
+    const result = await performCompleteReview(
+      repositoryUrl,
+      prNumber,
+      headBranch,
+      platformContext,
+      {
+        submitComments: submit,
+        reviewType: 'on-demand',
+        repository: `${owner}/${repo}`,
+        strategy
+      }
     )
 
-    // If submit is true, call the comment handler
-    if (submit) {
-      console.log(chalk.yellow('Submitting comments to GitHub...'))
+    // Handle results
+    if (result.success) {
+      if (!submit && result.analysis) {
+        // Display analysis when not submitting
+        console.log(chalk.green('\n=== 📋 PR Analysis Results ===\n'))
+        console.log(result.analysis)
+        console.log(chalk.green('\n=== ✅ End of Analysis ===\n'))
+      }
+      console.log(chalk.green(`✅ ${result.message}`))
+    } else {
+      // Handle validation failure or other errors
+      if (result.validationResult && !result.validationResult.isValid) {
+        console.log(chalk.yellow('\n⚠️  PR Validation Failed'))
+        result.validationResult.issues.forEach((issue, index) => {
+          console.log(chalk.yellow(`${index + 1}. ${issue.reason}`))
+          console.log(chalk.gray(`   💡 ${issue.suggestion}`))
+        })
+      }
 
-      // Get the appropriate comment handler based on the strategy
-      const commentHandler = getCommentHandler(strategyName)
-
-      try {
-        // Create a minimal context object for the comment handler
-        const context = await createMinimalContext(owner, repo, octokit)
-
-        // Handle the analysis with the appropriate handler
-        const result = await commentHandler(context, prNumber, analysis)
-        console.log(chalk.green(result || 'Comments submitted successfully'))
-      } catch (error) {
-        console.error(
-          `Error submitting comments: ${error instanceof Error ? error.message : String(error)}`
-        )
+      if (result.error) {
+        console.error(chalk.red(`❌ ${result.error}`))
         process.exit(1)
+      } else {
+        console.log(chalk.yellow(`⚠️  ${result.message}`))
       }
     }
   } catch (error) {
     console.error(
       chalk.red(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
+        `❌ Error: ${error instanceof Error ? error.message : String(error)}`
       )
     )
     process.exit(1)
@@ -243,10 +242,10 @@ program
   .option('--submit', 'Submit comments to GitHub after analysis', false)
   .action(
     async (prUrl: string, options: { strategy: string; submit: boolean }) => {
-      const strategyName = options.strategy
       const submit = options.submit
+      const strategy = options.strategy
 
-      await reviewPr(prUrl, strategyName, submit)
+      await reviewPr(prUrl, submit, strategy)
     }
   )
 

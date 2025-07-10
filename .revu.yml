@@ -12,10 +12,10 @@ validation:
   maxFilesChanged: 25
 
   # Maximum total lines in the diff
-  maxDiffSize: 15000
+  maxDiffSize: 10000
 
   # Maximum lines of changes in a single file
-  maxIndividualFileSize: 3000
+  maxIndividualFileSize: 2000
 
   # Skip PRs that are mostly deletions (cleanup PRs)
   # Ratio of additions to deletions must be at least this value

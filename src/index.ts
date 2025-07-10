@@ -1,15 +1,7 @@
 import { config } from 'dotenv'
-import * as fs from 'fs/promises'
-import * as path from 'path'
 import { Context, Probot } from 'probot'
-import { errorCommentHandler } from './comment-handlers/error-comment-handler.ts'
-import { lineCommentsHandler } from './comment-handlers/line-comments-handler.ts'
-import { getValidationConfig } from './config-handler.ts'
 import type { PlatformContext } from './core/models/platform-types.ts'
-import {
-  formatValidationIssues,
-  validatePR
-} from './core/services/pr-validation-service.ts'
+import { performCompleteReview } from './core/services/review-service.ts'
 import {
   addBotAsReviewer,
   getProxyReviewerUsername,
@@ -18,11 +10,8 @@ import {
   isReviewRequestedForBot
 } from './github/reviewer-utils.ts'
 import { createPlatformContextFromGitHub } from './platforms/github/github-adapter.ts'
-import { sendToAnthropic } from './send-to-anthropic.ts'
 import {
   logAppStarted,
-  logReviewFailed,
-  logReviewStarted,
   logReviewerAdded,
   logSystemError
 } from './utils/logger.ts'
@@ -163,8 +152,6 @@ export default async (app: Probot, { getRouter }) => {
     const repo = context.repo()
     const repository = `${repo.owner}/${repo.repo}`
 
-    logReviewStarted(pr.number, repository, reviewType)
-
     // Get an installation token for authentication with private repositories
     const installationId = payload.installation.id
     const installationAccessToken = await context.octokit.apps
@@ -192,138 +179,37 @@ export default async (app: Probot, { getRouter }) => {
       return
     }
 
+    // Get repository URL and branch from PR
+    const repositoryUrl = `https://github.com/${repo.owner}/${repo.repo}.git`
+    const branch = pr.head.ref
+
     try {
-      // Get repository URL and branch from PR
-      const repositoryUrl = `https://github.com/${repo.owner}/${repo.repo}.git`
-      const branch = pr.head.ref
-
-      // Validate PR before proceeding with expensive operations
-      const validationConfig = await getValidationConfig()
-
-      // The actual filtering will happen later in the review process
-      const validationResult = await validatePR(
-        platformContext.client,
-        pr.number,
-        validationConfig
-      )
-
-      if (!validationResult.isValid) {
-        // Post validation error comment and skip review
-        const issuesSection = formatValidationIssues(validationResult.issues)
-
-        const validationMessage = `## ⚠️ PR Review Skipped
-
-${issuesSection}
-
-### PR Metrics
-- **Total files changed:** ${validationResult.metrics.filesChanged}
-- **Reviewable files:** ${validationResult.metrics.reviewableFilesChanged}
-- **Diff size:** ${validationResult.metrics.diffSize} lines
-- **Documentation files:** ${validationResult.metrics.documentationOnlyFiles}
-${validationResult.metrics.largestFileSize ? `- **Largest file change:** ${validationResult.metrics.largestFileSize} lines` : ''}
-${validationResult.metrics.additionDeletionRatio !== undefined ? `- **Addition/Deletion ratio:** ${validationResult.metrics.additionDeletionRatio.toFixed(2)}` : ''}
-
----
-*This validation helps ensure the bot focuses on PRs where automated review provides the most value. You can adjust these limits in your \`.revu.yml\` configuration file.*`
-
-        await errorCommentHandler(platformContext, pr.number, validationMessage)
-        return
-      }
-
-      // Get the current strategy from configuration
-      const strategyName = await getStrategyNameFromConfig()
-
-      // Perform the complete review analysis with context
-      const reviewStartTime = Date.now()
-      await performReviewAnalysis(
-        pr.number,
+      const result = await performCompleteReview(
         repositoryUrl,
+        pr.number,
         branch,
         platformContext,
-        strategyName,
-        reviewType,
-        repository,
-        reviewStartTime
+        {
+          submitComments: true,
+          reviewType,
+          repository
+        }
       )
 
-      // Review completion will be logged in the comment handler
-    } catch (error) {
-      logReviewFailed(
-        pr.number,
-        repository,
-        reviewType,
-        error.message || String(error)
-      )
-
-      // Use the platform-agnostic error comment handler
-      try {
-        await errorCommentHandler(
-          platformContext,
-          pr.number,
-          error.message || String(error)
-        )
-      } catch (commentError) {
-        logSystemError(commentError, {
+      // The review service handles all logging and error posting
+      if (!result.success && result.error) {
+        logSystemError(result.error, {
           pr_number: pr.number,
-          repository,
-          context_msg: 'Failed to post error comment'
+          repository: repository,
+          context_msg: 'Review service failed to process PR'
         })
       }
-    }
-  }
-
-  /**
-   * Gets the strategy name from the configuration file
-   */
-  async function getStrategyNameFromConfig() {
-    try {
-      const configPath = path.join(process.cwd(), 'config.json')
-      const configContent = await fs.readFile(configPath, 'utf-8')
-      const config = JSON.parse(configContent)
-      return config.promptStrategy || 'default'
     } catch (error) {
       logSystemError(error, {
-        context_msg: 'Failed to read configuration file to get strategy name'
+        pr_number: pr.number,
+        repository,
+        context_msg: 'Unexpected error in review service'
       })
-      return 'default'
     }
-  }
-
-  /**
-   * Performs a complete review analysis for a PR using platform-agnostic context
-   */
-  async function performReviewAnalysis(
-    prNumber: number,
-    repositoryUrl: string,
-    branch: string,
-    platformContext: PlatformContext,
-    strategyName?: string,
-    reviewType?: 'on-demand' | 'automatic',
-    repository?: string,
-    reviewStartTime?: number
-  ): Promise<string> {
-    // Get the current strategy from configuration if not provided
-    const finalStrategyName =
-      strategyName || (await getStrategyNameFromConfig())
-
-    // Get the analysis from Anthropic with context
-    const analysis = await sendToAnthropic({
-      repositoryUrl,
-      branch,
-      strategyName: finalStrategyName,
-      context: platformContext
-    })
-
-    // Use the platform-agnostic line comments handler
-    const result = await lineCommentsHandler(
-      platformContext,
-      prNumber,
-      analysis,
-      reviewType,
-      repository,
-      reviewStartTime
-    )
-
-    return result || 'Review completed successfully'
   }
 }
