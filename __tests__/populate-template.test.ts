@@ -26,9 +26,22 @@ describe('populateTemplate', () => {
     createReview: vi.fn().mockResolvedValue(undefined),
     createReviewComment: vi.fn().mockResolvedValue(undefined),
     updateReviewComment: vi.fn().mockResolvedValue(undefined),
-    getPullRequest: vi.fn().mockResolvedValue(null),
+    getPullRequest: vi.fn().mockResolvedValue({
+      head: { sha: 'mock-commit-sha-123' },
+      number: 123,
+      state: 'open',
+      mergeable: true,
+      title: 'Mock PR Title',
+      body: 'Mock PR Body'
+    }),
     listReviewComments: vi.fn().mockResolvedValue([]),
-    getReviewComment: vi.fn().mockResolvedValue(null)
+    getReviewComment: vi.fn().mockResolvedValue(null),
+    deleteReviewComment: vi.fn().mockResolvedValue(undefined),
+    fetchPullRequestDiffMap: vi.fn().mockResolvedValue({}),
+    getFileContent: vi
+      .fn()
+      .mockResolvedValue('# Mock .revuignore content\n*.log\n*.tmp\n'),
+    listReviews: vi.fn().mockResolvedValue([])
   }
 
   // Create a minimal mock context for tests that need it
