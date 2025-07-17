@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import { getIgnoreInstance } from './ignore-utils.ts'
+import type { PlatformClient } from './core/models/platform-types.ts'
+import { getRemoteIgnoreInstance } from './ignore-utils.ts'
 
 /**
  * Gets content of files.
@@ -51,23 +52,26 @@ export function extractModifiedFilePaths(diff: string): string[] {
 }
 
 /**
- * Filters out files that match patterns in .revuignore.
+ * Filters out files that match patterns in .revuignore using remote file fetching.
  * Uses the ignore library for robust gitignore-style pattern matching.
+ * This version fetches the .revuignore file from the remote repository.
  *
  * @param filePaths - Array of file paths to filter
- * @param repoPath - Path to the repository being reviewed
+ * @param client - Platform client for fetching remote files
+ * @param commitSha - Commit SHA to fetch the .revuignore file from
  * @returns Promise resolving to filtered array of file paths
  */
 export async function filterIgnoredFiles(
   filePaths: string[],
-  repoPath: string
+  client: PlatformClient,
+  commitSha: string
 ): Promise<string[]> {
   try {
-    const ig = await getIgnoreInstance(repoPath)
+    const ig = await getRemoteIgnoreInstance(client, commitSha)
     // Use the ignore library's filter method to remove ignored files
     return ig.filter(filePaths)
   } catch (error) {
-    console.warn(`Error filtering ignored files: ${error.message}`)
+    console.warn(`Error filtering ignored files from remote: ${error.message}`)
     // Return original files if filtering fails
     return filePaths
   }
