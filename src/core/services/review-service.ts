@@ -147,8 +147,7 @@ const performValidation = async (
     const validationResult = await validatePR(
       platformContext.client,
       prNumber,
-      validationConfig,
-      options.repoPath
+      validationConfig
     )
 
     logValidationResult(validationResult, prNumber, repository)
