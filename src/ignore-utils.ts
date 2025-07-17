@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises'
 import ignore from 'ignore'
 import * as path from 'path'
+import type { PlatformClient } from './core/models/platform-types.ts'
 
 /**
  * Creates an ignore instance from .revuignore content.
@@ -34,6 +35,38 @@ export async function getIgnoreInstance(
 
   try {
     content = await fs.readFile(repoIgnorePath, 'utf-8')
+  } catch {
+    // Fall back to default .revuignore from this repo
+    const defaultIgnorePath = path.join(process.cwd(), '.revuignore')
+    try {
+      content = await fs.readFile(defaultIgnorePath, 'utf-8')
+    } catch {
+      // No ignore file found, return empty ignore instance
+    }
+  }
+
+  return createIgnoreInstance(content)
+}
+
+/**
+ * Gets an ignore instance for a repository by fetching .revuignore from remote.
+ * First tries to read .revuignore from the remote repository at the specified commit,
+ * then falls back to the default .revuignore from this repo.
+ * This is used when the repository hasn't been cloned locally yet.
+ *
+ * @param client - Platform client for fetching remote files
+ * @param commitSha - Commit SHA to fetch the file from
+ * @returns Ignore instance
+ */
+export async function getRemoteIgnoreInstance(
+  client: PlatformClient,
+  commitSha: string
+): Promise<ReturnType<typeof ignore>> {
+  let content = ''
+
+  try {
+    // Try to fetch .revuignore from the remote repository
+    content = await client.getFileContent('.revuignore', commitSha)
   } catch {
     // Fall back to default .revuignore from this repo
     const defaultIgnorePath = path.join(process.cwd(), '.revuignore')

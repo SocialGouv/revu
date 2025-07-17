@@ -30,6 +30,7 @@ export interface PRValidationResult {
     largestFileSize?: number
     additionDeletionRatio?: number
     documentationOnlyFiles: number
+    largeFiles?: Array<{ fileName: string; size: number }>
   }
 }
 
@@ -46,8 +47,9 @@ export const DEFAULT_VALIDATION_CONFIG: PRValidationConfig = {
 interface DiffAnalysis {
   additions: number
   deletions: number
-  largestFileSize: number
   additionDeletionRatio: number
+  largeFiles: Array<{ fileName: string; size: number }>
+  largestFileSize?: number
 }
 
 interface FileAnalysis {
@@ -60,34 +62,89 @@ type ValidationResult = Pick<PRValidationResult, 'isValid' | 'issues'>
 
 /**
  * Analyzes diff content to extract metrics about additions, deletions, and file sizes
+ * Only processes files that are in the reviewableFiles list, skipping ignored files completely
  */
-export function analyzeDiff(diff: string, diffLines: string[]): DiffAnalysis {
+export function analyzeDiff(
+  diffLines: string[],
+  reviewableFiles: string[],
+  maxIndividualFileSize?: number
+): DiffAnalysis {
   let additions = 0
   let deletions = 0
+  let currentFileName = ''
+  const largeFiles: Array<{ fileName: string; size: number }> = []
   let largestFileSize = 0
-  let currentFileSize = 0
+
+  interface Sizes {
+    changeSize: number
+    additions: number
+    deletions: number
+  }
+
+  // Use Set for O(1) lookup performance
+  const reviewableFilesSet = new Set(reviewableFiles)
+  const fileChangeSizes = new Map<string, Sizes>()
+
+  let fileSizes: Sizes = {
+    changeSize: 0,
+    additions: 0,
+    deletions: 0
+  }
 
   for (const line of diffLines) {
     if (line.startsWith('diff --git')) {
-      // New file, reset counter
-      if (currentFileSize > largestFileSize) {
-        largestFileSize = currentFileSize
+      // Save previous file sizes if it is a reviewable file
+      if (
+        currentFileName &&
+        reviewableFilesSet.has(currentFileName) &&
+        fileSizes.changeSize > 0
+      ) {
+        fileChangeSizes.set(currentFileName, fileSizes)
       }
-      currentFileSize = 0
+
+      // Extract file name from diff header
+      const match = line.match(/^diff --git a\/(.*?) b\/(.*)$/)
+      currentFileName = match ? match[2] : ''
+      fileSizes = {
+        changeSize: 0,
+        additions: 0,
+        deletions: 0
+      }
     } else if (line.startsWith('+') && !line.startsWith('+++')) {
-      additions++
-      currentFileSize++
+      fileSizes.additions++
+      fileSizes.changeSize++
     } else if (line.startsWith('-') && !line.startsWith('---')) {
-      deletions++
-      currentFileSize++
+      fileSizes.deletions++
+      fileSizes.changeSize++
     } else if (!line.startsWith('@@') && !line.startsWith('index ')) {
-      currentFileSize++
+      // This ignores hunks ('@@') and index lines
+      fileSizes.changeSize++
     }
   }
 
-  // Check final file
-  if (currentFileSize > largestFileSize) {
-    largestFileSize = currentFileSize
+  // Handle the last file
+  if (
+    currentFileName &&
+    reviewableFilesSet.has(currentFileName) &&
+    fileSizes.changeSize > 0
+  ) {
+    fileChangeSizes.set(currentFileName, fileSizes)
+  }
+
+  // Process all files in fileSizes map
+  for (const [fileName, sizes] of fileChangeSizes.entries()) {
+    additions += sizes.additions
+    deletions += sizes.deletions
+
+    // Track largest file size
+    if (sizes.changeSize > largestFileSize) {
+      largestFileSize = sizes.changeSize
+    }
+
+    // Add to large files if it exceeds the limit
+    if (maxIndividualFileSize && sizes.changeSize > maxIndividualFileSize) {
+      largeFiles.push({ fileName, size: sizes.changeSize })
+    }
   }
 
   const additionDeletionRatio =
@@ -96,8 +153,9 @@ export function analyzeDiff(diff: string, diffLines: string[]): DiffAnalysis {
   return {
     additions,
     deletions,
-    largestFileSize,
-    additionDeletionRatio
+    additionDeletionRatio,
+    largeFiles,
+    largestFileSize: largestFileSize > 0 ? largestFileSize : undefined
   }
 }
 
@@ -159,12 +217,12 @@ export function runValidationChecks(
   }
 
   // Check: Individual file too large
-  if (
-    metrics.largestFileSize &&
-    metrics.largestFileSize > config.maxIndividualFileSize
-  ) {
+  if (metrics.largeFiles && metrics.largeFiles.length > 0) {
+    const fileList = metrics.largeFiles
+      .map((file) => `'${file.fileName}' (${file.size} lines of changes)`)
+      .join(', ')
     issues.push({
-      reason: `This PR contains a file with ${metrics.largestFileSize} lines of changes, which exceeds the limit of ${config.maxIndividualFileSize} lines per file.`,
+      reason: `This PR contains files that exceed the size limit: ${fileList}, which exceeds the limit of ${config.maxIndividualFileSize}. The limit is ${config.maxIndividualFileSize} lines per file.`,
       suggestion:
         'Consider refactoring large changes into smaller, more focused modifications. Large file changes are harder to review and understand.'
     })
@@ -251,26 +309,35 @@ export function createValidationConfig(
 export async function validatePR(
   client: PlatformClient,
   prNumber: number,
-  config: PRValidationConfig = DEFAULT_VALIDATION_CONFIG,
-  repoPath?: string
+  config: PRValidationConfig = DEFAULT_VALIDATION_CONFIG
 ): Promise<PRValidationResult> {
   try {
+    // Get PR details to get the commit SHA
+    const pr = await client.getPullRequest(prNumber)
+    const commitSha = pr.head.sha
+
     // Get PR diff
     const diff = await client.fetchPullRequestDiff(prNumber)
 
     // Extract all modified files
     const allFilesChanged = extractModifiedFilePaths(diff)
 
-    // Filter out ignored files (binary, generated, etc.)
-    const reviewableFiles = repoPath
-      ? await filterIgnoredFiles(allFilesChanged, repoPath)
-      : allFilesChanged
-
+    // Filter out ignored files (binary, generated, etc.) using .revuignore
+    // Always use remote fetching now
+    const reviewableFiles = await filterIgnoredFiles(
+      allFilesChanged,
+      client,
+      commitSha
+    )
     const diffLines = diff.split('\n')
     const diffSize = diffLines.length
 
     // Analyze diff content
-    const diffAnalysis = analyzeDiff(diff, diffLines)
+    const diffAnalysis = analyzeDiff(
+      diffLines,
+      reviewableFiles,
+      config.maxIndividualFileSize
+    )
 
     // Check file patterns on reviewable files only
     const fileAnalysis = analyzeFiles(reviewableFiles, config)
@@ -282,7 +349,8 @@ export async function validatePR(
       diffSize,
       largestFileSize: diffAnalysis.largestFileSize,
       additionDeletionRatio: diffAnalysis.additionDeletionRatio,
-      documentationOnlyFiles: fileAnalysis.documentationOnlyFiles
+      documentationOnlyFiles: fileAnalysis.documentationOnlyFiles,
+      largeFiles: diffAnalysis.largeFiles
     }
 
     // Run validation checks on reviewable files

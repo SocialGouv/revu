@@ -18,12 +18,21 @@ const createMockClient = (diff: string): PlatformClient => ({
   createReview: vi.fn(),
   createReviewComment: vi.fn(),
   updateReviewComment: vi.fn(),
-  getPullRequest: vi.fn(),
+  getPullRequest: vi.fn().mockResolvedValue({
+    head: { sha: 'mock-commit-sha-123' },
+    number: 123,
+    state: 'open',
+    mergeable: true,
+    title: 'Mock PR Title',
+    body: 'Mock PR Body'
+  }),
   listReviewComments: vi.fn(),
   getReviewComment: vi.fn(),
   deleteReviewComment: vi.fn(),
   fetchPullRequestDiffMap: vi.fn(),
-  getFileContent: vi.fn(),
+  getFileContent: vi
+    .fn()
+    .mockResolvedValue('# Mock .revuignore content\n*.log\n*.tmp\n'),
   listReviews: vi.fn()
 })
 
@@ -381,7 +390,8 @@ index 123..456 100644
 +new line`
 
       const diffLines = diff.split('\n')
-      const result = analyzeDiff(diff, diffLines)
+      const reviewableFiles = ['file1.ts', 'file2.ts'] // Both files are reviewable
+      const result = analyzeDiff(diffLines, reviewableFiles)
 
       expect(result.additions).toBe(4) // 3 additions in file1 + 1 in file2
       expect(result.deletions).toBe(3) // 1 deletion in file1 + 2 in file2
@@ -398,11 +408,106 @@ index 123..456 100644
 +new file content`
 
       const diffLines = diff.split('\n')
-      const result = analyzeDiff(diff, diffLines)
+      const reviewableFiles = ['empty.ts'] // File is reviewable
+      const result = analyzeDiff(diffLines, reviewableFiles)
 
       expect(result.additions).toBe(1)
       expect(result.deletions).toBe(0)
       expect(result.additionDeletionRatio).toBe(Infinity)
+    })
+
+    it('should identify large files when maxIndividualFileSize is provided', () => {
+      const diff = `diff --git a/small-file.ts b/small-file.ts
+index 123..456 100644
+--- a/small-file.ts
++++ b/small-file.ts
+@@ -1,1 +1,3 @@
+-old line
++new line 1
++new line 2
++new line 3
+diff --git a/large-file.ts b/large-file.ts
+index 123..456 100644
+--- a/large-file.ts
++++ b/large-file.ts
+@@ -1,1 +1,6 @@
+-old content
++new line 1
++new line 2
++new line 3
++new line 4
++new line 5
++new line 6`
+
+      const diffLines = diff.split('\n')
+      const reviewableFiles = ['small-file.ts', 'large-file.ts'] // Both files are reviewable
+      const result = analyzeDiff(diffLines, reviewableFiles, 4) // Set limit to 4 lines
+
+      // Both files should be identified as large since they both exceed 4 lines
+      expect(result.largeFiles).toHaveLength(2)
+      expect(result.largeFiles[0].fileName).toBe('small-file.ts')
+      expect(result.largeFiles[0].size).toBe(6) // 1 deletion + 3 additions + 2 context lines
+      expect(result.largeFiles[1].fileName).toBe('large-file.ts')
+      expect(result.largeFiles[1].size).toBe(9) // 1 deletion + 6 additions + 2 context lines
+    })
+
+    it('should not identify large files when maxIndividualFileSize is not provided', () => {
+      const diff = `diff --git a/large-file.ts b/large-file.ts
+index 123..456 100644
+--- a/large-file.ts
++++ b/large-file.ts
+@@ -1,1 +1,10 @@
+-old content
++new line 1
++new line 2
++new line 3
++new line 4
++new line 5
++new line 6
++new line 7
++new line 8
++new line 9
++new line 10`
+
+      const diffLines = diff.split('\n')
+      const reviewableFiles = ['large-file.ts'] // File is reviewable
+      const result = analyzeDiff(diffLines, reviewableFiles) // No limit provided
+
+      expect(result.largeFiles).toHaveLength(0)
+      expect(result.largestFileSize).toBe(13) // 1 deletion + 10 additions + 2 context lines
+    })
+
+    it('should skip ignored files and only analyze reviewable files', () => {
+      const diff = `diff --git a/src/main.ts b/src/main.ts
+index 123..456 100644
+--- a/src/main.ts
++++ b/src/main.ts
+@@ -1,1 +1,3 @@
+-old code
++new code line 1
++new code line 2
++new code line 3
+diff --git a/package-lock.json b/package-lock.json
+index 123..456 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,1 +1,100 @@
+-old content
+${Array.from({ length: 99 }, (_, i) => `+generated line ${i}`).join('\n')}
+diff --git a/binary-file.png b/binary-file.png
+index 123..456 100644
+Binary files a/binary-file.png and b/binary-file.png differ`
+
+      const diffLines = diff.split('\n')
+      // Only src/main.ts is reviewable, package-lock.json and binary-file.png are ignored
+      const reviewableFiles = ['src/main.ts']
+      const result = analyzeDiff(diffLines, reviewableFiles)
+
+      // Should only count changes from src/main.ts (3 additions, 1 deletion)
+      expect(result.additions).toBe(3)
+      expect(result.deletions).toBe(1)
+      expect(result.largestFileSize).toBe(6) // 1 deletion + 3 additions + 2 context lines from main.ts only
+      expect(result.additionDeletionRatio).toBe(3) // 3 additions / 1 deletion
     })
   })
 
@@ -482,7 +587,8 @@ index 123..456 100644
         diffSize: 20000, // Too large diff
         largestFileSize: 5000, // Individual file too large
         additionDeletionRatio: 2.0,
-        documentationOnlyFiles: 0
+        documentationOnlyFiles: 0,
+        largeFiles: [{ fileName: 'src/large-component.tsx', size: 5000 }]
       }
 
       const result = runValidationChecks(
@@ -502,10 +608,57 @@ index 123..456 100644
       // Check that all three issues are present
       expect(result.issues[0].reason).toContain('100 files')
       expect(result.issues[1].reason).toContain('20000 lines of diff')
+      expect(result.issues[2].reason).toContain('src/large-component.tsx')
       expect(result.issues[2].reason).toContain('5000 lines of changes')
+    })
 
-      // All issues should be collected in the issues array
-      expect(result.issues[0].reason).toContain('100 files')
+    it('should include file names for single large file', () => {
+      const metricsWithLargeFile = {
+        ...mockMetrics,
+        largeFiles: [
+          { fileName: 'src/components/LargeComponent.tsx', size: 4500 }
+        ]
+      }
+
+      const result = runValidationChecks(
+        metricsWithLargeFile,
+        mockFileAnalysis,
+        DEFAULT_VALIDATION_CONFIG
+      )
+
+      expect(result.isValid).toBe(false)
+      expect(result.issues).toHaveLength(1)
+      expect(result.issues[0].reason).toContain(
+        'src/components/LargeComponent.tsx'
+      )
+      expect(result.issues[0].reason).toContain('4500 lines of changes')
+      expect(result.issues[0].reason).toContain('exceeds the limit of 3000')
+    })
+
+    it('should include file names for multiple large files', () => {
+      const metricsWithMultipleLargeFiles = {
+        ...mockMetrics,
+        largeFiles: [
+          { fileName: 'src/components/Component1.tsx', size: 4500 },
+          { fileName: 'src/utils/helpers.ts', size: 3500 }
+        ]
+      }
+
+      const result = runValidationChecks(
+        metricsWithMultipleLargeFiles,
+        mockFileAnalysis,
+        DEFAULT_VALIDATION_CONFIG
+      )
+
+      expect(result.isValid).toBe(false)
+      expect(result.issues).toHaveLength(1)
+      expect(result.issues[0].reason).toContain('src/components/Component1.tsx')
+      expect(result.issues[0].reason).toContain('4500 lines')
+      expect(result.issues[0].reason).toContain('src/utils/helpers.ts')
+      expect(result.issues[0].reason).toContain('3500 lines')
+      expect(result.issues[0].reason).toContain(
+        'The limit is 3000 lines per file'
+      )
     })
   })
 

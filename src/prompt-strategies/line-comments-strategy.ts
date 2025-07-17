@@ -63,7 +63,10 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
   }
 
   // Prepare the repository for extraction using platform client
-  const tempFolder = path.join(os.tmpdir(), 'revu-all-' + Date.now())
+  const tempFolder = path.join(
+    os.tmpdir(),
+    `revu-${context.prNumber}-` + Date.now()
+  )
 
   try {
     await fs.rm(tempFolder, { recursive: true, force: true })
@@ -82,8 +85,16 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
   // Extract modified file paths from the diff
   const modifiedFiles = extractModifiedFilePaths(diff)
 
-  // Filter out ignored files
-  const filteredFiles = await filterIgnoredFiles(modifiedFiles, repoPath)
+  // Get PR details to get the commit SHA for remote .revuignore fetching
+  const pr = await context.client.getPullRequest(context.prNumber)
+  const commitSha = pr.head.sha
+
+  // Filter out ignored files using remote .revuignore
+  const filteredFiles = await filterIgnoredFiles(
+    modifiedFiles,
+    context.client,
+    commitSha
+  )
 
   // Get content of modified files - use repoPath where the files actually are
   const modifiedFilesContent = await getFilesContent(filteredFiles, repoPath)
