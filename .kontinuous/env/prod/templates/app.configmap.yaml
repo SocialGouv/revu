@@ -4,3 +4,9 @@ metadata:
   name: app
 data:
   REPOSITORY_FOLDER: "/app/repos"
+  LOG_LLM_EXCHANGES: "full"
+
+#LOG_LLM_EXCHANGES=metadata    # production mode
+#LOG_LLM_EXCHANGES=truncated   # quick review
+#LOG_LLM_EXCHANGES=full        # full LLM data
+#LOG_LLM_EXCHANGES=disabled    # no LLM logs
