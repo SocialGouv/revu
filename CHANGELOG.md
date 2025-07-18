@@ -1,3 +1,10 @@
+## [1.26.2](https://github.com/SocialGouv/revu/compare/v1.26.1...v1.26.2) (2025-07-18)
+
+
+### Bug Fixes
+
+* Properly ignore files in PR validation service ([53f7c55](https://github.com/SocialGouv/revu/commit/53f7c550b49ef9e662580a5951de162625af3851))
+
 ## [1.26.1](https://github.com/SocialGouv/revu/compare/v1.26.0...v1.26.1) (2025-07-09)
 
 
