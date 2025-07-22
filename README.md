@@ -255,6 +255,7 @@ Requirements:
 | `REPOSITORY_FOLDER`       | string | Absolute path where repositories will be cloned                            |
 | `PROXY_REVIEWER_USERNAME` | string | Username of the proxy user account for manual review requests              |
 | `PROXY_REVIEWER_TOKEN`    | string | GitHub personal access token for the proxy user account                    |
+| `LOG_LLM_EXCHANGES`       | string | (Optional) Control LLM logging level: disabled, metadata, truncated, full  |
 
 ## Running the App
 
@@ -445,6 +446,167 @@ Enable debug logging:
 
 ```bash
 DEBUG=revu:* yarn dev
+```
+
+## LLM Exchange Logging
+
+Revu provides comprehensive logging of all exchanges with the LLM (Claude) to help with debugging, monitoring, and analysis. This feature is configurable and designed to balance visibility with security and performance.
+
+### Configuration
+
+Control LLM logging through the `LOG_LLM_EXCHANGES` environment variable:
+
+```bash
+# Available logging levels
+LOG_LLM_EXCHANGES=disabled   # No LLM logging
+LOG_LLM_EXCHANGES=metadata   # Only metadata (default)
+LOG_LLM_EXCHANGES=truncated  # Metadata + truncated content
+LOG_LLM_EXCHANGES=full       # Complete prompts and responses
+```
+
+### Logging Levels
+
+#### `disabled`
+- No LLM exchange logging
+- Use for production environments with strict logging requirements
+
+#### `metadata` (default)
+- Logs request/response metadata only
+- Includes: model used, duration, token usage, strategy, PR details
+- **Recommended for production**: Provides insights without content exposure
+
+#### `truncated`
+- Metadata + first 500 characters of prompts/responses
+- Balances debugging needs with content privacy
+- **Recommended for development**: Good for debugging prompt issues
+
+#### `full`
+- Complete prompts and responses logged
+- Maximum visibility for debugging
+- **Security warning**: Contains full source code and sensitive data
+
+### Log Format
+
+All LLM logs follow a structured JSON format:
+
+```json
+{
+  "timestamp": "2025-01-18T16:49:00.000Z",
+  "service": "revu",
+  "level": "info",
+  "event_type": "llm_request_sent",
+  "model_used": "claude-sonnet-4-20250514",
+  "strategy_name": "line-comments",
+  "pr_number": 123,
+  "repository": "owner/repo"
+}
+```
+
+### Event Types
+
+- **`llm_request_sent`**: When a request is sent to Claude
+- **`llm_response_received`**: When a response is received from Claude
+- **`llm_request_failed`**: When an API request fails
+
+### Metadata Fields
+
+- `model_used`: Anthropic model used for the request
+- `strategy_name`: Review strategy (e.g., "line-comments")
+- `request_duration_ms`: Request duration in milliseconds
+- `tokens_used`: Token usage `{input: number, output: number}`
+- `pr_number`: Pull request number
+- `repository`: Repository name
+- `prompt_preview`: Truncated prompt (truncated/full modes)
+- `response_preview`: Truncated response (truncated/full modes)
+- `full_prompt`: Complete prompt (full mode only)
+- `full_response`: Complete response (full mode only)
+
+### Use Cases
+
+#### Production Monitoring
+```bash
+LOG_LLM_EXCHANGES=metadata
+```
+- Track API usage and performance
+- Monitor token consumption
+- Identify slow requests or failures
+
+#### Development Debugging
+```bash
+LOG_LLM_EXCHANGES=truncated
+```
+- Debug prompt engineering issues
+- Verify request/response flow
+- Analyze response quality
+
+#### Deep Analysis
+```bash
+LOG_LLM_EXCHANGES=full
+```
+- Full content analysis
+- Prompt optimization
+- Response quality assessment
+
+### Security Considerations
+
+- **`full` mode**: Logs contain complete source code and potentially sensitive data
+- **`truncated` mode**: May still contain sensitive information in previews
+- **`metadata` mode**: Safe for production, contains no code content
+- **Log rotation**: Ensure proper log rotation for large volumes
+- **Access control**: Restrict access to logs containing sensitive data
+
+### Performance Impact
+
+- **`disabled`**: No performance impact
+- **`metadata`**: Minimal impact (recommended)
+- **`truncated`**: Low impact, slight string processing overhead
+- **`full`**: Moderate impact due to large log entries
+
+### Examples
+
+#### Request Sent (metadata level)
+```json
+{
+  "timestamp": "2025-01-18T16:49:00.000Z",
+  "service": "revu",
+  "level": "info",
+  "event_type": "llm_request_sent",
+  "model_used": "claude-sonnet-4-20250514",
+  "strategy_name": "line-comments",
+  "pr_number": 123,
+  "repository": "owner/repo"
+}
+```
+
+#### Response Received (metadata level)
+```json
+{
+  "timestamp": "2025-01-18T16:49:02.500Z",
+  "service": "revu",
+  "level": "info",
+  "event_type": "llm_response_received",
+  "model_used": "claude-sonnet-4-20250514",
+  "strategy_name": "line-comments",
+  "request_duration_ms": 2500,
+  "tokens_used": {"input": 1500, "output": 800},
+  "pr_number": 123,
+  "repository": "owner/repo"
+}
+```
+
+#### Request Failed
+```json
+{
+  "timestamp": "2025-01-18T16:49:03.000Z",
+  "service": "revu",
+  "level": "error",
+  "event_type": "llm_request_failed",
+  "model_used": "claude-sonnet-4-20250514",
+  "strategy_name": "line-comments",
+  "error_message": "API rate limit exceeded",
+  "pr_number": 123,
+  "repository": "owner/repo"
+}
 ```
 
 ## Contributing
