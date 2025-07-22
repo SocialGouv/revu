@@ -114,61 +114,20 @@ Only comment on issues that fall into these categories:
 - Provide clear explanations of why the issue matters
 - Include specific code suggestions when possible
 
-## LINE TARGETING - CRITICAL ACCURACY REQUIREMENTS
+## SEARCH/REPLACE BLOCKS - PRECISE CODE TARGETING
 
-### How to Determine Correct Line Numbers
-
-**STEP 1: Locate the Change in Git Diff**
-- Find the specific hunk in the Git Diff that contains the code you want to comment on
-- Look for lines starting with `+` (additions) or context lines (no prefix)
-- Note the line numbers shown in the hunk header (e.g., `@@ -10,5 +10,8 @@`)
-
-**STEP 2: Calculate Target Line Numbers**
-- For **single-line comments**: Use the exact line number from the diff
-- For **multi-line comments**: Use `start_line` and `line` to define the range
-- **ONLY comment on lines that appear in the Git Diff** (either as additions `+` or context lines)
-
-**STEP 3: Validate Your Line Numbers**
-- Double-check that your target lines correspond to actual changes in the diff
-- Ensure the line numbers make sense within the file structure
-- If uncertain about line positioning, skip the comment rather than guess
-
-### Line Number Examples
-
-**Example 1 - Single Line Comment:**
-```diff
-@@ -15,3 +15,4 @@ function processData(input) {
-   if (!input) {
-     return null
-   }
-+  return input.toUpperCase() // New line at line 18
-```
-→ Comment on line 18
-
-**Example 2 - Multi-Line Comment:**
-```diff
-@@ -20,5 +20,8 @@ function validateUser(user) {
--  if (user.name) {
--    return true
--  }
-+  if (!user || !user.name || user.name.trim() === '') {
-+    throw new Error('Invalid user')
-+  }
-+  return true
-```
-→ Comment on lines 21-24 (start_line: 21, line: 24)
+The system uses SEARCH/REPLACE blocks to automatically determine precise line positioning. You don't need to calculate line numbers manually - just provide accurate SEARCH blocks and the system will handle positioning.
 
 ## Code Suggestions - SEARCH/REPLACE Block Format
 
 When providing code suggestions, use SEARCH/REPLACE blocks for precise modifications.
 
-### SEARCH/REPLACE Block Rules
+### SEARCH/REPLACE Block Requirements
 
 **Critical Requirements:**
 1. **Exact Matching**: SEARCH content must match the file content character-for-character
 2. **Sufficient Context**: Include enough surrounding lines to uniquely identify the location
 3. **Complete Lines**: Each line in SEARCH blocks must be complete, never truncated
-4. **Diff Alignment**: Ensure your SEARCH blocks target code that appears in the Git Diff
 
 ### Usage Examples
 
@@ -191,8 +150,7 @@ When providing code suggestions, use SEARCH/REPLACE blocks for precise modificat
 ```json
 {
   "path": "src/components/Form.tsx",
-  "line": 27,
-  "start_line": 25,
+  "line": 25,
   "body": "Add proper error handling and validation to this form submission.",
   "search_replace_blocks": [
     {
@@ -202,6 +160,8 @@ When providing code suggestions, use SEARCH/REPLACE blocks for precise modificat
   ]
 }
 ```
+
+**Note**: You can provide approximate line numbers - the system will automatically determine precise positioning based on your SEARCH blocks.
 
 ### Best Practices for SEARCH/REPLACE Blocks
 
@@ -226,24 +186,15 @@ You MUST use the "provide_code_review" tool with:
 - Mention the overall quality and any patterns observed
 
 ### Comment Requirements
-- **Accurate line targeting**: Use the Git Diff to determine correct line numbers
 - **Specific file paths**: Match exactly as shown in the diff
 - **Clear problem description**: Explain what's wrong and why it matters
 - **Actionable solutions**: Provide concrete steps to fix the issue
-- **SEARCH/REPLACE blocks**: Include when you can provide exact code fixes
-
-### Line Number Validation Checklist
-Before submitting each comment, verify:
-- [ ] The target lines appear in the Git Diff
-- [ ] Line numbers correspond to actual changes or context lines
-- [ ] Multi-line ranges are correctly specified (start_line ≤ line)
-- [ ] SEARCH blocks would uniquely match the intended code location
+- **SEARCH/REPLACE blocks**: Include when you can provide exact code fixes (the system will handle precise positioning)
 
 ## Important Notes
 
-- **Accuracy over quantity**: Better to have fewer, precisely targeted comments than many misaligned ones
-- **Skip if uncertain**: If you cannot determine accurate line numbers, skip the comment
 - **Focus on impact**: Only comment on issues that genuinely improve code quality
-- **Use the diff**: The Git Diff is your source of truth for line positioning
+- **Provide exact SEARCH blocks**: The more precise your SEARCH content, the better the system can position your comments
+- **Use sufficient context**: Include enough surrounding lines in SEARCH blocks to uniquely identify the location
 
-Remember: A well-positioned, actionable comment is infinitely more valuable than a misaligned one that confuses developers.
+Remember: The system handles line positioning automatically - focus on providing clear, actionable feedback with accurate SEARCH/REPLACE blocks.
