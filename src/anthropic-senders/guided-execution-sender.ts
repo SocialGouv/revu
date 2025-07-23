@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { processAnthropicResponse } from './response-processor.ts'
 
-// Type for code review response
+// Type for code review response (same as line-comments-sender)
 interface CodeReviewResponse {
   summary: string
   comments: Array<{
@@ -17,14 +17,15 @@ interface CodeReviewResponse {
 }
 
 /**
- * Line comments Anthropic sender.
+ * Guided Execution Anthropic sender.
  * This sender uses Anthropic's Tool Use / Function Calling capability
  * to enforce a structured JSON response with specific line-based comments.
+ * It's enhanced with review planning context to generate more targeted reviews.
  *
- * @param prompt - The prompt to send to Anthropic
+ * @param prompt - The guided execution prompt to send to Anthropic (includes review plan)
  * @returns A stringified JSON response containing structured review comments
  */
-export async function lineCommentsSender(prompt: string): Promise<string> {
+export async function guidedExecutionSender(prompt: string): Promise<string> {
   // Initialize Anthropic client
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY
@@ -34,7 +35,7 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
   const message = await anthropic.messages.create({
     model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
     max_tokens: 4096,
-    temperature: 0,
+    temperature: 0, // Keep deterministic for execution phase
     messages: [
       {
         role: 'user',
@@ -45,13 +46,14 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
       {
         name: 'provide_code_review',
         description:
-          'Provide structured code review with line-specific comments',
+          'Provide structured code review with line-specific comments guided by a review plan',
         input_schema: {
           type: 'object',
           properties: {
             summary: {
               type: 'string',
-              description: 'Overall summary of the PR'
+              description:
+                'Overall summary of the PR focusing on priorities identified in the planning phase'
             },
             comments: {
               type: 'array',
@@ -74,7 +76,8 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
                   },
                   body: {
                     type: 'string',
-                    description: 'Detailed comment about the issue'
+                    description:
+                      'Detailed comment about the issue, prioritizing areas identified in the review plan'
                   },
                   search_replace_blocks: {
                     type: 'array',
@@ -99,7 +102,9 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
                   }
                 },
                 required: ['path', 'line', 'body']
-              }
+              },
+              description:
+                'Array of line-specific comments focused on priorities'
             }
           },
           required: ['summary', 'comments']
@@ -111,6 +116,6 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
   // Use shared response processor with basic validation
   return processAnthropicResponse<CodeReviewResponse>(message, {
     expectedToolName: 'provide_code_review',
-    contextName: 'Inline comment'
+    contextName: 'Guided execution'
   })
 }

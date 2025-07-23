@@ -113,7 +113,7 @@ describe('populateTemplate', () => {
     )
 
     // Create a temporary custom template
-    const customTemplate = 'Custom template: {{git_diff_branch}}'
+    const customTemplate = 'Custom template: {{pr_git_diff}}'
     const tempTemplatePath = path.join(process.cwd(), 'test-template.hbs')
     await fs.writeFile(tempTemplatePath, customTemplate)
 
@@ -125,7 +125,6 @@ describe('populateTemplate', () => {
         context: mockContext
       })
 
-      console.log(`result`, result)
       expect(result).toMatch(/Custom template: .+/)
     } finally {
       // Clean up

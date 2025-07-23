@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { lineCommentsSender } from '../../src/anthropic-senders/line-comments-sender.ts'
 
 // Mock the Anthropic SDK
@@ -193,7 +193,7 @@ Some text after that should be ignored`
     })
 
     await expect(lineCommentsSender('test prompt')).rejects.toThrow(
-      'Unexpected response format from Anthropic - no content found'
+      'Unexpected response format from Anthropic inline comment - no content found'
     )
   })
 
@@ -204,7 +204,7 @@ Some text after that should be ignored`
 {
   "summary": "Test summary",
   "comments": [
-    { 
+    {
       "path": "test.ts",
       "line": 10,
       "body": "Comment"
