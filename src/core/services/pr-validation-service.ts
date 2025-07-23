@@ -9,8 +9,6 @@ export interface PRValidationConfig {
   maxFilesChanged: number
   maxDiffSize: number
   maxIndividualFileSize: number
-  maxAdditionDeletionRatio: number
-  minAdditionDeletionRatio: number
   skipDocumentationOnly: boolean
   documentationExtensions: string[]
 }
@@ -38,8 +36,6 @@ export const DEFAULT_VALIDATION_CONFIG: PRValidationConfig = {
   maxFilesChanged: 25,
   maxDiffSize: 15000,
   maxIndividualFileSize: 3000,
-  maxAdditionDeletionRatio: 10, // Skip PRs that are mostly additions without context
-  minAdditionDeletionRatio: 0.1, // Skip PRs that are mostly deletions (cleanup PRs)
   skipDocumentationOnly: true,
   documentationExtensions: ['.md', '.txt', '.rst', '.adoc', '.tex']
 }
@@ -225,32 +221,6 @@ export function runValidationChecks(
       reason: `This PR contains files that exceed the size limit: ${fileList}, which exceeds the limit of ${config.maxIndividualFileSize}. The limit is ${config.maxIndividualFileSize} lines per file.`,
       suggestion:
         'Consider refactoring large changes into smaller, more focused modifications. Large file changes are harder to review and understand.'
-    })
-  }
-
-  // Check: Mostly deletions (cleanup PR)
-  if (
-    metrics.additionDeletionRatio !== undefined &&
-    metrics.additionDeletionRatio < config.minAdditionDeletionRatio
-  ) {
-    issues.push({
-      reason:
-        'This PR appears to be primarily a cleanup or deletion PR with very few additions.',
-      suggestion:
-        "Cleanup PRs with mostly deletions typically don't benefit from detailed code review. Consider having a human reviewer quickly verify the deletions are safe."
-    })
-  }
-
-  // Check: Mostly additions without context
-  if (
-    metrics.additionDeletionRatio !== undefined &&
-    metrics.additionDeletionRatio > config.maxAdditionDeletionRatio
-  ) {
-    issues.push({
-      reason:
-        'This PR appears to be mostly new code additions without sufficient context.',
-      suggestion:
-        'Large additions without context (like generated code or copy-pasted code) may not benefit from line-by-line review. Consider breaking into smaller PRs with more context.'
     })
   }
 
