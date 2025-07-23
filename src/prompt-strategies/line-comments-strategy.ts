@@ -1,42 +1,11 @@
 import * as fs from 'fs/promises'
 import Handlebars from 'handlebars'
-import * as os from 'os'
 import * as path from 'path'
 import { getCodingGuidelines } from '../config-handler.ts'
-import type {
-  IssueDetails,
-  PlatformContext
-} from '../core/models/platform-types.ts'
-import {
-  extractModifiedFilePaths,
-  filterIgnoredFiles,
-  getFilesContent
-} from '../file-utils.ts'
-import { cleanUpRepository, extractIssueNumbers } from '../repo-utils.ts'
+import type { PlatformContext } from '../core/models/platform-types.ts'
+import { cleanUpRepository, fetchRelatedIssues } from '../repo-utils.ts'
+import { prepareRepositoryForReview } from './prepare-repository-for-review.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
-
-/**
- * Fetches related issues using the platform client
- * @param context - Platform context containing client and PR information
- * @returns Array of issue details
- */
-const fetchRelatedIssues = async (
-  context?: PlatformContext
-): Promise<IssueDetails[]> => {
-  if (!context?.prBody || !context?.client) return []
-
-  const issueNumbers = extractIssueNumbers(context.prBody)
-  if (issueNumbers.length === 0) return []
-
-  console.log(`Found related issues: ${issueNumbers.join(', ')}`)
-
-  const issuePromises = issueNumbers.map((num) =>
-    context.client.fetchIssueDetails(num)
-  )
-  const issues = await Promise.all(issuePromises)
-
-  return issues.filter((issue): issue is IssueDetails => issue !== null)
-}
 
 /**
  * Line comments prompt generation strategy.
@@ -57,47 +26,9 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
   context: PlatformContext,
   templatePath?: string
 ): Promise<string> => {
-  // Fetch PR diff using platform client
-  if (!context.prNumber || !context.client) {
-    throw new Error('Platform context with PR number and client is required')
-  }
-
-  // Prepare the repository for extraction using platform client
-  const tempFolder = path.join(
-    os.tmpdir(),
-    `revu-${context.prNumber}-` + Date.now()
-  )
-
-  try {
-    await fs.rm(tempFolder, { recursive: true, force: true })
-  } catch {
-    // Ignore errors if folder doesn't exist
-  }
-  await fs.mkdir(tempFolder, { recursive: true })
-
-  // Clone repository using platform client
-  await context.client.cloneRepository(repositoryUrl, branch, tempFolder)
-
-  const repoPath = tempFolder
-
-  const diff = await context.client.fetchPullRequestDiff(context.prNumber)
-
-  // Extract modified file paths from the diff
-  const modifiedFiles = extractModifiedFilePaths(diff)
-
-  // Get PR details to get the commit SHA for remote .revuignore fetching
-  const pr = await context.client.getPullRequest(context.prNumber)
-  const commitSha = pr.head.sha
-
-  // Filter out ignored files using remote .revuignore
-  const filteredFiles = await filterIgnoredFiles(
-    modifiedFiles,
-    context.client,
-    commitSha
-  )
-
-  // Get content of modified files - use repoPath where the files actually are
-  const modifiedFilesContent = await getFilesContent(filteredFiles, repoPath)
+  // Setup repository and extract PR data using shared utility
+  const { repoPath, diff, modifiedFilesContent } =
+    await prepareRepositoryForReview(repositoryUrl, branch, context)
 
   await cleanUpRepository(repoPath)
 
@@ -135,7 +66,7 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
     absolute_code_path: absolutePath,
     pr_title: context?.prTitle,
     pr_body: context?.prBody?.length > 16 ? context.prBody : null,
-    git_diff_branch: diff,
+    pr_git_diff: diff,
     modified_files: modifiedFilesContent,
     coding_guidelines: codingGuidelines,
     related_issues: relatedIssues
