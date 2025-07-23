@@ -1,3 +1,10 @@
+# [1.27.0](https://github.com/SocialGouv/revu/compare/v1.26.3...v1.27.0) (2025-07-23)
+
+
+### Features
+
+* Remove PR filtering based on addition/deletion ratio ([dd2bd47](https://github.com/SocialGouv/revu/commit/dd2bd4790addee5050bd7a09c557b17c04582551))
+
 ## [1.26.3](https://github.com/SocialGouv/revu/compare/v1.26.2...v1.26.3) (2025-07-22)
 
 
