@@ -4,6 +4,10 @@ import * as os from 'os'
 import path from 'path'
 import type { ProbotOctokit } from 'probot'
 import { promisify } from 'util'
+import type {
+  IssueDetails,
+  PlatformContext
+} from './core/models/platform-types.ts'
 import { logSystemError } from './utils/logger.ts'
 
 const execAsync = promisify(exec)
@@ -129,20 +133,6 @@ export function extractIssueNumbers(text: string): number[] {
 }
 
 /**
- * Interface for issue details
- */
-interface IssueDetails {
-  number: number
-  title: string
-  body: string | null
-  state: string
-  comments: Array<{
-    id: number
-    body: string
-  }>
-}
-
-/**
  * Fetches issue details including title, description, and comments
  */
 export async function fetchIssueDetails(
@@ -182,4 +172,27 @@ export async function fetchIssueDetails(
     })
     return null
   }
+}
+
+/**
+ * Fetches related issues using the platform client
+ * @param context - Platform context containing client and PR information
+ * @returns Array of issue details
+ */
+export async function fetchRelatedIssues(
+  context?: PlatformContext
+): Promise<IssueDetails[]> {
+  if (!context?.prBody || !context?.client) return []
+
+  const issueNumbers = extractIssueNumbers(context.prBody)
+  if (issueNumbers.length === 0) return []
+
+  console.log(`Found related issues: ${issueNumbers.join(', ')}`)
+
+  const issuePromises = issueNumbers.map((num) =>
+    context.client.fetchIssueDetails(num)
+  )
+  const issues = await Promise.all(issuePromises)
+
+  return issues.filter((issue): issue is IssueDetails => issue !== null)
 }

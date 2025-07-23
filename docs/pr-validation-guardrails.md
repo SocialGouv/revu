@@ -16,12 +16,7 @@ The bot will skip reviewing PRs that meet any of these criteria:
 - **Massive diffs**: PRs with more than 15,000 lines of diff (configurable)
 - **Individual file too large**: Single files with more than 3,000 lines of changes (configurable)
 
-### 2. **Cleanup and Mass Changes**
-
-- **Mostly deletions**: PRs that are primarily cleanup with very few additions (ratio < 0.1)
-- **Mass additions without context**: PRs with excessive additions relative to deletions (ratio > 10)
-
-### 3. **Documentation-Only PRs**
+### 2. **Documentation-Only PRs**
 
 - **Documentation-only**: PRs that only change documentation files (.md, .txt, etc.) when configured to skip them
 
@@ -32,6 +27,7 @@ The bot will skip reviewing PRs that meet any of these criteria:
 The following file types are **filtered out during review** using the `.revuignore` file, but don't cause PR rejection:
 
 #### Generated Files
+
 - `*.lock` files (package-lock.json, yarn.lock, etc.)
 - `*.generated.*` and `*-generated.*` files
 - Build directories: `dist/`, `build/`, `coverage/`, `target/`
@@ -39,6 +35,7 @@ The following file types are **filtered out during review** using the `.revuigno
 - Minified files: `*.min.js`, `*.min.css`, `*.bundle.*`
 
 #### Binary Files
+
 - Images: `.jpg`, `.png`, `.gif`, `.svg`, etc.
 - Documents: `.pdf`, `.doc`, `.docx`, `.xls`, etc.
 - Archives: `.zip`, `.tar`, `.gz`, etc.
