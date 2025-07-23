@@ -159,52 +159,6 @@ ${Array.from({ length: 4000 }, (_, i) => `+line ${i}`).join('\n')}`
       })
     })
 
-    describe('Addition/Deletion Ratio Validation', () => {
-      it('should reject cleanup PRs with mostly deletions', async () => {
-        const cleanupDiff = `diff --git a/old-file.ts b/old-file.ts
-index 123..456 100644
---- a/old-file.ts
-+++ b/old-file.ts
-@@ -1,100 +1,5 @@
-${Array.from({ length: 95 }, () => '-deleted line').join('\n')}
-+new line 1
-+new line 2
-+new line 3
-+new line 4
-+new line 5`
-
-        mockClient = createMockClient(cleanupDiff)
-        const config = createValidationConfig({ minAdditionDeletionRatio: 0.1 })
-
-        const result = await validatePR(mockClient, 123, config)
-
-        expect(result.isValid).toBe(false)
-        expect(result.issues).toHaveLength(1)
-        expect(result.issues[0].reason).toContain('cleanup or deletion PR')
-      })
-
-      it('should reject PRs with too many additions without context', async () => {
-        const massAdditionDiff = `diff --git a/new-file.ts b/new-file.ts
-index 123..456 100644
---- a/new-file.ts
-+++ b/new-file.ts
-@@ -1,1 +1,1000 @@
--old line
-${Array.from({ length: 999 }, (_, i) => `+new line ${i}`).join('\n')}`
-
-        mockClient = createMockClient(massAdditionDiff)
-        const config = createValidationConfig({ maxAdditionDeletionRatio: 10 })
-
-        const result = await validatePR(mockClient, 123, config)
-
-        expect(result.isValid).toBe(false)
-        expect(result.issues).toHaveLength(1)
-        expect(result.issues[0].reason).toContain(
-          'mostly new code additions without sufficient context'
-        )
-      })
-    })
-
     describe('Documentation-Only PRs', () => {
       it('should reject documentation-only PRs when configured', async () => {
         const docDiff = `diff --git a/README.md b/README.md

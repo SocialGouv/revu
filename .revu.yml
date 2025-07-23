@@ -17,14 +17,6 @@ validation:
   # Maximum lines of changes in a single file
   maxIndividualFileSize: 2000
 
-  # Skip PRs that are mostly deletions (cleanup PRs)
-  # Ratio of additions to deletions must be at least this value
-  minAdditionDeletionRatio: 0.1
-
-  # Skip PRs that are mostly additions without context
-  # Ratio of additions to deletions must not exceed this value
-  maxAdditionDeletionRatio: 10
-
   # Skip PRs that only change documentation files
   skipDocumentationOnly: true
 
