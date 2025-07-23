@@ -3,6 +3,7 @@ import * as yaml from 'js-yaml'
 import * as path from 'path'
 import { merge } from 'ts-deepmerge'
 import type { PRValidationConfig } from './core/services/pr-validation-service.ts'
+import type { PostProcessingConfig } from './post-processors/post-processor.ts'
 import { logSystemError } from './utils/logger.ts'
 
 /**
@@ -172,5 +173,54 @@ export async function getValidationConfig(
       './core/services/pr-validation-service.ts'
     )
     return DEFAULT_VALIDATION_CONFIG
+  }
+}
+
+/**
+ * Interface for the main config.json file
+ */
+interface MainConfig {
+  promptStrategy: string
+  postProcessing?: PostProcessingConfig
+}
+
+/**
+ * Gets the post-processing configuration from config.json
+ *
+ * @returns The post-processing configuration
+ */
+export async function getPostProcessingConfig(): Promise<PostProcessingConfig> {
+  const defaultConfig: PostProcessingConfig = {
+    enabled: false,
+    model: 'claude-sonnet-4-20250514',
+    strategy: 'comment-refinement',
+    temperature: 0,
+    maxTokens: 2048
+  }
+
+  try {
+    const configPath = path.join(process.cwd(), 'config.json')
+    const exists = await fileExists(configPath)
+
+    if (!exists) {
+      console.log('No config.json found, using default post-processing config')
+      return defaultConfig
+    }
+
+    const configContent = await fs.readFile(configPath, 'utf-8')
+    const config = JSON.parse(configContent) as MainConfig
+
+    if (!config.postProcessing) {
+      return defaultConfig
+    }
+
+    // Merge with defaults to ensure all required fields exist
+    return merge(defaultConfig, config.postProcessing) as PostProcessingConfig
+  } catch (error) {
+    logSystemError(error, {
+      context_msg:
+        'Error reading post-processing configuration from config.json'
+    })
+    return defaultConfig
   }
 }

@@ -1,1 +1,10 @@
-{"promptStrategy":"line-comments"}
+{
+    "promptStrategy": "line-comments",
+    "postProcessing": {
+        "enabled": false,
+        "model": "claude-sonnet-4-20250514",
+        "strategy": "comment-refinement",
+        "temperature": 0,
+        "maxTokens": 2048
+    }
+}
