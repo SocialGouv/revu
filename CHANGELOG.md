@@ -1,3 +1,10 @@
+# [1.28.0](https://github.com/SocialGouv/revu/compare/v1.27.0...v1.28.0) (2025-07-24)
+
+
+### Features
+
+* Add 2-step commenting strategy with planning phase ([e53e2c6](https://github.com/SocialGouv/revu/commit/e53e2c661147909f5b7fe03839fb96fb970ad05e))
+
 # [1.27.0](https://github.com/SocialGouv/revu/compare/v1.26.3...v1.27.0) (2025-07-23)
 
 
