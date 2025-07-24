@@ -1,22 +1,22 @@
 import type Anthropic from '@anthropic-ai/sdk'
-import { logSystemError } from '../../utils/logger.ts'
-import type {
-  ResponseExtractor,
-  ResponseValidator,
-  ExtractionResult,
-  ResponseProcessorConfig
-} from './types.ts'
+import { logSystemError, logSystemWarning } from '../../utils/logger.ts'
 import {
-  createToolUseExtractor,
   createJsonCodeBlockExtractor,
   createJsonTextExtractor,
-  createPlainTextExtractor
+  createPlainTextExtractor,
+  createToolUseExtractor
 } from './extractors.ts'
+import type {
+  ExtractionResult,
+  ResponseExtractor,
+  ResponseProcessorConfig,
+  ResponseValidator
+} from './types.ts'
 import {
   createBasicJsonValidator,
   createCustomValidator,
-  createValidationPipeline,
-  createNoOpValidator
+  createNoOpValidator,
+  createValidationPipeline
 } from './validators.ts'
 
 /**
@@ -30,26 +30,24 @@ function isJsonLike(content: string): boolean {
 /**
  * Validate an extraction result
  */
-function validateResult(
+function validateJsonContent(
   result: ExtractionResult,
   validator: ResponseValidator,
   contextName: string
 ): boolean {
-  if (!result.isJsonLike) {
-    return true // Don't validate non-JSON content
-  }
-
   try {
-    const parsed = JSON.parse(result.content)
-    const isValid = validator.validate(parsed)
+    const parsedJSON = JSON.parse(result.content)
+    const isValid = validator.validate(parsedJSON)
 
     if (!isValid) {
-      console.warn(`JSON response failed custom validation for ${contextName}`)
+      logSystemWarning(
+        `JSON response failed custom validation for ${contextName}`
+      )
     }
 
     return isValid
   } catch (parseError) {
-    console.warn(
+    logSystemWarning(
       `Failed to parse JSON response for ${contextName}:`,
       parseError
     )
@@ -77,7 +75,7 @@ function selectBestResult(
 
   // Try JSON results first
   for (const result of jsonResults) {
-    if (validateResult(result, validator, contextName)) {
+    if (validateJsonContent(result, validator, contextName)) {
       console.log(
         `Using ${result.extractorName} result for ${contextName.toLowerCase()}`
       )
@@ -87,7 +85,7 @@ function selectBestResult(
 
   // Fall back to non-JSON results
   for (const result of nonJsonResults) {
-    console.warn(
+    logSystemWarning(
       `${contextName} tool use failed, using ${result.extractorName} fallback`
     )
     return result.content
@@ -95,53 +93,92 @@ function selectBestResult(
 
   // Return the first result as final fallback
   const fallbackResult = results[0]
-  console.warn(
+  logSystemWarning(
     `Returning ${contextName.toLowerCase()} fallback result from ${fallbackResult.extractorName}`
   )
   return fallbackResult.content
 }
 
 /**
+ * Attempt to extract content using a single extractor on a single content block
+ */
+function tryExtractWithExtractor(
+  content: Anthropic.Messages.ContentBlock,
+  extractor: ResponseExtractor,
+  contextName: string
+): ExtractionResult | null {
+  try {
+    if (!extractor.canHandle(content)) {
+      return null
+    }
+
+    const extracted = extractor.extract(content)
+    if (extracted === null) {
+      return null
+    }
+
+    return {
+      content: extracted,
+      extractorName: extractor.name,
+      isJsonLike: isJsonLike(extracted)
+    }
+  } catch (error) {
+    if (extractor.name === 'ToolUse') {
+      // Re-throw tool use errors as they indicate unexpected responses
+      logSystemError(error, {
+        context_msg: `Tool use extraction failed for ${contextName}`
+      })
+      throw error
+    }
+    // Log other extraction errors but continue
+    logSystemWarning(`${extractor.name} extraction failed:`, error)
+    return null
+  }
+}
+
+/**
+ * Process a single content block with all available extractors
+ */
+function processContentBlock(
+  content: Anthropic.Messages.ContentBlock,
+  extractors: ResponseExtractor[],
+  contextName: string
+): ExtractionResult[] {
+  const results: ExtractionResult[] = []
+
+  for (const extractor of extractors) {
+    const result = tryExtractWithExtractor(content, extractor, contextName)
+    if (result !== null) {
+      results.push(result)
+
+      // Return immediately because it is highest priority
+      if (extractor.name === 'ToolUse') {
+        return results
+      }
+    }
+  }
+
+  return results
+}
+
+/**
  * Extract content from message using all available extractors
  */
-function extractContent(
+function extractMessageContent(
   message: Anthropic.Messages.Message,
   extractors: ResponseExtractor[],
   contextName: string
 ): ExtractionResult[] {
   const extractionResults: ExtractionResult[] = []
 
-  // Try each content block with all extractors
+  // Try each content block with all extractors (there should be only one block though)
   for (const content of message.content) {
-    for (const extractor of extractors) {
-      try {
-        if (extractor.canHandle(content)) {
-          const extracted = extractor.extract(content)
-          if (extracted !== null) {
-            const isJsonLikeResult = isJsonLike(extracted)
-            extractionResults.push({
-              content: extracted,
-              extractorName: extractor.name,
-              isJsonLike: isJsonLikeResult
-            })
+    const blockResults = processContentBlock(content, extractors, contextName)
+    extractionResults.push(...blockResults)
 
-            // If this is a tool use extraction, return immediately (highest priority)
-            if (extractor.name === 'ToolUse') {
-              return extractionResults
-            }
-          }
-        }
-      } catch (error) {
-        if (extractor.name === 'ToolUse') {
-          // Re-throw tool use errors as they indicate unexpected responses
-          logSystemError(error, {
-            context_msg: `Tool use extraction failed for ${contextName}`
-          })
-          throw error
-        }
-        // Log other extraction errors but continue
-        console.warn(`${extractor.name} extraction failed:`, error)
-      }
+    // If we found a ToolUse result, return immediately
+    if (blockResults.some((result) => result.extractorName === 'ToolUse')) {
+      return extractionResults
     }
   }
 
@@ -185,7 +222,7 @@ export function createAnthropicResponseProcessor(
   return function processAnthropicResponse(
     message: Anthropic.Messages.Message
   ): string {
-    const extractionResults = extractContent(
+    const extractionResults = extractMessageContent(
       message,
       extractors,
       config.contextName
