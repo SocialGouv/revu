@@ -20,7 +20,7 @@ describe('processSearchReplaceBlocks', () => {
       }
     ]
 
-    const result = processSearchReplaceBlocks(originalContent, blocks)
+    const result = await processSearchReplaceBlocks(originalContent, blocks)
 
     expect(result.success).toBe(true)
     expect(result.appliedBlocks).toBe(1)
@@ -41,7 +41,7 @@ describe('processSearchReplaceBlocks', () => {
       }
     ]
 
-    const result = processSearchReplaceBlocks(originalContent, blocks)
+    const result = await processSearchReplaceBlocks(originalContent, blocks)
 
     expect(result.success).toBe(true)
     expect(result.appliedBlocks).toBe(1)
@@ -67,7 +67,7 @@ function Component() {
       }
     ]
 
-    const result = processSearchReplaceBlocks(originalContent, blocks)
+    const result = await processSearchReplaceBlocks(originalContent, blocks)
 
     expect(result.success).toBe(true)
     expect(result.appliedBlocks).toBe(2)
@@ -94,7 +94,7 @@ function Component() {
       }
     ]
 
-    const result = processSearchReplaceBlocks(originalContent, blocks)
+    const result = await processSearchReplaceBlocks(originalContent, blocks)
 
     expect(result.success).toBe(false)
     expect(result.appliedBlocks).toBe(0)
@@ -127,7 +127,7 @@ function Component() {
       }
     ]
 
-    const result = processSearchReplaceBlocks(originalContent, blocks)
+    const result = await processSearchReplaceBlocks(originalContent, blocks)
 
     expect(result.success).toBe(true)
     expect(result.appliedBlocks).toBe(1)
@@ -154,7 +154,7 @@ function Component() {
       }
     ]
 
-    const result = processSearchReplaceBlocks(originalContent, blocks)
+    const result = await processSearchReplaceBlocks(originalContent, blocks)
 
     expect(result.success).toBe(true)
     expect(result.originalStartLine).toBe(1)
@@ -180,7 +180,7 @@ function Component() {
       }
     ]
 
-    const result = processSearchReplaceBlocks(originalContent, blocks)
+    const result = await processSearchReplaceBlocks(originalContent, blocks)
 
     expect(result.success).toBe(true)
     expect(result.originalStartLine).toBe(0) // First block starts at line 0
@@ -200,7 +200,7 @@ function Component() {
       }
     ]
 
-    const result = processSearchReplaceBlocks(originalContent, blocks)
+    const result = await processSearchReplaceBlocks(originalContent, blocks)
 
     expect(result.success).toBe(false)
     expect(result.originalStartLine).toBeUndefined()

@@ -152,7 +152,7 @@ ${Array.from({ length: 4000 }, (_, i) => `+line ${i}`).join('\n')}`
         expect(result.issues.length).toBeGreaterThan(0)
         // Find the individual file size issue
         const fileSizeIssue = result.issues.find((issue) =>
-          issue.reason.includes('4002 lines of changes')
+          issue.reason.includes('4000 lines of changes')
         )
         expect(fileSizeIssue).toBeDefined()
         expect(fileSizeIssue.reason).toContain('exceeds the limit of 2000')
@@ -395,14 +395,14 @@ index 123..456 100644
 
       const diffLines = diff.split('\n')
       const reviewableFiles = ['small-file.ts', 'large-file.ts'] // Both files are reviewable
-      const result = analyzeDiff(diffLines, reviewableFiles, 4) // Set limit to 4 lines
+      const result = analyzeDiff(diffLines, reviewableFiles, 3) // Set limit to 3 lines
 
-      // Both files should be identified as large since they both exceed 4 lines
+      // Both files should be identified as large since they both exceed 3 lines
       expect(result.largeFiles).toHaveLength(2)
       expect(result.largeFiles[0].fileName).toBe('small-file.ts')
-      expect(result.largeFiles[0].size).toBe(6) // 1 deletion + 3 additions + 2 context lines
+      expect(result.largeFiles[0].size).toBe(4) // 1 deletion + 3 additions
       expect(result.largeFiles[1].fileName).toBe('large-file.ts')
-      expect(result.largeFiles[1].size).toBe(9) // 1 deletion + 6 additions + 2 context lines
+      expect(result.largeFiles[1].size).toBe(7) // 1 deletion + 6 additions
     })
 
     it('should not identify large files when maxIndividualFileSize is not provided', () => {
@@ -428,7 +428,7 @@ index 123..456 100644
       const result = analyzeDiff(diffLines, reviewableFiles) // No limit provided
 
       expect(result.largeFiles).toHaveLength(0)
-      expect(result.largestFileSize).toBe(13) // 1 deletion + 10 additions + 2 context lines
+      expect(result.largestFileSize).toBe(11) // 1 deletion + 10 additions
     })
 
     it('should skip ignored files and only analyze reviewable files', () => {
@@ -460,7 +460,7 @@ Binary files a/binary-file.png and b/binary-file.png differ`
       // Should only count changes from src/main.ts (3 additions, 1 deletion)
       expect(result.additions).toBe(3)
       expect(result.deletions).toBe(1)
-      expect(result.largestFileSize).toBe(6) // 1 deletion + 3 additions + 2 context lines from main.ts only
+      expect(result.largestFileSize).toBe(4) // 1 deletion + 3 additions from main.ts only
       expect(result.additionDeletionRatio).toBe(3) // 3 additions / 1 deletion
     })
   })

@@ -89,7 +89,7 @@ export async function prepareCommentContent(
     comment.search_replace_blocks.length > 0
   ) {
     try {
-      const result = processSearchReplaceBlocks(
+      const result = await processSearchReplaceBlocks(
         fileContent,
         comment.search_replace_blocks
       )
@@ -144,9 +144,13 @@ export async function prepareCommentContent(
           }
         }
       } else {
+        const errorMessage =
+          result.errors && result.errors.length > 0
+            ? result.errors.join('; ')
+            : 'Unknown error'
         logSystemWarning(
           new Error(
-            `SEARCH/REPLACE block matching failed for ${comment.path}:${comment.line}. Errors: ${result.errors.join('; ')}. Applied blocks: ${result.appliedBlocks}. Falling back to original comment positioning.`
+            `SEARCH/REPLACE block matching failed for ${comment.path}:${comment.line}. Errors: ${errorMessage}. Applied blocks: ${result.appliedBlocks}. Falling back to original comment positioning.`
           ),
           {
             repository: `${comment.path}:${comment.line}`

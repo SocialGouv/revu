@@ -21,10 +21,10 @@ interface MatchResult {
  * Processes SEARCH/REPLACE blocks using the multi-tier matching strategy
  * Based on the Cline file editing algorithm
  */
-export function processSearchReplaceBlocks(
+export async function processSearchReplaceBlocks(
   originalContent: string,
   blocks: SearchReplaceBlock[]
-): ProcessingResult {
+): Promise<ProcessingResult> {
   let workingLines = originalContent.split('\n')
   let lastProcessedLine = 0
   const errors: string[] = []

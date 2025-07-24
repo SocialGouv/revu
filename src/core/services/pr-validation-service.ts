@@ -56,6 +56,178 @@ interface FileAnalysis {
 
 type ValidationResult = Pick<PRValidationResult, 'isValid' | 'issues'>
 
+interface FileMetrics {
+  fileName: string
+  additions: number
+  deletions: number
+  changeSize: number
+}
+
+interface DiffLineContext {
+  currentFileName: string
+  currentMetrics: Omit<FileMetrics, 'fileName'>
+}
+
+type DiffLineType = 'addition' | 'deletion' | 'context' | 'header' | 'metadata'
+
+/**
+ * Extracts filename from a git diff header line
+ */
+function extractFileNameFromDiffHeader(line: string): string | null {
+  const match = line.match(/^diff --git a\/(.*?) b\/(.*)$/)
+  return match ? match[2] : null
+}
+
+/**
+ * Classifies a diff line by its type
+ */
+function classifyDiffLine(line: string): DiffLineType {
+  if (line.startsWith('diff --git')) return 'header'
+  if (line.startsWith('+') && !line.startsWith('+++')) return 'addition'
+  if (line.startsWith('-') && !line.startsWith('---')) return 'deletion'
+  if (
+    line.startsWith('@@') ||
+    line.startsWith('index ') ||
+    line.startsWith('+++') ||
+    line.startsWith('---')
+  ) {
+    return 'metadata'
+  }
+  return 'context'
+}
+
+/**
+ * Creates empty metrics object
+ */
+function createEmptyMetrics(): Omit<FileMetrics, 'fileName'> {
+  return {
+    additions: 0,
+    deletions: 0,
+    changeSize: 0
+  }
+}
+
+/**
+ * Parses diff lines into per-file metrics
+ */
+function parseDiffLines(diffLines: string[]): FileMetrics[] {
+  const fileMetrics: FileMetrics[] = []
+  let context: DiffLineContext = {
+    currentFileName: '',
+    currentMetrics: createEmptyMetrics()
+  }
+
+  const saveCurrentFile = () => {
+    if (context.currentFileName && context.currentMetrics.changeSize > 0) {
+      fileMetrics.push({
+        fileName: context.currentFileName,
+        ...context.currentMetrics
+      })
+    }
+  }
+
+  for (const line of diffLines) {
+    const lineType = classifyDiffLine(line)
+
+    switch (lineType) {
+      case 'header': {
+        // Save previous file before starting new one
+        saveCurrentFile()
+
+        // Start new file
+        const fileName = extractFileNameFromDiffHeader(line)
+        context = {
+          currentFileName: fileName || '',
+          currentMetrics: createEmptyMetrics()
+        }
+        break
+      }
+
+      case 'addition':
+        context.currentMetrics.additions++
+        context.currentMetrics.changeSize++
+        break
+
+      case 'deletion':
+        context.currentMetrics.deletions++
+        context.currentMetrics.changeSize++
+        break
+
+      case 'context':
+        context.currentMetrics.changeSize++
+        break
+
+      case 'metadata':
+        // Ignore metadata lines
+        break
+    }
+  }
+
+  // Save the last file
+  saveCurrentFile()
+
+  return fileMetrics
+}
+
+/**
+ * Filters file metrics to include only reviewable files
+ */
+function filterReviewableFileMetrics(
+  fileMetrics: FileMetrics[],
+  reviewableFiles: string[]
+): FileMetrics[] {
+  const reviewableFilesSet = new Set(reviewableFiles)
+  return fileMetrics.filter((metrics) =>
+    reviewableFilesSet.has(metrics.fileName)
+  )
+}
+
+/**
+ * Aggregates file metrics into final diff analysis
+ */
+function aggregateMetrics(
+  fileMetrics: FileMetrics[],
+  maxIndividualFileSize?: number
+): DiffAnalysis {
+  let totalAdditions = 0
+  let totalDeletions = 0
+  let largestFileSize = 0
+  const largeFiles: Array<{ fileName: string; size: number }> = []
+
+  for (const metrics of fileMetrics) {
+    totalAdditions += metrics.additions
+    totalDeletions += metrics.deletions
+
+    // Track largest file size
+    if (metrics.changeSize > largestFileSize) {
+      largestFileSize = metrics.changeSize
+    }
+
+    // Add to large files if it exceeds the limit
+    if (maxIndividualFileSize && metrics.changeSize > maxIndividualFileSize) {
+      largeFiles.push({
+        fileName: metrics.fileName,
+        size: metrics.changeSize
+      })
+    }
+  }
+
+  const additionDeletionRatio =
+    totalDeletions > 0
+      ? totalAdditions / totalDeletions
+      : totalAdditions > 0
+        ? Infinity
+        : 1
+
+  return {
+    additions: totalAdditions,
+    deletions: totalDeletions,
+    additionDeletionRatio,
+    largeFiles,
+    largestFileSize: largestFileSize > 0 ? largestFileSize : undefined
+  }
+}
+
 /**
  * Analyzes diff content to extract metrics about additions, deletions, and file sizes
  * Only processes files that are in the reviewableFiles list, skipping ignored files completely
@@ -65,94 +237,12 @@ export function analyzeDiff(
   reviewableFiles: string[],
   maxIndividualFileSize?: number
 ): DiffAnalysis {
-  let additions = 0
-  let deletions = 0
-  let currentFileName = ''
-  const largeFiles: Array<{ fileName: string; size: number }> = []
-  let largestFileSize = 0
-
-  interface Sizes {
-    changeSize: number
-    additions: number
-    deletions: number
-  }
-
-  // Use Set for O(1) lookup performance
-  const reviewableFilesSet = new Set(reviewableFiles)
-  const fileChangeSizes = new Map<string, Sizes>()
-
-  let fileSizes: Sizes = {
-    changeSize: 0,
-    additions: 0,
-    deletions: 0
-  }
-
-  for (const line of diffLines) {
-    if (line.startsWith('diff --git')) {
-      // Save previous file sizes if it is a reviewable file
-      if (
-        currentFileName &&
-        reviewableFilesSet.has(currentFileName) &&
-        fileSizes.changeSize > 0
-      ) {
-        fileChangeSizes.set(currentFileName, fileSizes)
-      }
-
-      // Extract file name from diff header
-      const match = line.match(/^diff --git a\/(.*?) b\/(.*)$/)
-      currentFileName = match ? match[2] : ''
-      fileSizes = {
-        changeSize: 0,
-        additions: 0,
-        deletions: 0
-      }
-    } else if (line.startsWith('+') && !line.startsWith('+++')) {
-      fileSizes.additions++
-      fileSizes.changeSize++
-    } else if (line.startsWith('-') && !line.startsWith('---')) {
-      fileSizes.deletions++
-      fileSizes.changeSize++
-    } else if (!line.startsWith('@@') && !line.startsWith('index ')) {
-      // This ignores hunks ('@@') and index lines
-      fileSizes.changeSize++
-    }
-  }
-
-  // Handle the last file
-  if (
-    currentFileName &&
-    reviewableFilesSet.has(currentFileName) &&
-    fileSizes.changeSize > 0
-  ) {
-    fileChangeSizes.set(currentFileName, fileSizes)
-  }
-
-  // Process all files in fileSizes map
-  for (const [fileName, sizes] of fileChangeSizes.entries()) {
-    additions += sizes.additions
-    deletions += sizes.deletions
-
-    // Track largest file size
-    if (sizes.changeSize > largestFileSize) {
-      largestFileSize = sizes.changeSize
-    }
-
-    // Add to large files if it exceeds the limit
-    if (maxIndividualFileSize && sizes.changeSize > maxIndividualFileSize) {
-      largeFiles.push({ fileName, size: sizes.changeSize })
-    }
-  }
-
-  const additionDeletionRatio =
-    deletions > 0 ? additions / deletions : additions > 0 ? Infinity : 1
-
-  return {
-    additions,
-    deletions,
-    additionDeletionRatio,
-    largeFiles,
-    largestFileSize: largestFileSize > 0 ? largestFileSize : undefined
-  }
+  const allFileMetrics = parseDiffLines(diffLines)
+  const reviewableMetrics = filterReviewableFileMetrics(
+    allFileMetrics,
+    reviewableFiles
+  )
+  return aggregateMetrics(reviewableMetrics, maxIndividualFileSize)
 }
 
 /**
