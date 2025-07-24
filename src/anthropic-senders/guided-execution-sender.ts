@@ -38,7 +38,7 @@ export async function guidedExecutionSender(prompt: string): Promise<string> {
             summary: {
               type: 'string',
               description:
-                'Overall summary of the PR focusing on priorities identified in the planning phase'
+                'Overall summary of the PR focusing on the most important issues identified'
             },
             comments: {
               type: 'array',
@@ -62,7 +62,7 @@ export async function guidedExecutionSender(prompt: string): Promise<string> {
                   body: {
                     type: 'string',
                     description:
-                      'Detailed comment about the issue, prioritizing areas identified in the review plan'
+                      'Detailed comment about the issue, prioritizing the most important areas identified'
                   },
                   search_replace_blocks: {
                     type: 'array',

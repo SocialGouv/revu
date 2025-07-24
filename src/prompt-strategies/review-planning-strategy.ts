@@ -10,8 +10,11 @@ import type { PromptStrategy } from './prompt-strategy.ts'
  * Review planning prompt generation strategy using Tree-of-Thoughts techniques.
  *
  * This strategy implements a 2-step process:
- * 1. Planning Phase: Uses Tree-of-Thoughts to generate a review plan
- * 2. Execution Phase: Uses the plan to generate targeted, high-quality comments
+ * 1. Planning Phase: Internal analysis to detect issues and create a structured plan
+ * 2. Execution Phase: Generates user-facing comments presenting findings as fresh analysis
+ *
+ * The planning phase output is internal only - the execution phase presents its findings
+ * as if conducting fresh analysis to avoid referencing information the user cannot see.
  *
  * @param repositoryUrl - The URL of the repository
  * @param branch - The branch to analyze
