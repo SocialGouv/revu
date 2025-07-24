@@ -5,11 +5,12 @@ import { guidedExecutionSender } from '../../anthropic-senders/guided-execution-
 import type { CommonData, ReviewPlan } from '../planning/plan-review.ts'
 
 /**
- * Guided Execution Phase that uses issues to generate targeted comments.
+ * Guided Execution Phase that generates targeted comments from identified issues.
  *
- * This phase takes the review plan with detected issues
- * to generate specific, high-quality code review comments. It focuses purely on
- * comment generation using pre-analyzed issues and solutions.
+ * This phase takes the review plan with detected issues and generates specific,
+ * high-quality code review comments. It presents the analysis as fresh findings
+ * rather than referencing a previous planning phase, ensuring the user sees
+ * coherent comments without missing context.
  *
  * @param commonData - Shared data between planning and execution phases (minimal usage)
  * @param reviewPlan - The plan with detected issues
