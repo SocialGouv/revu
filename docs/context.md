@@ -60,9 +60,9 @@
 ## Development Context
 
 - Node.js application using Probot framework
+- Uses functional programming everywhere
 - Requires GitHub App credentials and Anthropic API key
 - **Proxy User System**: Requires additional GitHub user account and personal access token for manual review requests
-- Supports both global comments and line-specific comments
 - **SEARCH/REPLACE Block System**: Provides precise code suggestions with pattern matching for better accuracy
 - Includes smart comment management to prevent comment accumulation
 - Configurable through environment variables and YAML files

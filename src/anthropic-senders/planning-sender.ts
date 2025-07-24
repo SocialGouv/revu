@@ -1,6 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { ReviewPlan } from '../prompt-strategies/planning/plan-review.ts'
-import { processAnthropicResponse } from './response-processor.ts'
+import { createAnthropicResponseProcessor } from './response-processor/processor.ts'
 
 /**
  * Planning Anthropic sender.
@@ -112,7 +111,7 @@ export async function reviewPlanningSender(prompt: string): Promise<string> {
   })
 
   // Use shared response processor with review planning specific validation
-  return processAnthropicResponse<ReviewPlan>(message, {
+  const processResponse = createAnthropicResponseProcessor({
     expectedToolName: 'provide_review_plan',
     contextName: 'Review planning',
     customValidator: (parsed: unknown) => {
@@ -125,4 +124,5 @@ export async function reviewPlanningSender(prompt: string): Promise<string> {
       )
     }
   })
+  return processResponse(message)
 }
