@@ -2,7 +2,7 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { logSystemError } from '../utils/logger.ts'
 import { lineCommentsPromptStrategy } from './line-comments-strategy.ts'
-import { reviewPlanningPromptStrategy } from './planning-strategy.ts'
+import { reviewPlanningPromptStrategy } from './review-planning-strategy.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
 /**

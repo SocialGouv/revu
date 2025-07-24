@@ -23,7 +23,7 @@ export default async (app: Probot, { getRouter }) => {
   logAppStarted()
 
   // Container health check route
-  getRouter('/healthz').get('/', (req, res) => res.end('OK'))
+  getRouter('/healthz').get('/', (_req, res) => res.end('OK'))
 
   // Listen for PR opens to add bot as reviewer
   app.on(['pull_request.opened'], async (context) => {
