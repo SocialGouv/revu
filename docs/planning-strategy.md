@@ -76,14 +76,6 @@ Update `config.json`:
 }
 ```
 
-### Strategy Selection
-
-The system automatically selects the appropriate sender based on the strategy:
-
-- `planning` → Uses `guidedExecutionSender` for final output
-- `line-comments` → Uses `lineCommentsSender` (original behavior)
-- Default fallback → `lineCommentsSender`
-
 ## Future Enhancements
 
 ### Potential Improvements

@@ -1,1 +1,3 @@
-{"promptStrategy":"line-comments"}
+{
+    "promptStrategy": "review-planning"
+}
