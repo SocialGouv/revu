@@ -249,7 +249,7 @@ export function isCommentValidForDiff(
   if (comment.start_line !== undefined) {
     const allLinesInDiff = Array.from(
       { length: comment.line - comment.start_line + 1 },
-      (_, i) => comment.start_line! + i
+      (_, i) => comment.start_line + i
     ).every((line) => fileInfo.changedLines.has(line))
 
     const inSameHunk = areInSameHunk(
