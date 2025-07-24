@@ -82,7 +82,6 @@ export interface PlatformClient {
   } | null>
   deleteReviewComment: (commentId: number) => Promise<void>
 
-  // New platform-agnostic methods to replace legacy functions
   fetchPullRequestDiffMap: (prNumber: number) => Promise<DiffFileMap>
   getFileContent: (filePath: string, commitSha: string) => Promise<string>
   listReviews: (prNumber: number) => Promise<Array<Review>>

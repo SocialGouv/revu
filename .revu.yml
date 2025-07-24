@@ -5,6 +5,7 @@ codingGuidelines:
   - "Naming: Use semantically significant names for functions, classes, and parameters."
   - "Comments: Add comments only for complex code; simple code should be self-explanatory if clean code principles are followed."
   - "Documentation: Public functions must have concise docstrings explaining purpose and return values."
+  - "Fail fast: Prefer code that fails fast with clear error messages, rather than code that silently continues in an invalid state."
 
 # PR validation settings - Configure when the bot should skip reviewing PRs
 validation:

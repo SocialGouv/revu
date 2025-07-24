@@ -298,7 +298,7 @@ docker run -d \
 - Available models:
   - `claude-sonnet-4-20250514` (default, recommended)
   - `claude-opus-4-20250514` (more powerful, higher cost)
-  - `claude-3-7-sonnet-latest` (legacy)
+  - `claude-3-7-sonnet-latest`
 - Max tokens: 4096
 - Temperature: 0 (deterministic for consistent code reviews)
 - Required env: `ANTHROPIC_API_KEY`
