@@ -89,7 +89,7 @@ export async function prepareCommentContent(
     comment.search_replace_blocks.length > 0
   ) {
     try {
-      const result = await processSearchReplaceBlocks(
+      const result = processSearchReplaceBlocks(
         fileContent,
         comment.search_replace_blocks
       )
