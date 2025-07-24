@@ -167,7 +167,6 @@ export const createGitHubClient = (
       try {
         await proxyClient.pulls.createReviewComment(commentParams)
       } catch (error) {
-        // Enhanced error reporting for GitHub API errors
         if (error && typeof error === 'object' && 'status' in error) {
           const apiError = error as {
             status: number
@@ -317,7 +316,6 @@ export const createGitHubClient = (
       })
     },
 
-    // New platform-agnostic methods to replace legacy functions
     fetchPullRequestDiffMap: async (prNumber: number): Promise<DiffFileMap> => {
       try {
         const response = await octokit.request(

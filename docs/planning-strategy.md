@@ -72,7 +72,7 @@ Update `config.json`:
 
 ```json
 {
-  "promptStrategy": "planning"
+  "promptStrategy": "review-planning"
 }
 ```
 

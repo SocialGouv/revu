@@ -136,7 +136,6 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
       `Successfully added proxy user as reviewer for PR #${pr.number}`
     )
   } catch (error) {
-    // Enhanced error logging
     context.log.error(`Error adding bot as reviewer: ${error}`)
     context.log.error(`Error details:`, {
       message: error.message,
