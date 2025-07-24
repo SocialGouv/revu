@@ -60,9 +60,7 @@ export const reviewPlanningPromptStrategy: PromptStrategy = async (
     console.log('Planning phase completed, starting guided execution phase...')
 
     // Step 2: Guided Execution Phase
-    const finalResult = await guidedExecutionPhase(commonData, reviewPlan)
-
-    return finalResult
+    return await guidedExecutionPhase(commonData, reviewPlan)
   } finally {
     // Clean up repository
     await cleanUpRepository(repoPath)

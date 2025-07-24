@@ -1,20 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { processAnthropicResponse } from './response-processor.ts'
-
-// Type for code review response
-interface CodeReviewResponse {
-  summary: string
-  comments: Array<{
-    path: string
-    line: number
-    start_line?: number
-    body: string
-    search_replace_blocks?: Array<{
-      search: string
-      replace: string
-    }>
-  }>
-}
+import { createAnthropicResponseProcessor } from './response-processor/processor.ts'
 
 /**
  * Line comments Anthropic sender.
@@ -109,8 +94,9 @@ export async function lineCommentsSender(prompt: string): Promise<string> {
   })
 
   // Use shared response processor with basic validation
-  return processAnthropicResponse<CodeReviewResponse>(message, {
+  const processResponse = createAnthropicResponseProcessor({
     expectedToolName: 'provide_code_review',
     contextName: 'Inline comment'
   })
+  return processResponse(message)
 }
