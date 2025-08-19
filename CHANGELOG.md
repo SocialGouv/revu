@@ -2142,6 +2142,14 @@
 * Set temperature to 1 for thinking ([6682712](https://github.com/SocialGouv/revu/commit/66827127e19927f06c991f397e540288b85ad00f))
 * Using wrong param type in tests for line-comment sender ([6a3e552](https://github.com/SocialGouv/revu/commit/6a3e552fb75dffe6c91ccf806fc50bce5c6a82f4))
 
+## [1.29.1](https://github.com/SocialGouv/revu/compare/v1.29.0...v1.29.1) (2025-08-19)
+
+
+### Bug Fixes
+
+* Set temperature to 1 for thinking ([6682712](https://github.com/SocialGouv/revu/commit/66827127e19927f06c991f397e540288b85ad00f))
+* Using wrong param type in tests for line-comment sender ([6a3e552](https://github.com/SocialGouv/revu/commit/6a3e552fb75dffe6c91ccf806fc50bce5c6a82f4))
+
 # [1.29.0](https://github.com/SocialGouv/revu/compare/v1.28.0...v1.29.0) (2025-08-19)
 
 
