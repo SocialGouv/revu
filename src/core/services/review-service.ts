@@ -13,7 +13,7 @@ import type { PlatformContext } from '../models/platform-types.ts'
 import { formatValidationIssues, validatePR } from './pr-validation-service.ts'
 
 // Types
-export interface ReviewOptions {
+interface ReviewOptions {
   submitComments: boolean
   reviewType?: 'on-demand' | 'automatic'
   repoPath?: string
@@ -21,7 +21,7 @@ export interface ReviewOptions {
   strategy?: string
 }
 
-export interface ReviewResult {
+interface ReviewResult {
   success: boolean
   analysis?: string
   validationResult?: {
@@ -39,8 +39,7 @@ export interface ReviewResult {
   error?: string
   message?: string
 }
-
-export interface ReviewContext {
+interface ReviewContext {
   repositoryUrl: string
   prNumber: number
   branch: string
@@ -320,18 +319,3 @@ export const performCompleteReview = async (
     }
   }
 }
-
-// Utility function for creating review context from basic parameters
-export const createReviewContext = (
-  repositoryUrl: string,
-  prNumber: number,
-  branch: string,
-  platformContext: PlatformContext,
-  options: ReviewOptions
-): ReviewContext => ({
-  repositoryUrl,
-  prNumber,
-  branch,
-  platformContext,
-  options
-})
