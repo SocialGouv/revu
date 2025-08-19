@@ -334,10 +334,7 @@ More text after.`
         ]
       })
 
-      const result = await lineCommentsSender(
-        'test prompt',
-        'thinking-line-comments'
-      )
+      const result = await lineCommentsSender('test prompt', true)
 
       // Should extract only the tool_use result, ignoring thinking blocks
       expect(result).toBe(JSON.stringify(expectedResponse))
@@ -376,7 +373,7 @@ More text after.`
         ]
       })
 
-      const result = await lineCommentsSender('test prompt', 'line-comments')
+      const result = await lineCommentsSender('test prompt', false)
 
       expect(result).toBe(JSON.stringify(expectedResponse))
 
