@@ -18,37 +18,6 @@ function createIgnoreInstance(content: string): ReturnType<typeof ignore> {
 }
 
 /**
- * Gets an ignore instance for a repository.
- * First tries to read .revuignore from the target repository,
- * then falls back to the default .revuignore from this repo.
- * This is the preferred method for filtering files.
- *
- * @param repoPath - Path to the repository being reviewed
- * @returns Ignore instance
- */
-export async function getIgnoreInstance(
-  repoPath: string
-): Promise<ReturnType<typeof ignore>> {
-  // Try to read .revuignore from the target repository
-  const repoIgnorePath = path.join(repoPath, '.revuignore')
-  let content = ''
-
-  try {
-    content = await fs.readFile(repoIgnorePath, 'utf-8')
-  } catch {
-    // Fall back to default .revuignore from this repo
-    const defaultIgnorePath = path.join(process.cwd(), '.revuignore')
-    try {
-      content = await fs.readFile(defaultIgnorePath, 'utf-8')
-    } catch {
-      // No ignore file found, return empty ignore instance
-    }
-  }
-
-  return createIgnoreInstance(content)
-}
-
-/**
  * Gets an ignore instance for a repository by fetching .revuignore from remote.
  * First tries to read .revuignore from the remote repository at the specified commit,
  * then falls back to the default .revuignore from this repo.
