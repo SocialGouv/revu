@@ -22,6 +22,8 @@ export function getSender(strategyName?: string): LLMSender {
       return guidedExecutionSender
     case 'line-comments':
       return lineCommentsSender
+    case 'thinking-line-comments':
+      return (prompt: string) => lineCommentsSender(prompt, true)
     default:
       return lineCommentsSender
   }
