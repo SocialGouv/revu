@@ -25,11 +25,12 @@
 
 ## Strategy System
 
-- **Prompt Strategies**: Different templates for Claude (default, line-comments)
+- **Prompt Strategies**: Different templates for Claude (default, line-comments, thinking-line-comments)
 - **Anthropic Senders**: Format requests to Claude API based on strategy
 - **Comment Handlers**: Post reviews as global comments or line-specific comments
 - **SEARCH/REPLACE Processing**: Pattern matching system for precise code suggestions with exact character-for-character matching
-- Current config: "line-comments" strategy (provides feedback as inline comments on specific code lines with precise code suggestions using SEARCH/REPLACE blocks)
+- **Extended Thinking Support**: Enhanced reasoning capabilities using Anthropic's Extended Thinking feature
+- Current config: "thinking-line-comments" strategy (provides feedback as inline comments with extended thinking for deeper analysis)
 
 ## Key Files
 
@@ -64,6 +65,7 @@
 - Requires GitHub App credentials and Anthropic API key
 - **Proxy User System**: Requires additional GitHub user account and personal access token for manual review requests
 - **SEARCH/REPLACE Block System**: Provides precise code suggestions with pattern matching for better accuracy
+- **Extended Thinking**: Leverages Anthropic's Extended Thinking for enhanced reasoning and deeper code analysis
 - Includes smart comment management to prevent comment accumulation
 - Configurable through environment variables and YAML files
 - Environment variables: `PROXY_REVIEWER_USERNAME`, `PROXY_REVIEWER_TOKEN` for proxy user functionality

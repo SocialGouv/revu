@@ -5,21 +5,40 @@ import { createAnthropicResponseProcessor } from './response-processor/processor
  * Line comments Anthropic sender.
  * This sender uses Anthropic's Tool Use / Function Calling capability
  * to enforce a structured JSON response with specific line-based comments.
+ * Supports extended thinking when strategy includes "thinking".
  *
  * @param prompt - The prompt to send to Anthropic
+ * @param enableThinking - Optional flag to enable extended thinking capabilities
  * @returns A stringified JSON response containing structured review comments
  */
-export async function lineCommentsSender(prompt: string): Promise<string> {
+export async function lineCommentsSender(
+  prompt: string,
+  enableThinking: boolean = false
+): Promise<string> {
   // Initialize Anthropic client
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY
   })
 
+  // Configure thinking parameters
+  const thinkingConfig = enableThinking
+    ? {
+        thinking: {
+          type: 'enabled' as const,
+          budget_tokens: 16000
+        }
+      }
+    : {}
+
+  // Adjust max_tokens based on thinking configuration
+  const maxTokens = enableThinking ? 20096 : 4096
+
   // Send to Anthropic API with tool use configuration
   const message = await anthropic.messages.create({
     model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
-    max_tokens: 4096,
+    max_tokens: maxTokens,
     temperature: 0,
+    ...thinkingConfig,
     messages: [
       {
         role: 'user',

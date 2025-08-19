@@ -305,4 +305,117 @@ More text after.`
     // Should return the valid JSON from the code block, not the malformed JSON-like text
     expect(result).toBe(JSON.stringify(validJson, null, 2))
   })
+
+  describe('Extended Thinking Support', () => {
+    it('should enable thinking for thinking-line-comments strategy', async () => {
+      const expectedResponse = {
+        summary: 'Thinking-enabled summary',
+        comments: [
+          {
+            path: 'thinking.ts',
+            line: 5,
+            body: 'Comment with thinking'
+          }
+        ]
+      }
+
+      mockAnthropic.messages.create.mockResolvedValue({
+        content: [
+          {
+            type: 'thinking',
+            thinking: 'Let me analyze this code step by step...',
+            signature: 'mock-signature'
+          },
+          {
+            type: 'tool_use',
+            name: 'provide_code_review',
+            input: expectedResponse
+          }
+        ]
+      })
+
+      const result = await lineCommentsSender(
+        'test prompt',
+        'thinking-line-comments'
+      )
+
+      // Should extract only the tool_use result, ignoring thinking blocks
+      expect(result).toBe(JSON.stringify(expectedResponse))
+
+      // Verify thinking was enabled in the API call
+      expect(mockAnthropic.messages.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          thinking: {
+            type: 'enabled',
+            budget_tokens: 16000
+          },
+          max_tokens: 20096
+        })
+      )
+    })
+
+    it('should not enable thinking for regular line-comments strategy', async () => {
+      const expectedResponse = {
+        summary: 'Regular summary',
+        comments: [
+          {
+            path: 'regular.ts',
+            line: 10,
+            body: 'Regular comment'
+          }
+        ]
+      }
+
+      mockAnthropic.messages.create.mockResolvedValue({
+        content: [
+          {
+            type: 'tool_use',
+            name: 'provide_code_review',
+            input: expectedResponse
+          }
+        ]
+      })
+
+      const result = await lineCommentsSender('test prompt', 'line-comments')
+
+      expect(result).toBe(JSON.stringify(expectedResponse))
+
+      // Verify thinking was NOT enabled in the API call
+      expect(mockAnthropic.messages.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          max_tokens: 4096
+        })
+      )
+
+      // Verify thinking config was not included
+      const callArgs = mockAnthropic.messages.create.mock.calls[0][0]
+      expect(callArgs).not.toHaveProperty('thinking')
+    })
+
+    it('should not enable thinking when no strategy is provided', async () => {
+      const expectedResponse = {
+        summary: 'Default summary',
+        comments: []
+      }
+
+      mockAnthropic.messages.create.mockResolvedValue({
+        content: [
+          {
+            type: 'tool_use',
+            name: 'provide_code_review',
+            input: expectedResponse
+          }
+        ]
+      })
+
+      const result = await lineCommentsSender('test prompt')
+
+      expect(result).toBe(JSON.stringify(expectedResponse))
+
+      // Verify thinking was NOT enabled
+      const callArgs = mockAnthropic.messages.create.mock.calls[0][0]
+      expect(callArgs).not.toHaveProperty('thinking')
+      expect(callArgs.max_tokens).toBe(4096)
+    })
+  })
 })

@@ -4,6 +4,7 @@ Revu is a GitHub App that leverages Anthropic's Claude AI to provide intelligent
 
 ## Features
 
+- **Extended Thinking**: Enhanced reasoning capabilities using Anthropic's Extended Thinking for deeper code analysis and more insightful reviews
 - **On-Demand Reviews**: Performs code review only when explicitly requested, giving developers control over when reviews happen
 - **Auto-Reviewer Assignment**: Automatically adds a proxy user as a reviewer on new PRs for easy access
 - **Contextual Analysis**: Understands code changes in the context of the entire codebase
@@ -146,6 +147,52 @@ Multi-line comments use GitHub's review comment API with additional parameters:
 - `start_side`: Set to 'RIGHT' for consistency
 
 The cleanup system intelligently handles multi-line comments by checking that all lines in the range (start_line to line) are still present in the current diff before preserving the comment.
+
+## Extended Thinking
+
+Revu leverages Anthropic's Extended Thinking feature to provide enhanced reasoning capabilities for deeper code analysis and more insightful reviews.
+
+### What is Extended Thinking?
+
+Extended Thinking allows Claude to perform internal reasoning and step-by-step analysis before providing feedback. This results in:
+
+- **Deeper Code Analysis**: More thorough understanding of complex logic and architectural patterns
+- **Enhanced Security Review**: Better detection of potential security vulnerabilities
+- **Improved Suggestions**: More thoughtful and contextual code quality recommendations
+- **Better Edge Case Detection**: More comprehensive consideration of failure modes
+
+### Configuration
+
+Extended Thinking is controlled through the `promptStrategy` setting in `config.json`:
+
+```json
+{
+    "promptStrategy": "thinking-line-comments"
+}
+```
+
+**Available Strategies:**
+- `"line-comments"` - Standard code review without extended thinking
+- `"thinking-line-comments"` - Enhanced code review with extended thinking enabled
+
+### Technical Details
+
+- **Thinking Budget**: 16,000 tokens allocated for internal reasoning
+- **Total Token Limit**: 20,096 tokens (16k thinking + ~4k structured output)
+- **Privacy**: Thinking blocks are automatically filtered out - only the final review is visible
+- **Cost**: Approximately $0.15 additional cost per review (typically justified by improved quality)
+
+### Benefits
+
+Extended Thinking significantly improves review quality through:
+
+1. **Complex Logic Analysis**: Better understanding of intricate code patterns and algorithms
+2. **Security Vulnerability Detection**: More thorough reasoning about potential security issues
+3. **Architecture Assessment**: Deeper analysis of design decisions and architectural patterns
+4. **Edge Case Identification**: More comprehensive consideration of failure modes and error conditions
+5. **Code Quality Suggestions**: More thoughtful and contextual recommendations for improvements
+
+For detailed information, see the [Extended Thinking Documentation](docs/extended-thinking.md).
 
 ## SEARCH/REPLACE Block System
 
