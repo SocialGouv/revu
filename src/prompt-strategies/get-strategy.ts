@@ -2,7 +2,6 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { logSystemError } from '../utils/logger.ts'
 import { lineCommentsPromptStrategy } from './line-comments-strategy.ts'
-import { reviewPlanningPromptStrategy } from './review-planning-strategy.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
 
 /**
@@ -11,15 +10,8 @@ import type { PromptStrategy } from './prompt-strategy.ts'
  * @param strategyName - The name of the strategy to get
  * @returns The strategy implementation function
  */
-export function getStrategyByName(strategyName: string): PromptStrategy {
-  switch (strategyName.toLowerCase()) {
-    case 'review-planning':
-      return reviewPlanningPromptStrategy
-    case 'line-comments':
-      return lineCommentsPromptStrategy
-    default:
-      return lineCommentsPromptStrategy
-  }
+export function getStrategyByName(_strategyName: string): PromptStrategy {
+  return lineCommentsPromptStrategy
 }
 
 /**

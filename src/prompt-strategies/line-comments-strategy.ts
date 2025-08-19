@@ -62,7 +62,8 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
   const relatedIssues = await fetchRelatedIssues(context)
 
   // Populate the template with the data
-  const result = template({
+
+  return template({
     absolute_code_path: absolutePath,
     pr_title: context?.prTitle,
     pr_body: context?.prBody?.length > 16 ? context.prBody : null,
@@ -71,6 +72,4 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
     coding_guidelines: codingGuidelines,
     related_issues: relatedIssues
   })
-
-  return result
 }
