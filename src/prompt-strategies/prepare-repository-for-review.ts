@@ -8,7 +8,7 @@ import {
   getFilesContent
 } from '../file-utils.ts'
 
-export interface RepositorySetupResult {
+interface RepositorySetupResult {
   repoPath: string
   diff: string
   modifiedFiles: string[]
