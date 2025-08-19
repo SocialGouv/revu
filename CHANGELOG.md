@@ -1,3 +1,10 @@
+# [1.29.0](https://github.com/SocialGouv/revu/compare/v1.28.0...v1.29.0) (2025-08-19)
+
+
+### Features
+
+* Add thinking capabilities to the line-comment strategy ([04e471f](https://github.com/SocialGouv/revu/commit/04e471fc941f6832644f8621fc4a82746fa25488))
+
 # [1.28.0](https://github.com/SocialGouv/revu/compare/v1.27.0...v1.28.0) (2025-07-24)
 
 
