@@ -13,12 +13,12 @@ export interface PRValidationConfig {
   documentationExtensions: string[]
 }
 
-export interface ValidationIssue {
+interface ValidationIssue {
   reason: string
   suggestion: string
 }
 
-export interface PRValidationResult {
+interface PRValidationResult {
   isValid: boolean
   issues: ValidationIssue[]
   metrics: {

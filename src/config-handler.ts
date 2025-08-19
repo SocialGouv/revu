@@ -23,7 +23,7 @@ async function fileExists(filePath: string): Promise<boolean> {
 /**
  * Interface for the complete Revu configuration
  */
-export interface RevuConfig {
+interface RevuConfig {
   codingGuidelines: string[]
   validation: Partial<PRValidationConfig>
 }
