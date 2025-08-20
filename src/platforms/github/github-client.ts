@@ -361,10 +361,7 @@ export const createGitHubClient = (
         }
 
         // Decode base64 content
-        const fileContent = Buffer.from(data.content, 'base64').toString(
-          'utf-8'
-        )
-        return fileContent
+        return Buffer.from(data.content, 'base64').toString('utf-8')
       } catch (error) {
         console.warn(`Failed to fetch file content for ${filePath}:`, error)
         return ''
