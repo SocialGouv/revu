@@ -1,9 +1,9 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Context } from 'probot'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   addBotAsReviewer,
-  isReviewRequestedForBot,
   getBotUsername,
+  isReviewRequestedForBot,
   resetBotUsernameCache
 } from '../src/github/reviewer-utils.ts'
 
@@ -85,11 +85,13 @@ function createIntegrationContext(
       repo
     }),
     octokit: {
-      pulls: {
-        requestReviewers: mockRequestReviewers
-      },
-      apps: {
-        getAuthenticated: mockGetAuthenticated
+      rest: {
+        pulls: {
+          requestReviewers: mockRequestReviewers
+        },
+        apps: {
+          getAuthenticated: mockGetAuthenticated
+        }
       }
     }
   }
@@ -274,11 +276,13 @@ describe('Integration Tests - Real Workflows', () => {
           repo: 'test-repo'
         }),
         octokit: {
-          pulls: {
-            requestReviewers: mockRequestReviewers
-          },
-          apps: {
-            getAuthenticated: mockGetAuthenticated
+          rest: {
+            pulls: {
+              requestReviewers: mockRequestReviewers
+            },
+            apps: {
+              getAuthenticated: mockGetAuthenticated
+            }
           }
         },
         log: {

@@ -15,7 +15,7 @@ When working within Probot event handlers, always use the octokit instance from 
 ```typescript
 // ✅ Good - Use context octokit
 export async function someHandler(context: Context) {
-  const { data } = await context.octokit.pulls.get({
+  const { data } = await context.octokit.rest.pulls.get({
     owner: 'owner',
     repo: 'repo',
     pull_number: 123
@@ -27,7 +27,7 @@ import { getContextOctokit } from '../github/context-utils.ts'
 
 export async function someHandler(context: Context) {
   const octokit = getContextOctokit(context)
-  const { data } = await octokit.pulls.get({
+  const { data } = await octokit.rest.pulls.get({
     owner: 'owner',
     repo: 'repo',
     pull_number: 123

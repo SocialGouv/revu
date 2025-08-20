@@ -9,8 +9,10 @@ import {
 
 // Mock GitHub API
 const mockOctokit = {
-  repos: {
-    getContent: vi.fn()
+  rest: {
+    repos: {
+      getContent: vi.fn()
+    }
   }
 }
 
@@ -68,7 +70,7 @@ line 4
 line 5`
 
     beforeEach(() => {
-      mockOctokit.repos.getContent.mockResolvedValue({
+      mockOctokit.rest.repos.getContent.mockResolvedValue({
         data: {
           content: Buffer.from(mockFileContent).toString('base64'),
           encoding: 'base64'
@@ -85,7 +87,7 @@ line 5`
       )
 
       expect(content).toBe('line 3')
-      expect(mockOctokit.repos.getContent).toHaveBeenCalledWith({
+      expect(mockOctokit.rest.repos.getContent).toHaveBeenCalledWith({
         owner: 'test-owner',
         repo: 'test-repo',
         path: 'test.ts',
@@ -117,7 +119,9 @@ line 5`
     })
 
     it('should handle API errors gracefully', async () => {
-      mockOctokit.repos.getContent.mockRejectedValue(new Error('API Error'))
+      mockOctokit.rest.repos.getContent.mockRejectedValue(
+        new Error('API Error')
+      )
 
       const content = await getLineContent(
         mockContext as unknown as Context,
