@@ -83,8 +83,9 @@ function selectBestResult(
     }
   }
 
-  // Fall back to non-JSON results
-  for (const result of nonJsonResults) {
+  // Fall back to first non-JSON result if available
+  if (nonJsonResults.length > 0) {
+    const result = nonJsonResults[0]
     logSystemWarning(
       `${contextName} tool use failed, using ${result.extractorName} fallback`
     )
