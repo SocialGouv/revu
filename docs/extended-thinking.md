@@ -8,20 +8,21 @@ Extended thinking allows Claude to internally reason through complex code patter
 
 ## Configuration
 
-### Strategy Selection
+### Structure
 
-To enable extended thinking, set the `promptStrategy` in `config.json` to `"thinking-line-comments"`:
+Extended thinking is controlled through separate configuration options in `config.json`:
 
 ```json
 {
-    "promptStrategy": "thinking-line-comments"
+    "promptStrategy": "line-comments",
+    "thinkingEnabled": true
 }
 ```
 
-### Available Strategies
+### Configuration Options
 
-- `"line-comments"` - Standard line-by-line code review (default behavior)
-- `"thinking-line-comments"` - Enhanced code review with extended thinking enabled
+- `promptStrategy`: The review strategy to use (`"line-comments"` is currently the only available strategy)
+- `thinkingEnabled`: Boolean flag to enable/disable Extended Thinking capabilities
 
 ## Technical Details
 

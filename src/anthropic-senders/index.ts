@@ -1,3 +1,4 @@
+import { getAppConfig } from '../core/utils/config-loader.ts'
 import { lineCommentsSender } from './line-comments-sender.ts'
 
 /**
@@ -6,19 +7,15 @@ import { lineCommentsSender } from './line-comments-sender.ts'
 type LLMSender = (prompt: string) => Promise<string>
 
 /**
- * Gets the appropriate sender based on the strategy name.
+ * Gets the appropriate sender based on the strategy name and configuration.
  * This selects how to send and process the response to/from Anthropic API.
  *
  * @param strategyName - The name of the prompt strategy used
  * @returns The appropriate sender function
  */
-export function getSender(strategyName?: string): LLMSender {
-  switch (strategyName?.toLowerCase()) {
-    case 'line-comments':
-      return lineCommentsSender
-    case 'thinking-line-comments':
-      return (prompt: string) => lineCommentsSender(prompt, true)
-    default:
-      return lineCommentsSender
-  }
+export async function getSender(_strategyName?: string): Promise<LLMSender> {
+  const config = await getAppConfig()
+  const enableThinking = config.thinkingEnabled || false
+
+  return (prompt: string) => lineCommentsSender(prompt, enableThinking)
 }

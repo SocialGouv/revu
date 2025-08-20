@@ -1,3 +1,4 @@
 {
-    "promptStrategy": "thinking-line-comments"
+    "promptStrategy": "line-comments",
+    "thinkingEnabled": true
 }
