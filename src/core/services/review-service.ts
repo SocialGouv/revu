@@ -1,5 +1,3 @@
-import * as fs from 'fs/promises'
-import * as path from 'path'
 import { errorCommentHandler } from '../../comment-handlers/error-comment-handler.ts'
 import { lineCommentsHandler } from '../../comment-handlers/line-comments-handler.ts'
 import { getValidationConfig } from '../../config-handler.ts'
@@ -10,6 +8,7 @@ import {
   logSystemError
 } from '../../utils/logger.ts'
 import type { PlatformContext } from '../models/platform-types.ts'
+import { getAppConfig } from '../utils/config-loader.ts'
 import { formatValidationIssues, validatePR } from './pr-validation-service.ts'
 
 // Types
@@ -47,25 +46,14 @@ interface ReviewContext {
   options: ReviewOptions
 }
 
-// Pure functions for configuration and validation
-const getStrategyNameFromConfig = async (): Promise<string> => {
-  try {
-    const configPath = path.join(process.cwd(), 'config.json')
-    const configContent = await fs.readFile(configPath, 'utf-8')
-    const config = JSON.parse(configContent)
-    return config.promptStrategy || 'line-comments'
-  } catch (error) {
-    logSystemError(`Error reading configuration: ${error}`)
-    return 'line-comments'
-  }
-}
-
 // Strategy resolution with priority: options.strategy > config.json > default
 const chooseStrategy = async (options: ReviewOptions): Promise<string> => {
   if (options.strategy) {
     return options.strategy
   }
-  return await getStrategyNameFromConfig()
+
+  const config = await getAppConfig()
+  return config.promptStrategy
 }
 
 const createValidationMessage = (

@@ -45,7 +45,7 @@ export async function sendToAnthropic({
   })
 
   // Get the appropriate sender based on the strategy
-  const sender = getSender(strategyName)
+  const sender = await getSender(strategyName)
 
   // Send to Anthropic API using the selected sender
   return sender(prompt)
