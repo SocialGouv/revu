@@ -18,6 +18,158 @@ import { logSystemError } from '../../utils/logger.ts'
  * @param token - Optional GitHub access token for private repositories
  * @returns PlatformClient implementation for GitHub
  */
+// Helper functions for createReviewComment
+
+/**
+ * Validates line number parameters to prevent GitHub API errors
+ * Ensures line numbers are positive and start_line <= line for multi-line comments
+ */
+const validateCommentParams = (params: {
+  line: number
+  startLine?: number
+}): void => {
+  if (params.line <= 0) {
+    throw new Error(
+      `Invalid line number: ${params.line}. Line numbers must be positive.`
+    )
+  }
+
+  if (params.startLine !== undefined) {
+    if (params.startLine <= 0) {
+      throw new Error(
+        `Invalid start_line number: ${params.startLine}. Line numbers must be positive.`
+      )
+    }
+    if (params.startLine > params.line) {
+      throw new Error(
+        `Invalid line range: start_line (${params.startLine}) must be <= line (${params.line}). ` +
+          `GitHub API requires start_line to precede or equal the end line for multi-line comments.`
+      )
+    }
+  }
+}
+
+/**
+ * Builds GitHub API parameters for creating review comments
+ * Conditionally includes start_line/start_side for multi-line comments
+ * @param includeStartLine - Whether to include start_line parameters (false for fallback)
+ */
+const buildCommentParams = (
+  owner: string,
+  repo: string,
+  params: {
+    prNumber: number
+    commitSha: string
+    path: string
+    line: number
+    startLine?: number
+    body: string
+  },
+  includeStartLine: boolean = true
+) => {
+  const shouldIncludeStartLine =
+    includeStartLine &&
+    params.startLine !== undefined &&
+    params.startLine < params.line
+
+  return {
+    owner,
+    repo,
+    pull_number: params.prNumber,
+    commit_id: params.commitSha,
+    path: params.path,
+    line: params.line,
+    body: params.body,
+    side: 'RIGHT' as const,
+    ...(shouldIncludeStartLine && {
+      start_line: params.startLine,
+      start_side: 'RIGHT' as const
+    })
+  }
+}
+
+/**
+ * Analyzes GitHub API errors to build descriptive error messages
+ * Determines if a fallback to single-line comment should be attempted
+ * @returns Object with error message and fallback recommendation
+ */
+const analyzeGitHubError = (
+  error: unknown,
+  params: { path: string; line: number; startLine?: number }
+): { errorMessage: string; shouldAttemptFallback: boolean } => {
+  if (!(error && typeof error === 'object' && 'status' in error)) {
+    return { errorMessage: 'Unknown error', shouldAttemptFallback: false }
+  }
+
+  const apiError = error as {
+    status: number
+    message?: string
+    response?: { data?: unknown }
+  }
+
+  let errorMessage = `GitHub API error (${apiError.status})`
+
+  if (apiError.response?.data) {
+    errorMessage += `: ${JSON.stringify(apiError.response.data)}`
+  } else if (apiError.message) {
+    errorMessage += `: ${apiError.message}`
+  }
+
+  errorMessage += `. Comment params: path=${params.path}, line=${params.line}, startLine=${params.startLine}`
+
+  // Check for potential hunk boundary violation error
+  const isPotentialHunkError =
+    apiError.status === 422 &&
+    apiError.response?.data &&
+    params.startLine !== undefined
+
+  if (isPotentialHunkError) {
+    const responseData = apiError.response.data as {
+      message?: string
+      errors?: Array<{ message?: string }>
+    }
+    const isHunkBoundaryError =
+      responseData.message === 'Validation Failed' &&
+      responseData.errors?.some((err) =>
+        err.message?.includes('must be part of the same hunk')
+      )
+
+    return { errorMessage, shouldAttemptFallback: isHunkBoundaryError }
+  }
+
+  return { errorMessage, shouldAttemptFallback: false }
+}
+
+/**
+ * Attempts to create a single-line comment as fallback when multi-line comment fails
+ * Used when GitHub API returns hunk boundary violation errors
+ */
+const attemptFallbackComment = async (
+  proxyClient: Octokit,
+  owner: string,
+  repo: string,
+  params: {
+    prNumber: number
+    commitSha: string
+    path: string
+    line: number
+    body: string
+  }
+): Promise<void> => {
+  console.warn(
+    `Multi-line comment failed due to hunk boundary violation. Falling back to single-line comment at line ${params.line}`
+  )
+
+  const fallbackParams = buildCommentParams(owner, repo, params, false)
+
+  try {
+    await proxyClient.rest.pulls.createReviewComment(fallbackParams)
+  } catch (fallbackError) {
+    console.error(`Fallback to single-line comment failed:`, fallbackError)
+    throw fallbackError
+  }
+}
+
 export const createGitHubClient = (
   octokit: ProbotOctokit,
   owner: string,
@@ -102,7 +254,7 @@ export const createGitHubClient = (
         throw new Error('PROXY_REVIEWER_TOKEN not configured')
       }
 
-      await proxyClient.pulls.createReview({
+      await proxyClient.rest.pulls.createReview({
         owner,
         repo,
         pull_number: prNumber,
@@ -124,113 +276,32 @@ export const createGitHubClient = (
         throw new Error('PROXY_REVIEWER_TOKEN not configured')
       }
 
-      // Validate line parameters to prevent GitHub API errors
-      if (params.line <= 0) {
-        throw new Error(
-          `Invalid line number: ${params.line}. Line numbers must be positive.`
-        )
-      }
+      // Validate input parameters
+      validateCommentParams(params)
 
-      if (params.startLine !== undefined) {
-        if (params.startLine <= 0) {
-          throw new Error(
-            `Invalid start_line number: ${params.startLine}. Line numbers must be positive.`
-          )
-        }
-        if (params.startLine > params.line) {
-          throw new Error(
-            `Invalid line range: start_line (${params.startLine}) must be <= line (${params.line}). ` +
-              `GitHub API requires start_line to precede or equal the end line for multi-line comments.`
-          )
-        }
-      }
-
-      // Only include startLine/start_side if startLine is defined and less than line (GitHub API fails when start_line equals line)
-      const includeStartLine =
-        params.startLine !== undefined && params.startLine < params.line
-
-      const commentParams = {
-        owner,
-        repo,
-        pull_number: params.prNumber,
-        commit_id: params.commitSha,
-        path: params.path,
-        line: params.line,
-        body: params.body,
-        side: 'RIGHT' as const,
-        ...(includeStartLine && {
-          start_line: params.startLine,
-          start_side: 'RIGHT' as const
-        })
-      }
+      // Build comment parameters for GitHub API
+      const commentParams = buildCommentParams(owner, repo, params)
 
       try {
-        await proxyClient.pulls.createReviewComment(commentParams)
+        await proxyClient.rest.pulls.createReviewComment(commentParams)
       } catch (error) {
-        if (error && typeof error === 'object' && 'status' in error) {
-          const apiError = error as {
-            status: number
-            message?: string
-            response?: { data?: unknown }
+        const { errorMessage, shouldAttemptFallback } = analyzeGitHubError(
+          error,
+          params
+        )
+
+        if (shouldAttemptFallback) {
+          try {
+            await attemptFallbackComment(proxyClient, owner, repo, params)
+            return // Success with fallback
+          } catch (fallbackError) {
+            // Log the fallback error for debugging
+            logSystemError('Fallback error:', fallbackError)
+            throw new Error(`${errorMessage} (fallback also failed)`)
           }
-          let errorMessage = `GitHub API error (${apiError.status})`
-
-          if (apiError.response?.data) {
-            errorMessage += `: ${JSON.stringify(apiError.response.data)}`
-          } else if (apiError.message) {
-            errorMessage += `: ${apiError.message}`
-          }
-
-          // Add context about the comment parameters for debugging
-          errorMessage += `. Comment params: path=${params.path}, line=${params.line}, startLine=${params.startLine}`
-
-          // Check for hunk boundary violation error and provide fallback
-          if (apiError.status === 422 && apiError.response?.data) {
-            const responseData = apiError.response.data as {
-              message?: string
-              errors?: Array<{ message?: string }>
-            }
-            if (
-              responseData.message === 'Validation Failed' &&
-              responseData.errors?.some((err) =>
-                err.message?.includes('must be part of the same hunk')
-              )
-            ) {
-              // Try fallback to single-line comment if this was a multi-line comment
-              if (params.startLine !== undefined) {
-                console.warn(
-                  `Multi-line comment failed due to hunk boundary violation. Falling back to single-line comment at line ${params.line}`
-                )
-
-                const fallbackParams = {
-                  owner,
-                  repo,
-                  pull_number: params.prNumber,
-                  commit_id: params.commitSha,
-                  path: params.path,
-                  line: params.line,
-                  body: params.body,
-                  side: 'RIGHT' as const
-                }
-
-                try {
-                  await proxyClient.pulls.createReviewComment(fallbackParams)
-                  return // Success with fallback
-                } catch (fallbackError) {
-                  // Log fallback failure separately to avoid confusing error messages
-                  console.error(
-                    `Fallback to single-line comment failed:`,
-                    fallbackError
-                  )
-                  // Keep original error message clean
-                }
-              }
-            }
-          }
-
-          throw new Error(errorMessage)
         }
-        throw error
+
+        throw new Error(errorMessage)
       }
     },
 
@@ -243,7 +314,7 @@ export const createGitHubClient = (
         throw new Error('PROXY_REVIEWER_TOKEN not configured')
       }
 
-      await proxyClient.pulls.updateReviewComment({
+      await proxyClient.rest.pulls.updateReviewComment({
         owner,
         repo,
         comment_id: commentId,
@@ -253,7 +324,7 @@ export const createGitHubClient = (
 
     // PR operations
     getPullRequest: async (prNumber: number) => {
-      const { data } = await octokit.pulls.get({
+      const { data } = await octokit.rest.pulls.get({
         owner,
         repo,
         pull_number: prNumber
@@ -270,7 +341,7 @@ export const createGitHubClient = (
 
     // Review comment operations
     listReviewComments: async (prNumber: number) => {
-      const { data } = await octokit.pulls.listReviewComments({
+      const { data } = await octokit.rest.pulls.listReviewComments({
         owner,
         repo,
         pull_number: prNumber
@@ -285,7 +356,7 @@ export const createGitHubClient = (
 
     getReviewComment: async (commentId: number) => {
       try {
-        const { data } = await octokit.pulls.getReviewComment({
+        const { data } = await octokit.rest.pulls.getReviewComment({
           owner,
           repo,
           comment_id: commentId
@@ -309,7 +380,7 @@ export const createGitHubClient = (
         throw new Error('PROXY_REVIEWER_TOKEN not configured')
       }
 
-      await proxyClient.pulls.deleteReviewComment({
+      await proxyClient.rest.pulls.deleteReviewComment({
         owner,
         repo,
         comment_id: commentId
@@ -348,7 +419,7 @@ export const createGitHubClient = (
       commitSha: string
     ): Promise<string> => {
       try {
-        const response = await octokit.repos.getContent({
+        const response = await octokit.rest.repos.getContent({
           owner,
           repo,
           path: filePath,
@@ -369,7 +440,7 @@ export const createGitHubClient = (
     },
 
     listReviews: async (prNumber: number): Promise<Array<Review>> => {
-      const { data } = await octokit.pulls.listReviews({
+      const { data } = await octokit.rest.pulls.listReviews({
         owner,
         repo,
         pull_number: prNumber
