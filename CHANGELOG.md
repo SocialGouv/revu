@@ -1,3 +1,11 @@
+## [1.10.1](https://github.com/SocialGouv/revu/compare/v1.10.0...v1.10.1) (2025-08-20)
+
+
+### Bug Fixes
+
+* Remove inexistant getRouter call ([ec982ef](https://github.com/SocialGouv/revu/commit/ec982efc22a545188858816104cfd2349b980611))
+* Update Octokit usage to access its `rest` capabilities properly ([5810a14](https://github.com/SocialGouv/revu/commit/5810a14724b24d8f623f1c9861a075b76bec4fcd))
+
 # [1.10.0](https://github.com/SocialGouv/revu/compare/v1.9.1...v1.10.0) (2025-08-20)
 
 
