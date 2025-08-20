@@ -125,7 +125,7 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
     }
 
     // Add proxy user as reviewer
-    await context.octokit.pulls.requestReviewers({
+    await context.octokit.rest.pulls.requestReviewers({
       owner: repo.owner,
       repo: repo.repo,
       pull_number: pr.number,
@@ -158,7 +158,7 @@ export async function getBotUsername(context: Context): Promise<string> {
   }
 
   try {
-    const app = await context.octokit.apps.getAuthenticated()
+    const app = await context.octokit.rest.apps.getAuthenticated()
     const username = `${app.data.slug}[bot]`
 
     // Cache the successful result

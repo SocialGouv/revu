@@ -13,15 +13,19 @@ import { SUMMARY_MARKER } from '../../src/comment-handlers/types.ts'
 describe('findExistingComments', () => {
   let mockContext: Context
   let mockOctokit: {
-    pulls: {
-      listReviewComments: ReturnType<typeof vi.fn>
+    rest: {
+      pulls: {
+        listReviewComments: ReturnType<typeof vi.fn>
+      }
     }
   }
 
   beforeEach(() => {
     mockOctokit = {
-      pulls: {
-        listReviewComments: vi.fn()
+      rest: {
+        pulls: {
+          listReviewComments: vi.fn()
+        }
       }
     }
 
@@ -51,13 +55,13 @@ describe('findExistingComments', () => {
       }
     ]
 
-    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviewComments.mockResolvedValue({
       data: mockComments
     })
 
     const result = await findExistingComments(mockContext, 123)
 
-    expect(mockOctokit.pulls.listReviewComments).toHaveBeenCalledWith({
+    expect(mockOctokit.rest.pulls.listReviewComments).toHaveBeenCalledWith({
       owner: 'test-owner',
       repo: 'test-repo',
       pull_number: 123
@@ -80,7 +84,7 @@ describe('findExistingComments', () => {
       }
     ]
 
-    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviewComments.mockResolvedValue({
       data: mockComments
     })
 
@@ -90,7 +94,7 @@ describe('findExistingComments', () => {
   })
 
   it('should return empty array when no comments exist', async () => {
-    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviewComments.mockResolvedValue({
       data: []
     })
 
@@ -103,8 +107,10 @@ describe('findExistingComments', () => {
 describe('findExistingSummaryComment', () => {
   let mockContext: Context
   let mockOctokit: {
-    pulls: {
-      listReviews: ReturnType<typeof vi.fn>
+    rest: {
+      pulls: {
+        listReviews: ReturnType<typeof vi.fn>
+      }
     }
   }
 
@@ -113,8 +119,10 @@ describe('findExistingSummaryComment', () => {
     vi.stubEnv('PROXY_REVIEWER_USERNAME', 'proxy-user')
 
     mockOctokit = {
-      pulls: {
-        listReviews: vi.fn()
+      rest: {
+        pulls: {
+          listReviews: vi.fn()
+        }
       }
     }
 
@@ -145,13 +153,13 @@ describe('findExistingSummaryComment', () => {
       }
     ]
 
-    mockOctokit.pulls.listReviews.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviews.mockResolvedValue({
       data: mockReviews
     })
 
     const result = await findExistingSummaryComment(mockContext, 123)
 
-    expect(mockOctokit.pulls.listReviews).toHaveBeenCalledWith({
+    expect(mockOctokit.rest.pulls.listReviews).toHaveBeenCalledWith({
       owner: 'test-owner',
       repo: 'test-repo',
       pull_number: 123
@@ -177,7 +185,7 @@ describe('findExistingSummaryComment', () => {
       }
     ]
 
-    mockOctokit.pulls.listReviews.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviews.mockResolvedValue({
       data: mockReviews
     })
 
@@ -187,7 +195,7 @@ describe('findExistingSummaryComment', () => {
   })
 
   it('should return undefined when no comments exist', async () => {
-    mockOctokit.pulls.listReviews.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviews.mockResolvedValue({
       data: []
     })
 
@@ -201,8 +209,10 @@ describe('findExistingSummaryComment', () => {
 
     // Create a separate mock context for this test to avoid API calls
     const separateMockOctokit = {
-      pulls: {
-        listReviews: vi.fn()
+      rest: {
+        pulls: {
+          listReviews: vi.fn()
+        }
       }
     }
 
@@ -214,22 +224,26 @@ describe('findExistingSummaryComment', () => {
     const result = await findExistingSummaryComment(separateMockContext, 123)
 
     expect(result).toBeUndefined()
-    expect(separateMockOctokit.pulls.listReviews).not.toHaveBeenCalled()
+    expect(separateMockOctokit.rest.pulls.listReviews).not.toHaveBeenCalled()
   })
 })
 
 describe('checkCommentExistence', () => {
   let mockContext: Context
   let mockOctokit: {
-    pulls: {
-      getReviewComment: ReturnType<typeof vi.fn>
+    rest: {
+      pulls: {
+        getReviewComment: ReturnType<typeof vi.fn>
+      }
     }
   }
 
   beforeEach(() => {
     mockOctokit = {
-      pulls: {
-        getReviewComment: vi.fn()
+      rest: {
+        pulls: {
+          getReviewComment: vi.fn()
+        }
       }
     }
 
@@ -240,13 +254,13 @@ describe('checkCommentExistence', () => {
   })
 
   it('should return exists: true when comment exists', async () => {
-    mockOctokit.pulls.getReviewComment.mockResolvedValue({
+    mockOctokit.rest.pulls.getReviewComment.mockResolvedValue({
       data: { id: 123, body: 'Comment exists' }
     })
 
     const result = await checkCommentExistence(mockContext, 123)
 
-    expect(mockOctokit.pulls.getReviewComment).toHaveBeenCalledWith({
+    expect(mockOctokit.rest.pulls.getReviewComment).toHaveBeenCalledWith({
       owner: 'test-owner',
       repo: 'test-repo',
       comment_id: 123
@@ -261,7 +275,7 @@ describe('checkCommentExistence', () => {
       message: 'Not Found'
     }
 
-    mockOctokit.pulls.getReviewComment.mockRejectedValue(error)
+    mockOctokit.rest.pulls.getReviewComment.mockRejectedValue(error)
 
     const result = await checkCommentExistence(mockContext, 123)
 
@@ -277,7 +291,7 @@ describe('checkCommentExistence', () => {
       message: 'Internal Server Error'
     }
 
-    mockOctokit.pulls.getReviewComment.mockRejectedValue(error)
+    mockOctokit.rest.pulls.getReviewComment.mockRejectedValue(error)
 
     const result = await checkCommentExistence(mockContext, 123)
 
@@ -291,7 +305,7 @@ describe('checkCommentExistence', () => {
   it('should return exists: false with error reason for non-GitHub error', async () => {
     const error = new Error('Network error')
 
-    mockOctokit.pulls.getReviewComment.mockRejectedValue(error)
+    mockOctokit.rest.pulls.getReviewComment.mockRejectedValue(error)
 
     const result = await checkCommentExistence(mockContext, 123)
 
@@ -411,17 +425,21 @@ describe('createCommentParams', () => {
 describe('cleanupObsoleteComments', () => {
   let mockContext: Context
   let mockOctokit: {
-    pulls: {
-      listReviewComments: ReturnType<typeof vi.fn>
-      deleteReviewComment: ReturnType<typeof vi.fn>
+    rest: {
+      pulls: {
+        listReviewComments: ReturnType<typeof vi.fn>
+        deleteReviewComment: ReturnType<typeof vi.fn>
+      }
     }
   }
 
   beforeEach(() => {
     mockOctokit = {
-      pulls: {
-        listReviewComments: vi.fn(),
-        deleteReviewComment: vi.fn()
+      rest: {
+        pulls: {
+          listReviewComments: vi.fn(),
+          deleteReviewComment: vi.fn()
+        }
       }
     }
 
@@ -445,7 +463,7 @@ describe('cleanupObsoleteComments', () => {
       }
     ]
 
-    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviewComments.mockResolvedValue({
       data: existingComments
     })
 
@@ -456,8 +474,8 @@ describe('cleanupObsoleteComments', () => {
 
     const result = await cleanupObsoleteComments(mockContext, 123, diffMap)
 
-    expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledTimes(1)
-    expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledWith({
+    expect(mockOctokit.rest.pulls.deleteReviewComment).toHaveBeenCalledTimes(1)
+    expect(mockOctokit.rest.pulls.deleteReviewComment).toHaveBeenCalledWith({
       owner: 'test-owner',
       repo: 'test-repo',
       comment_id: 1
@@ -475,7 +493,7 @@ describe('cleanupObsoleteComments', () => {
       }
     ]
 
-    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviewComments.mockResolvedValue({
       data: existingComments
     })
 
@@ -485,7 +503,7 @@ describe('cleanupObsoleteComments', () => {
 
     const result = await cleanupObsoleteComments(mockContext, 123, diffMap)
 
-    expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledWith({
+    expect(mockOctokit.rest.pulls.deleteReviewComment).toHaveBeenCalledWith({
       owner: 'test-owner',
       repo: 'test-repo',
       comment_id: 1
@@ -508,7 +526,7 @@ describe('cleanupObsoleteComments', () => {
       }
     ]
 
-    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviewComments.mockResolvedValue({
       data: existingComments
     })
 
@@ -518,7 +536,7 @@ describe('cleanupObsoleteComments', () => {
 
     const result = await cleanupObsoleteComments(mockContext, 123, diffMap)
 
-    expect(mockOctokit.pulls.deleteReviewComment).not.toHaveBeenCalled()
+    expect(mockOctokit.rest.pulls.deleteReviewComment).not.toHaveBeenCalled()
     expect(result).toBe(0)
   })
 
@@ -536,7 +554,7 @@ describe('cleanupObsoleteComments', () => {
       }
     ]
 
-    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviewComments.mockResolvedValue({
       data: existingComments
     })
 
@@ -544,7 +562,7 @@ describe('cleanupObsoleteComments', () => {
 
     const result = await cleanupObsoleteComments(mockContext, 123, diffMap)
 
-    expect(mockOctokit.pulls.deleteReviewComment).not.toHaveBeenCalled()
+    expect(mockOctokit.rest.pulls.deleteReviewComment).not.toHaveBeenCalled()
     expect(result).toBe(0)
   })
 
@@ -562,12 +580,12 @@ describe('cleanupObsoleteComments', () => {
       }
     ]
 
-    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviewComments.mockResolvedValue({
       data: existingComments
     })
 
     // Mock first deletion to fail, second to succeed
-    mockOctokit.pulls.deleteReviewComment
+    mockOctokit.rest.pulls.deleteReviewComment
       .mockRejectedValueOnce(new Error('API Error'))
       .mockResolvedValueOnce({})
 
@@ -575,7 +593,7 @@ describe('cleanupObsoleteComments', () => {
 
     const result = await cleanupObsoleteComments(mockContext, 123, diffMap)
 
-    expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledTimes(2)
+    expect(mockOctokit.rest.pulls.deleteReviewComment).toHaveBeenCalledTimes(2)
     expect(result).toBe(1) // Only one successful deletion
   })
 
@@ -593,7 +611,7 @@ describe('cleanupObsoleteComments', () => {
       }
     ]
 
-    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviewComments.mockResolvedValue({
       data: existingComments
     })
 
@@ -601,7 +619,7 @@ describe('cleanupObsoleteComments', () => {
 
     const result = await cleanupObsoleteComments(mockContext, 123, diffMap)
 
-    expect(mockOctokit.pulls.deleteReviewComment).not.toHaveBeenCalled()
+    expect(mockOctokit.rest.pulls.deleteReviewComment).not.toHaveBeenCalled()
     expect(result).toBe(0)
   })
 
@@ -614,7 +632,7 @@ describe('cleanupObsoleteComments', () => {
       }
     ]
 
-    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+    mockOctokit.rest.pulls.listReviewComments.mockResolvedValue({
       data: existingComments
     })
 
@@ -622,7 +640,7 @@ describe('cleanupObsoleteComments', () => {
 
     const result = await cleanupObsoleteComments(mockContext, 123, diffMap)
 
-    expect(mockOctokit.pulls.deleteReviewComment).toHaveBeenCalledWith({
+    expect(mockOctokit.rest.pulls.deleteReviewComment).toHaveBeenCalledWith({
       owner: 'test-owner',
       repo: 'test-repo',
       comment_id: 1
