@@ -25,12 +25,13 @@
 
 ## Strategy System
 
-- **Prompt Strategies**: Different templates for Claude (default, line-comments, thinking-line-comments)
-- **Anthropic Senders**: Format requests to Claude API based on strategy
+- **Prompt Strategies**: Different templates for Claude (currently only line-comments strategy available)
+- **Anthropic Senders**: Format requests to Claude API based on strategy and thinking configuration
 - **Comment Handlers**: Post reviews as global comments or line-specific comments
 - **SEARCH/REPLACE Processing**: Pattern matching system for precise code suggestions with exact character-for-character matching
 - **Extended Thinking Support**: Enhanced reasoning capabilities using Anthropic's Extended Thinking feature
-- Current config: "thinking-line-comments" strategy (provides feedback as inline comments with extended thinking for deeper analysis)
+- **Configuration Structure**: Separate `promptStrategy` and `thinkingEnabled` settings for better modularity
+- Current config: "line-comments" strategy with thinking enabled (provides feedback as inline comments with extended thinking for deeper analysis)
 
 ## Key Files
 

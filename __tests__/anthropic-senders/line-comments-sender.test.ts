@@ -307,7 +307,7 @@ More text after.`
   })
 
   describe('Extended Thinking Support', () => {
-    it('should enable thinking for thinking-line-comments strategy', async () => {
+    it('should enable thinking for line-comments strategy', async () => {
       const expectedResponse = {
         summary: 'Thinking-enabled summary',
         comments: [
