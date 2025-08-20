@@ -19,11 +19,8 @@ import {
 // Load environment variables
 config()
 
-export default async (app: Probot, { getRouter }) => {
+export default async (app: Probot) => {
   logAppStarted()
-
-  // Container health check route
-  getRouter('/healthz').get('/', (_req, res) => res.end('OK'))
 
   // Listen for PR opens to add bot as reviewer
   app.on(['pull_request.opened'], async (context) => {
@@ -154,7 +151,7 @@ export default async (app: Probot, { getRouter }) => {
 
     // Get an installation token for authentication with private repositories
     const installationId = payload.installation.id
-    const installationAccessToken = await context.octokit.apps
+    const installationAccessToken = await context.octokit.rest.apps
       .createInstallationAccessToken({
         installation_id: installationId
       })
