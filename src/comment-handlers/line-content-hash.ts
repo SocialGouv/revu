@@ -21,7 +21,7 @@ export async function getLineContent(
     const repo = context.repo()
 
     // Fetch file content from GitHub API
-    const response = await context.octokit.repos.getContent({
+    const response = await context.octokit.rest.repos.getContent({
       ...repo,
       path: filePath,
       ref: commitSha

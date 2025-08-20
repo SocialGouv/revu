@@ -17,10 +17,11 @@ export async function findExistingComments(context: Context, prNumber: number) {
   const repo = context.repo()
 
   // Get all review comments on the PR
-  const { data: comments } = await context.octokit.pulls.listReviewComments({
-    ...repo,
-    pull_number: prNumber
-  })
+  const { data: comments } =
+    await context.octokit.rest.pulls.listReviewComments({
+      ...repo,
+      pull_number: prNumber
+    })
 
   // Filter to comments with our marker
   return comments.filter((comment) =>
@@ -46,7 +47,7 @@ export async function findExistingSummaryComment(
   const repo = context.repo()
 
   // Get all reviews on the PR
-  const { data: reviews } = await context.octokit.pulls.listReviews({
+  const { data: reviews } = await context.octokit.rest.pulls.listReviews({
     ...repo,
     pull_number: prNumber
   })
@@ -76,7 +77,7 @@ export async function checkCommentExistence(
   commentId: number
 ): Promise<CommentExistenceResult> {
   try {
-    await context.octokit.pulls.getReviewComment({
+    await context.octokit.rest.pulls.getReviewComment({
       ...context.repo(),
       comment_id: commentId
     })
@@ -160,7 +161,7 @@ export async function cleanupObsoleteComments(
     if (shouldDelete) {
       try {
         // Delete the obsolete comment
-        await context.octokit.pulls.deleteReviewComment({
+        await context.octokit.rest.pulls.deleteReviewComment({
           ...repo,
           comment_id: comment.id
         })

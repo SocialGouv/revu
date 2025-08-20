@@ -53,11 +53,13 @@ function createMockContext(
       repo
     }),
     octokit: {
-      pulls: {
-        requestReviewers: mockRequestReviewers
-      },
-      apps: {
-        getAuthenticated: mockGetAuthenticated
+      rest: {
+        pulls: {
+          requestReviewers: mockRequestReviewers
+        },
+        apps: {
+          getAuthenticated: mockGetAuthenticated
+        }
       }
     },
     log: {
@@ -202,11 +204,13 @@ describe('Auto Add Reviewer - Real Tests', () => {
           repo: 'test-repo'
         }),
         octokit: {
-          pulls: {
-            requestReviewers: mockRequestReviewers
-          },
-          apps: {
-            getAuthenticated: mockGetAuthenticated
+          rest: {
+            pulls: {
+              requestReviewers: mockRequestReviewers
+            },
+            apps: {
+              getAuthenticated: mockGetAuthenticated
+            }
           }
         },
         log: {
