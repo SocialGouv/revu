@@ -1,3 +1,10 @@
+## [1.29.2](https://github.com/SocialGouv/revu/compare/v1.29.1...v1.29.2) (2025-08-20)
+
+
+### Bug Fixes
+
+* **deps:** update dependency probot to v14 ([910e19a](https://github.com/SocialGouv/revu/commit/910e19a7ab18f3557b3f5135308e0e1919bf1944))
+
 ## [1.29.1](https://github.com/SocialGouv/revu/compare/v1.29.0...v1.29.1) (2025-08-20)
 
 
