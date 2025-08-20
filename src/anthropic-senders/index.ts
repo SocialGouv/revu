@@ -1,6 +1,4 @@
-import { guidedExecutionSender } from './guided-execution-sender.ts'
 import { lineCommentsSender } from './line-comments-sender.ts'
-import { reviewPlanningSender } from './planning-sender.ts'
 
 /**
  * Type definition for all Anthropic senders
@@ -16,10 +14,6 @@ type LLMSender = (prompt: string) => Promise<string>
  */
 export function getSender(strategyName?: string): LLMSender {
   switch (strategyName?.toLowerCase()) {
-    case 'review-planning':
-      return reviewPlanningSender
-    case 'guided-execution':
-      return guidedExecutionSender
     case 'line-comments':
       return lineCommentsSender
     case 'thinking-line-comments':
