@@ -1,3 +1,20 @@
+# [1.30.0](https://github.com/SocialGouv/revu/compare/v1.29.0...v1.30.0) (2025-08-21)
+
+
+### Bug Fixes
+
+* Add yarn release for github CI/CD to work ([6d00be7](https://github.com/SocialGouv/revu/commit/6d00be7fb0dbed4bfbd7091dde8c49e0adcf0bcf))
+* Remove inexistant getRouter call ([8a7af39](https://github.com/SocialGouv/revu/commit/8a7af39e6dd0428aa8919b7609bdb6f2b818107f))
+* Set temperature to 1 for thinking ([242a5b0](https://github.com/SocialGouv/revu/commit/242a5b0d832efa10022ab75ba60d5130bb854ce2))
+* Update Octokit usage to access its `rest` capabilities properly ([30648f0](https://github.com/SocialGouv/revu/commit/30648f060717b6e0dfbfd37c7d57ab7225d6bdfd))
+* **deps:** update dependency probot to v14 ([95dc76c](https://github.com/SocialGouv/revu/commit/95dc76c6bb61e12accb722337610cde6d6e451de))
+* Using wrong param type in tests for line-comment sender ([c6e8c3f](https://github.com/SocialGouv/revu/commit/c6e8c3ffb65925f83bc8649a196ee8d979c48d89))
+
+
+### Features
+
+* Avoid unnecessary positive comments in PRs ([05a51e8](https://github.com/SocialGouv/revu/commit/05a51e84f3982ed7930c6bc39952043679d9d340))
+
 # [1.29.0](https://github.com/SocialGouv/revu/compare/v1.28.0...v1.29.0) (2025-08-19)
 
 
