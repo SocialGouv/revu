@@ -1,3 +1,10 @@
+## [1.30.1](https://github.com/SocialGouv/revu/compare/v1.30.0...v1.30.1) (2025-08-21)
+
+
+### Bug Fixes
+
+* Re-add healthz endpoint ([7998589](https://github.com/SocialGouv/revu/commit/7998589c129ff2ebc177fc5eb23583aec5a44016))
+
 # [1.30.0](https://github.com/SocialGouv/revu/compare/v1.29.0...v1.30.0) (2025-08-21)
 
 
