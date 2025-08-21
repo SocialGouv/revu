@@ -8,6 +8,7 @@ import { logSystemError } from './utils/logger.js'
 config()
 
 const app = express()
+app.disable('x-powered-by') // Désactive l'en-tête X-Powered-By pour la sécurité
 const port = parseInt(process.env.PORT || '3000', 10)
 const host = process.env.HOST || '0.0.0.0' // Important pour Docker !
 
