@@ -1,3 +1,10 @@
+## [1.30.2](https://github.com/SocialGouv/revu/compare/v1.30.1...v1.30.2) (2025-08-21)
+
+
+### Bug Fixes
+
+* probot 14 upgrade ([#181](https://github.com/SocialGouv/revu/issues/181)) ([c237f2f](https://github.com/SocialGouv/revu/commit/c237f2fee01a9d3bd4981dea4d936acdc5067422))
+
 ## [1.30.1](https://github.com/SocialGouv/revu/compare/v1.30.0...v1.30.1) (2025-08-21)
 
 
