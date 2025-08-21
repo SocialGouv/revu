@@ -1,5 +1,5 @@
 import { config } from 'dotenv'
-import { Context, Probot } from 'probot'
+import { Context, Probot, type ApplicationFunctionOptions } from 'probot'
 import type { PlatformContext } from './core/models/platform-types.ts'
 import { performCompleteReview } from './core/services/review-service.ts'
 import {
@@ -19,8 +19,20 @@ import {
 // Load environment variables
 config()
 
-export default async (app: Probot) => {
+export default async (
+  app: Probot,
+  { addHandler }: ApplicationFunctionOptions
+) => {
   logAppStarted()
+  // Container health check route
+  addHandler((req, res) => {
+    if (req.url === '/healthz' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'text/plain' })
+      res.end('OK')
+      return true
+    }
+    return false
+  })
 
   // Listen for PR opens to add bot as reviewer
   app.on(['pull_request.opened'], async (context) => {
