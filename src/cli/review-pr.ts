@@ -5,7 +5,13 @@ import axios from 'axios'
 import chalk from 'chalk'
 import { program } from 'commander'
 import * as dotenv from 'dotenv'
-import { performCompleteReview } from '../core/services/review-service.ts'
+import type { PlatformContext } from '../core/models/platform-types.ts'
+import {
+  performCompleteReview,
+  type ReviewResult,
+  type ValidationIssue,
+  type ValidationResult
+} from '../core/services/review-service.ts'
 import { createMinimalContext } from '../github/context-builder.ts'
 import {
   createGithubAppOctokit,
@@ -18,6 +24,26 @@ import { logSystemError } from '../utils/logger.ts'
 dotenv.config()
 
 type BranchName = string
+
+interface CliReviewContext {
+  owner: string
+  repo: string
+  prNumber: number
+  repositoryUrl: string
+  headBranch: string
+  octokit: Octokit
+}
+
+interface PrDetails {
+  title: string
+  body: string | null
+}
+
+interface AuthenticationResult {
+  token?: string
+  owner: string
+  repo: string
+}
 
 /**
  * Parse a GitHub PR URL and extract owner, repo, and PR number
@@ -44,6 +70,93 @@ function parsePrUrl(url: string): {
   const prNumber = parseInt(prNumberStr, 10)
 
   return { owner, repo, prNumber }
+}
+
+/**
+ * Setup authentication and extract repository information
+ * @returns Authentication result with token and repository info
+ */
+async function setupAuthentication(
+  owner: string,
+  repo: string
+): Promise<AuthenticationResult> {
+  console.log(chalk.gray('⚡ Setting up authentication...'))
+
+  let token: string | undefined
+  try {
+    token = await generateInstallationToken(owner, repo)
+  } catch (error) {
+    console.warn(
+      chalk.yellow('⚠ Failed to generate installation token:'),
+      error
+    )
+    // Continue without token if generation fails
+  }
+  return { token, owner, repo }
+}
+
+/**
+ * Create review context with all necessary GitHub data
+ * @param prUrl GitHub PR URL
+ * @param authResult Authentication result
+ * @returns Complete review context
+ */
+async function createReviewContext(
+  prNumber: number,
+  authResult: AuthenticationResult
+): Promise<CliReviewContext> {
+  const { owner, repo } = authResult
+
+  console.log(chalk.gray(`📁 Repository: ${owner}/${repo}, PR: #${prNumber}`))
+
+  // Create Octokit instance with GitHub App authentication
+  const octokit = await createGithubAppOctokit(owner, repo)
+
+  // Fetch PR details
+  console.log(chalk.gray('⚡ Fetching PR details from GitHub...'))
+  const headBranch = await fetchPrBranch(owner, repo, prNumber, octokit)
+  console.log(chalk.gray(`🌿 Head branch: ${headBranch}`))
+
+  // Construct repository URL
+  const repositoryUrl = `https://github.com/${owner}/${repo}.git`
+
+  return {
+    owner,
+    repo,
+    prNumber,
+    repositoryUrl,
+    headBranch,
+    octokit
+  }
+}
+
+/**
+ * Fetch PR details (title and body)
+ * @param context Review context
+ * @returns PR details
+ */
+async function fetchPrDetails(context: CliReviewContext): Promise<PrDetails> {
+  const { owner, repo, prNumber, octokit } = context
+
+  try {
+    const prResponse = await octokit.rest.pulls.get({
+      owner,
+      repo,
+      pull_number: prNumber
+    })
+    return {
+      title: prResponse.data.title,
+      body: prResponse.data.body
+    }
+  } catch (error) {
+    console.warn(
+      chalk.yellow(`⚠ Could not fetch PR details: ${error.message}`)
+    )
+    return {
+      title: '',
+      body: null
+    }
+  }
 }
 
 /**
@@ -105,6 +218,84 @@ async function fetchPrBranch(
 }
 
 /**
+ * Display successful review results
+ * @param result Review result
+ * @param submit Whether comments were submitted
+ */
+function displaySuccessResults(result: ReviewResult, submit: boolean): void {
+  if (!submit && result.analysis) {
+    // Display analysis when not submitting
+    console.log(chalk.green('\n=== 📋 PR Analysis Results ===\n'))
+    console.log(result.analysis)
+    console.log(chalk.green('\n=== ✅ End of Analysis ===\n'))
+  }
+  console.log(chalk.green(`✅ ${result.message}`))
+}
+
+/**
+ * Display validation errors
+ * @param validationResult Validation result with issues
+ */
+function displayValidationErrors(validationResult: ValidationResult): void {
+  console.log(chalk.yellow('\n⚠️  PR Validation Failed'))
+  validationResult.issues.forEach((issue: ValidationIssue, index: number) => {
+    console.log(chalk.yellow(`${index + 1}. ${issue.reason}`))
+    console.log(chalk.gray(`   💡 ${issue.suggestion}`))
+  })
+}
+
+/**
+ * Handle ReviewResult that indicates failure
+ * @param result ReviewResult with failure state
+ */
+function handleReviewFailure(result: ReviewResult): void {
+  if (result.error) {
+    console.error(chalk.red(`❌ ${result.error}`))
+    process.exit(1)
+  } else if (result.message) {
+    console.log(chalk.yellow(`⚠️  ${result.message}`))
+    // Don't exit for warnings/validation failures
+  } else {
+    console.error(chalk.red(`❌ Review failed with unknown error`))
+    process.exit(1)
+  }
+}
+
+/**
+ * Handle Error objects from exceptions
+ * @param error Error object
+ */
+function handleReviewException(error: Error): void {
+  console.error(chalk.red(`❌ Error: ${error.message}`))
+  process.exit(1)
+}
+
+/**
+ * Create platform context from review context and PR details
+ * @param context Review context
+ * @param prDetails PR details
+ * @param token Authentication token
+ * @returns Platform context
+ */
+async function createPlatformContext(
+  context: CliReviewContext,
+  prDetails: PrDetails,
+  token?: string
+): Promise<PlatformContext> {
+  const { owner, repo, prNumber, octokit } = context
+  const { title, body } = prDetails
+
+  const githubContext = await createMinimalContext(owner, repo, octokit)
+  return createPlatformContextFromGitHub(
+    githubContext,
+    prNumber,
+    title,
+    body || undefined,
+    token
+  )
+}
+
+/**
  * Review a PR by URL using the same logic as the production bot
  * @param prUrl GitHub PR URL
  * @param submit Whether to submit comments to GitHub
@@ -118,113 +309,51 @@ async function reviewPr(
   console.log(chalk.blue(`🔍 Reviewing PR: ${prUrl}`))
   console.log(chalk.gray('⚡ Parsing PR URL...'))
 
-  // Generate an installation token for private repositories if GitHub App credentials are available
-  let token: string | undefined
-
   try {
-    // Extract owner and repo from prUrl
-    const match = prUrl.match(/github\.com\/([^/]+)\/([^/.]+)/)
-    if (match) {
-      const [, owner, repo] = match
-      token = await generateInstallationToken(owner, repo)
-    }
-  } catch (error) {
-    console.warn(
-      chalk.yellow('⚠ Failed to generate installation token:'),
-      error
-    )
-    // Continue without token if generation fails
-  }
-
-  try {
-    // Parse PR URL
     const { owner, repo, prNumber } = parsePrUrl(prUrl)
-    console.log(chalk.gray(`📁 Repository: ${owner}/${repo}, PR: #${prNumber}`))
+    // Step 1: Setup authentication
+    const authResult = await setupAuthentication(owner, repo)
 
-    // Create Octokit instance with GitHub App authentication
-    const octokit = await createGithubAppOctokit(owner, repo)
+    // Step 2: Create review context
+    const context = await createReviewContext(prNumber, authResult)
 
-    // Fetch PR details
-    console.log(chalk.gray('⚡ Fetching PR details from GitHub...'))
-    const headBranch = await fetchPrBranch(owner, repo, prNumber, octokit)
-    console.log(chalk.gray(`🌿 Head branch: ${headBranch}`))
+    // Step 3: Fetch PR details
+    const prDetails = await fetchPrDetails(context)
 
-    // Construct repository URL
-    const repositoryUrl = `https://github.com/${owner}/${repo}.git`
-
-    // Prepare platform-agnostic context for prompt generation
-    let body = null
-    let title = ''
-    try {
-      const prResponse = await octokit.rest.pulls.get({
-        owner,
-        repo,
-        pull_number: prNumber
-      })
-      body = prResponse.data.body
-      title = prResponse.data.title
-    } catch (error) {
-      console.warn(
-        chalk.yellow(`⚠ Could not fetch PR details: ${error.message}`)
-      )
-    }
-
-    const githubContext = await createMinimalContext(owner, repo, octokit)
-    const platformContext = createPlatformContextFromGitHub(
-      githubContext,
-      prNumber,
-      title,
-      body || undefined,
-      token
+    // Step 4: Create platform context
+    const platformContext = await createPlatformContext(
+      context,
+      prDetails,
+      authResult.token
     )
 
-    // Use the same review service as the production bot
+    // Step 5: Perform review
     const result = await performCompleteReview(
-      repositoryUrl,
-      prNumber,
-      headBranch,
+      context.repositoryUrl,
+      context.prNumber,
+      context.headBranch,
       platformContext,
       {
         submitComments: submit,
         reviewType: 'on-demand',
-        repository: `${owner}/${repo}`,
+        repository: `${context.owner}/${context.repo}`,
         strategy
       }
     )
 
-    // Handle results
+    // Step 6: Handle results
     if (result.success) {
-      if (!submit && result.analysis) {
-        // Display analysis when not submitting
-        console.log(chalk.green('\n=== 📋 PR Analysis Results ===\n'))
-        console.log(result.analysis)
-        console.log(chalk.green('\n=== ✅ End of Analysis ===\n'))
-      }
-      console.log(chalk.green(`✅ ${result.message}`))
+      displaySuccessResults(result, submit)
     } else {
       // Handle validation failure or other errors
       if (result.validationResult && !result.validationResult.isValid) {
-        console.log(chalk.yellow('\n⚠️  PR Validation Failed'))
-        result.validationResult.issues.forEach((issue, index) => {
-          console.log(chalk.yellow(`${index + 1}. ${issue.reason}`))
-          console.log(chalk.gray(`   💡 ${issue.suggestion}`))
-        })
+        displayValidationErrors(result.validationResult)
       }
-
-      if (result.error) {
-        console.error(chalk.red(`❌ ${result.error}`))
-        process.exit(1)
-      } else {
-        console.log(chalk.yellow(`⚠️  ${result.message}`))
-      }
+      handleReviewFailure(result)
     }
   } catch (error) {
-    console.error(
-      chalk.red(
-        `❌ Error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    )
-    process.exit(1)
+    const errorObj = error instanceof Error ? error : new Error(String(error))
+    handleReviewException(errorObj)
   }
 }
 

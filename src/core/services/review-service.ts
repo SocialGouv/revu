@@ -20,21 +20,28 @@ interface ReviewOptions {
   strategy?: string
 }
 
-interface ReviewResult {
+export interface ValidationIssue {
+  reason: string
+  suggestion: string
+}
+
+export interface ValidationResult {
+  isValid: boolean
+  issues: Array<ValidationIssue>
+  metrics: {
+    filesChanged: number
+    reviewableFilesChanged: number
+    diffSize: number
+    largestFileSize?: number
+    additionDeletionRatio?: number
+    documentationOnlyFiles: number
+  }
+}
+
+export interface ReviewResult {
   success: boolean
   analysis?: string
-  validationResult?: {
-    isValid: boolean
-    issues: Array<{ reason: string; suggestion: string }>
-    metrics: {
-      filesChanged: number
-      reviewableFilesChanged: number
-      diffSize: number
-      largestFileSize?: number
-      additionDeletionRatio?: number
-      documentationOnlyFiles: number
-    }
-  }
+  validationResult?: ValidationResult
   error?: string
   message?: string
 }
