@@ -1,8 +1,8 @@
-import express from 'express'
 import { config } from 'dotenv'
+import express from 'express'
 import { createNodeMiddleware, createProbot } from 'probot'
-import probotApp from './webhooks.js' // Import de l'app Probot existante
 import { logSystemError } from './utils/logger.js'
+import probotApp from './webhooks.js' // Import de l'app Probot existante
 
 // Load environment variables
 config()
@@ -21,16 +21,16 @@ async function startServer() {
         env: {
           APP_ID: process.env.APP_ID,
           PRIVATE_KEY: process.env.PRIVATE_KEY,
-          WEBHOOK_SECRET: process.env.WEBHOOK_SECRET,
-        },
-      }),
+          WEBHOOK_SECRET: process.env.WEBHOOK_SECRET
+        }
+      })
     })
 
     // Middleware pour JSON
     app.use(express.json())
 
-    // Health check route (migré depuis l'ancien addHandler)
-    app.get('/healthz', (req, res) => {
+    // Health check route
+    app.get('/healthz', (_req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/plain' })
       res.end('OK')
     })
