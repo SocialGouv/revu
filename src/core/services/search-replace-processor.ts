@@ -287,10 +287,144 @@ function lineTrimmedFallbackMatch(
   return false
 }
 
+// Configuration constants for block anchor matching
+const MIDDLE_LINE_MATCH_THRESHOLD = 0.5
+const MIN_BLOCK_SIZE_FOR_ANCHOR_MATCHING = 3
+
+/**
+ * Calculates the minimum number of middle lines that must match for a valid block match.
+ *
+ * @param blockSize - The total size of the search block
+ * @returns The minimum number of middle lines that must match
+ */
+function calculateRequiredMatches(blockSize: number): number {
+  return Math.ceil((blockSize - 2) * MIDDLE_LINE_MATCH_THRESHOLD)
+}
+
+/**
+ * Counts how many middle lines match between the original and search content at a given position.
+ *
+ * @param originalLines - Array of lines from the original content
+ * @param searchLines - Array of lines from the search content
+ * @param startIndex - The starting index in the original content
+ * @returns The number of matching middle lines
+ */
+function countMiddleLineMatches(
+  originalLines: string[],
+  searchLines: string[],
+  startIndex: number
+): number {
+  let middleMatches = 0
+  const requiredMatches = calculateRequiredMatches(searchLines.length)
+
+  // Check middle lines (excluding first and last)
+  for (let j = 1; j < searchLines.length - 1; j++) {
+    const originalLine = originalLines[startIndex + j]?.trim() || ''
+    const searchLine = searchLines[j]?.trim() || ''
+
+    if (originalLine === searchLine) {
+      middleMatches++
+      // Early termination if we already have enough matches
+      if (middleMatches >= requiredMatches) {
+        break
+      }
+    }
+  }
+
+  return middleMatches
+}
+
+/**
+ * Validates that the middle lines of a potential block match meet the similarity threshold.
+ *
+ * @param originalLines - Array of lines from the original content
+ * @param searchLines - Array of lines from the search content
+ * @param startIndex - The starting index in the original content
+ * @returns True if middle lines meet the matching criteria
+ */
+function validateMiddleLines(
+  originalLines: string[],
+  searchLines: string[],
+  startIndex: number
+): boolean {
+  const middleLineCount = searchLines.length - 2
+
+  // For 3-line blocks, only first/last line matching is required
+  if (middleLineCount <= 0) {
+    return true
+  }
+
+  const middleMatches = countMiddleLineMatches(
+    originalLines,
+    searchLines,
+    startIndex
+  )
+  const matchRatio = middleMatches / middleLineCount
+
+  return matchRatio >= MIDDLE_LINE_MATCH_THRESHOLD
+}
+
+/**
+ * Checks if the anchor lines (first and last) match at a given position.
+ *
+ * @param originalLines - Array of lines from the original content
+ * @param searchLines - Array of lines from the search content
+ * @param startIndex - The starting index in the original content
+ * @returns True if both anchor lines match
+ */
+function checkAnchorLinesMatch(
+  originalLines: string[],
+  searchLines: string[],
+  startIndex: number
+): boolean {
+  const firstLineSearch = searchLines[0].trim()
+  const lastLineSearch = searchLines[searchLines.length - 1].trim()
+  const searchBlockSize = searchLines.length
+
+  // Check if first line matches
+  if (originalLines[startIndex]?.trim() !== firstLineSearch) {
+    return false
+  }
+
+  // Check if last line matches at the expected position
+  if (
+    originalLines[startIndex + searchBlockSize - 1]?.trim() !== lastLineSearch
+  ) {
+    return false
+  }
+
+  return true
+}
+
 /**
  * Attempts to find a block of text within the original content that matches the given search content,
  * using the first and last lines of the search block as anchors. Only operates on multi-line (3+ lines) blocks.
  * Returns the start and end line numbers of the match, or `false` if no match is found.
+ *
+ * This function is useful when exact line matching fails due to whitespace differences or minor content changes
+ * in the middle lines, but the first and last lines can still serve as reliable anchors.
+ *
+ * @example
+ * ```typescript
+ * const originalContent = `
+ * function example() {
+ *   const x = 1;
+ *   const y = 2;  // This line might have changed
+ *   return x + y;
+ * }`;
+ *
+ * const searchContent = `
+ * function example() {
+ *   const x = 1;
+ *   const y = 3;  // Different middle content
+ *   return x + y;
+ * }`;
+ *
+ * Will match because first line "function example() {" and last line "}" match,
+ * and at least 50% of middle lines match (in this case, "const x = 1;" and "return x + y;")
+ * const result = blockAnchorFallbackMatch(originalContent, searchContent, 0);
+ * Returns [1, 5] (line numbers of the matched block)
+ * ```
  *
  * @param originalContent - The full original text to search within.
  * @param searchContent - The multi-line block of text to search for.
@@ -304,48 +438,27 @@ function blockAnchorFallbackMatch(
 ): [number, number] | false {
   const originalLines = originalContent.split('\n')
   const searchLines = normalizeSearchLines(searchContent)
+
   // Only use this approach for blocks of 3+ lines
-  if (searchLines.length < 3) {
+  if (searchLines.length < MIN_BLOCK_SIZE_FOR_ANCHOR_MATCHING) {
     return false
   }
 
-  const firstLineSearch = searchLines[0].trim()
-  const lastLineSearch = searchLines[searchLines.length - 1].trim()
   const searchBlockSize = searchLines.length
 
   // Look for matching start and end anchors
   for (let i = startLine; i <= originalLines.length - searchBlockSize; i++) {
-    // Check if first line matches
-    if (originalLines[i]?.trim() !== firstLineSearch) {
-      continue
-    }
-    // Check if last line matches at the expected position
-    if (originalLines[i + searchBlockSize - 1]?.trim() !== lastLineSearch) {
+    // Check if anchor lines (first and last) match
+    if (!checkAnchorLinesMatch(originalLines, searchLines, i)) {
       continue
     }
 
-    // Also verify middle lines have reasonable similarity
-    // to prevent false matches with same start/end but different content
-    let middleMatches = 0
-    const requiredMatches = Math.ceil((searchBlockSize - 2) * 0.5)
-    for (let j = 1; j < searchBlockSize - 1; j++) {
-      const originalLine = originalLines[i + j]?.trim() || ''
-      const searchLine = searchLines[j]?.trim() || ''
-      if (originalLine === searchLine) {
-        middleMatches++
-        if (middleMatches >= requiredMatches) break // Early termination
-      }
+    // Verify middle lines have reasonable similarity to prevent false matches
+    if (!validateMiddleLines(originalLines, searchLines, i)) {
+      continue
     }
 
-    // Require at least 50% of middle lines to match
-    const middleLineCount = searchBlockSize - 2
-    if (middleLineCount > 0) {
-      if (middleMatches / middleLineCount < 0.5) {
-        continue
-      }
-    } // For 3-line blocks, only first/last line matching is required
-
-    // Return line numbers
+    // Return line numbers for successful match
     return [i, i + searchBlockSize - 1]
   }
 
