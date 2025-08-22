@@ -1,3 +1,10 @@
+## [1.30.3](https://github.com/SocialGouv/revu/compare/v1.30.2...v1.30.3) (2025-08-22)
+
+
+### Bug Fixes
+
+* Trying to fix express server by reordering `app.use` calls ([0af7c0f](https://github.com/SocialGouv/revu/commit/0af7c0f7e6275a6a8a9810f50a0aad44d5402df8))
+
 ## [1.30.2](https://github.com/SocialGouv/revu/compare/v1.30.1...v1.30.2) (2025-08-21)
 
 
