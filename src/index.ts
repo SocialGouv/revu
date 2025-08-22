@@ -26,6 +26,8 @@ async function startServer() {
       })
     })
 
+    // Intégrer Probot
+    app.use(probotMiddleware)
     // Middleware pour JSON
     app.use(express.json())
 
@@ -34,9 +36,6 @@ async function startServer() {
       res.writeHead(200, { 'Content-Type': 'text/plain' })
       res.end('OK')
     })
-
-    // Intégrer Probot
-    app.use(probotMiddleware)
 
     // Démarrer le serveur
     app.listen(port, host, () => {
