@@ -44,6 +44,12 @@ type ValidatedAnalysis = {
   comments: Comment[]
 }
 
+type CommentValidationResult = {
+  isValid: boolean
+  processableComment?: Comment
+  reason?: string
+}
+
 /**
  * Pure function to extract repository information from platform context
  */
@@ -164,6 +170,79 @@ async function fetchPRContext(
     deletedCount
   }
 }
+
+/**
+ * Validates a comment for diff compatibility and attempts to constrain it if needed
+ */
+function validateCommentForDiff(
+  comment: Comment,
+  diffMap: DiffFileMap,
+  prNumber: number
+): CommentValidationResult {
+  // First, validate that the file/line is in the diff
+  if (isCommentValidForDiff(comment, diffMap)) {
+    return {
+      isValid: true,
+      processableComment: comment
+    }
+  }
+
+  // Try to constrain the comment to fit within a hunk
+  const fileInfo = diffMap.get(comment.path)
+  if (fileInfo && fileInfo.hunks.length > 0) {
+    const constrainedComment = constrainCommentToHunk(comment, fileInfo.hunks)
+
+    if (
+      constrainedComment &&
+      isCommentValidForDiff(constrainedComment, diffMap)
+    ) {
+      logSystemWarning(
+        new Error(
+          `Comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} was moved to first line of first overlapping hunk: ${constrainedComment.line}`
+        ),
+        {
+          pr_number: prNumber,
+          repository: `${comment.path}:${comment.line}`
+        }
+      )
+      return {
+        isValid: true,
+        processableComment: constrainedComment
+      }
+    }
+
+    return {
+      isValid: false,
+      reason: `Cannot constrain comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} to valid hunk`
+    }
+  }
+
+  return {
+    isValid: false,
+    reason: `Comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} is not valid for current diff`
+  }
+}
+
+/**
+ * Pure function to create initial processing stats
+ */
+const createInitialStats = (): ProcessingStats => ({
+  created: 0,
+  updated: 0,
+  skipped: 0,
+  deleted: 0
+})
+
+/**
+ * Pure function to increment a specific stat type
+ */
+const incrementStat = (
+  stats: ProcessingStats,
+  type: 'created' | 'updated' | 'skipped'
+): ProcessingStats => ({
+  ...stats,
+  [type]: stats[type] + 1
+})
 
 /**
  * Handles the case where a comment existence check fails
@@ -316,87 +395,87 @@ async function handleCommentOperation(
 }
 
 /**
- * Processes all comments and returns processing statistics
+ * Processes a single line comment for a pull request.
+ *
+ * This function performs the following steps for each comment:
+ * 1. Validates the comment to ensure it targets a valid file and line in the current diff.
+ *    - If the comment is not valid, it is skipped and the statistics are updated.
+ *    - If the comment can be constrained to a valid diff hunk, it is adjusted accordingly.
+ * 2. Prepares the comment content, including extracting relevant file lines and generating a content hash.
+ * 3. Determines whether to create a new comment, update an existing one, or skip processing based on:
+ *    - The presence of an existing comment at the same location.
+ *    - Whether the comment content has changed (using the content hash).
+ *    - The existence and state of the existing comment (handles cases where the comment was deleted or cannot be verified).
+ * 4. Performs the appropriate operation (create, update, or skip) using the platform client.
+ * 5. Returns updated processing statistics reflecting the outcome of the operation.
+ *
+ * @param platformContext - The context object containing platform-specific clients and repository information.
+ * @param comment - The line comment to process.
+ * @param prContext - The pull request context, including commit SHA, diff map, and existing comments.
+ * @param prNumber - The pull request number.
+ * @param currentStats - The current processing statistics to be updated.
+ * @returns A promise resolving to the updated processing statistics after handling the comment.
+ */
+const processSingleComment = async (
+  platformContext: PlatformContext,
+  comment: Comment,
+  prContext: PRContext,
+  prNumber: number,
+  currentStats: ProcessingStats
+): Promise<ProcessingStats> => {
+  const { diffMap } = prContext
+
+  // Validate and prepare the comment for processing
+  const validationResult = validateCommentForDiff(comment, diffMap, prNumber)
+
+  if (!validationResult.isValid) {
+    console.log(
+      `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - ${validationResult.reason || 'validation failed'}`
+    )
+    return incrementStat(currentStats, 'skipped')
+  }
+
+  // Process the validated comment
+  const result = await handleCommentOperation(
+    platformContext,
+    validationResult.processableComment,
+    prContext,
+    prNumber
+  )
+
+  return incrementStat(currentStats, result)
+}
+
+/**
+ * This function iterates over each comment in the provided list and processes them one by one
+ * using the `processSingleComment` function. It maintains and updates the processing statistics
+ * throughout the iteration, aggregating the results of each individual comment processing.
+ *
+ * @param platformContext - The context object containing platform-specific clients and repository information.
+ * @param comments - An array of line comments to be processed.
+ * @param prContext - The pull request context, including commit SHA, diff map, and existing comments.
+ * @param prNumber - The pull request number.
+ * @returns A promise resolving to the final processing statistics after all comments have been handled.
  */
 async function processComments(
   platformContext: PlatformContext,
   comments: Comment[],
   prContext: PRContext,
   prNumber: number
-): Promise<Omit<ProcessingStats, 'deleted'>> {
-  const { diffMap } = prContext
-  let createdCount = 0
-  let updatedCount = 0
-  let skippedCount = 0
-
-  // Process each comment
+): Promise<ProcessingStats> {
+  const initialStats = createInitialStats()
+  let currentStats = initialStats
   for (const comment of comments) {
-    let processableComment = comment
-
-    // First, validate that the file/line is in the diff
-    if (!isCommentValidForDiff(comment, diffMap)) {
-      // Try to constrain the comment to fit within a hunk
-      const fileInfo = diffMap.get(comment.path)
-      if (fileInfo && fileInfo.hunks.length > 0) {
-        const constrainedComment = constrainCommentToHunk(
-          comment,
-          fileInfo.hunks
-        )
-        if (
-          constrainedComment &&
-          isCommentValidForDiff(constrainedComment, diffMap)
-        ) {
-          logSystemWarning(
-            new Error(
-              `Comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} was moved to first line of first overlapping hunk: ${constrainedComment.line}`
-            ),
-            {
-              pr_number: prNumber,
-              repository: `${comment.path}:${comment.line}`
-            }
-          )
-          processableComment = constrainedComment
-        } else {
-          console.log(
-            `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - cannot constrain to valid hunk`
-          )
-          skippedCount++
-          continue
-        }
-      } else {
-        console.log(
-          `Skipping comment on ${comment.path}:${comment.start_line || comment.line}-${comment.line} - not valid for current diff`
-        )
-        skippedCount++
-        continue
-      }
-    }
-
-    const result = await handleCommentOperation(
+    currentStats = await processSingleComment(
       platformContext,
-      processableComment,
+      comment,
       prContext,
-      prNumber
+      prNumber,
+      currentStats
     )
-
-    switch (result) {
-      case 'created':
-        createdCount++
-        break
-      case 'updated':
-        updatedCount++
-        break
-      case 'skipped':
-        skippedCount++
-        break
-    }
   }
 
-  return {
-    created: createdCount,
-    updated: updatedCount,
-    skipped: skippedCount
-  }
+  return currentStats
 }
 
 /**
