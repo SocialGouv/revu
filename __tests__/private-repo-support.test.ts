@@ -1,8 +1,8 @@
-import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
+import type { ExecException, ExecOptions } from 'child_process'
 import { ChildProcess } from 'child_process'
-import type { ExecOptions, ExecException } from 'child_process'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Définir les mocks avant d'importer quoi que ce soit
+// Set up mocks before importing anything else
 vi.mock('child_process', () => ({
   exec: vi.fn()
 }))
@@ -11,12 +11,12 @@ vi.mock('util', () => ({
   promisify: vi.fn().mockImplementation((fn) => fn)
 }))
 
-// Importer après avoir configuré les mocks
-import { cloneRepository } from '../src/repo-utils.ts'
+// Import after configuring mocks
 import * as childProcess from 'child_process'
+import { cloneRepository } from '../src/repo-utils.ts'
 
 /**
- * Type exact pour la fonction callback d'exec
+ * Exact type for exec callback function
  */
 type ExecCallback = (
   error: ExecException | null,
@@ -32,28 +32,27 @@ describe('Private Repository Support', () => {
     mockExec.mockReset()
 
     /**
-     * Implémentation du mock qui respecte le format de l'API Node.js
-     * en utilisant un cast nécessaire mais explicite
+     * Mock implementation that matches Node.js API format,
+     * using an explicit cast as needed
      */
     mockExec.mockImplementation(
       (
-        command: string,
+        _command: string,
         optionsOrCallback?: ExecOptions | ExecCallback,
         callback?: ExecCallback
       ) => {
-        // Gérer le cas où options est en fait le callback
+        // Handle case where options is actually the callback
         if (typeof optionsOrCallback === 'function') {
           callback = optionsOrCallback
         }
 
-        // Appeler le callback si fourni
+        // Call the callback if provided
         if (callback && typeof callback === 'function') {
           callback(null, '', '')
         }
 
-        // Retourner un objet minimal qui simule un ChildProcess
-        // Le cast est nécessaire ici car nous ne pouvons pas implémenter
-        // toutes les propriétés de ChildProcess dans ce contexte de test
+        // Return a minimal object simulating a ChildProcess
+        // The cast is necessary since we can't implement all ChildProcess properties in this test context
         return {
           stdout: { on: vi.fn(), pipe: vi.fn() },
           stderr: { on: vi.fn(), pipe: vi.fn() },
@@ -79,13 +78,13 @@ describe('Private Repository Support', () => {
         token
       })
 
-      // Verify the command includes the token in the right format
+      // Verify the command includes the token in the correct format
       expect(mockExec).toHaveBeenCalled()
       const command = mockExec.mock.calls[0][0]
       expect(command).toContain(
         `https://x-access-token:${token}@github.com/owner/repo.git`
       )
-      // Le token est présent dans l'URL car il est nécessaire pour l'authentification
+      // The token is present in the URL for authentication
       expect(command).toContain('github-token-123@')
       expect(command).toContain(`git clone`)
       expect(command).toContain(destination)
