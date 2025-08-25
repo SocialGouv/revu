@@ -82,12 +82,6 @@ export function shouldReplaceComment(
   // Extract hash from existing comment
   const existingHash = extractHashFromComment(existingComment.body)
 
-  // If no hash in existing comment, replace (backward compatibility)
-  // TODO: Remove this in one month (so on July 25th 2025)
-  if (!existingHash) {
-    return true
-  }
-
   // Replace only if hashes differ
   return existingHash !== currentContentHash
 }
