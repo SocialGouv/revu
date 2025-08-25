@@ -1,6 +1,6 @@
 import * as os from 'os'
 import path from 'path'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock des dépendances externes avec vi.hoisted() pour éviter les problèmes de hoisting
 const mockMkdir = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
@@ -134,15 +134,8 @@ describe('cloneRepository', () => {
 
 // Tests pour prepareRepository
 describe('prepareRepository', () => {
-  const createdTempDirs = new Set<string>()
-
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  afterEach(async () => {
-    // Nettoyer les répertoires temporaires
-    createdTempDirs.clear()
   })
 
   it('should create temp directory, clone repo and checkout branch', async () => {
@@ -152,9 +145,6 @@ describe('prepareRepository', () => {
 
     // Call prepareRepository
     const tempFolderPath = await prepareRepository(repositoryUrl, branch)
-
-    // Add to cleanup list
-    createdTempDirs.add(tempFolderPath)
 
     // Check that mkdir was called
     expect(mockMkdir).toHaveBeenCalledWith(tempFolderPath, { recursive: true })
