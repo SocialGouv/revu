@@ -33,7 +33,7 @@ RUN yarn install
 COPY --chown=1001:1001 . .
 
 # Create repository directory for cloning with appropriate permissions
-RUN mkdir -p /app/repos && chmod 755 /app/repos
+RUN chmod -R a-w /app && mkdir -p /app/repos && chmod 755 /app/repos
 
 # Set environment variables for server configuration
 ENV HOST=0.0.0.0
