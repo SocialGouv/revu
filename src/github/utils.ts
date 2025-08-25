@@ -128,7 +128,7 @@ export async function createGithubAppOctokit(
     { owner, repo }
   )
 
-  const installationOctokit = new Octokit({
+  return new Octokit({
     authStrategy: createAppAuth,
     auth: {
       appId,
@@ -136,6 +136,4 @@ export async function createGithubAppOctokit(
       installationId: data.id
     }
   })
-
-  return installationOctokit
 }
