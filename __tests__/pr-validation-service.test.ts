@@ -133,12 +133,18 @@ index 123..456 100644
 
     describe('Individual File Size Validation', () => {
       it('should reject PRs with very large individual file changes', async () => {
-        const largeFileDiff = `diff --git a/large-file.ts b/large-file.ts
-index 123..456 100644
---- a/large-file.ts
-+++ b/large-file.ts
-@@ -1,1000 +1,5000 @@
-${Array.from({ length: 4000 }, (_, i) => `+line ${i}`).join('\n')}`
+        const diffHeader =
+          'diff --git a/large-file.ts b/large-file.ts\n' +
+          'index 123..456 100644\n' +
+          '--- a/large-file.ts\n' +
+          '+++ b/large-file.ts\n' +
+          '@@ -1,1000 +1,5000 @@\n'
+
+        const diffLines = Array.from(
+          { length: 4000 },
+          (_, i) => '+line ' + i
+        ).join('\n')
+        const largeFileDiff = diffHeader + diffLines
 
         mockClient = createMockClient(largeFileDiff)
         const config = createValidationConfig({
