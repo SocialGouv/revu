@@ -1,3 +1,10 @@
+# [1.31.0](https://github.com/SocialGouv/revu/compare/v1.30.3...v1.31.0) (2025-08-25)
+
+
+### Features
+
+* Improve dockerfile security and add docker-compose ([ff66d1b](https://github.com/SocialGouv/revu/commit/ff66d1ba7061edeb7359d0ec4f3d3a25181b390a))
+
 ## [1.30.3](https://github.com/SocialGouv/revu/compare/v1.30.2...v1.30.3) (2025-08-22)
 
 
