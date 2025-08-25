@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  revu:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - .env
+    volumes:
+      # Mount source code for development (optional - remove for production-like testing)
+      - ./src:/app/src
+      - ./templates:/app/templates
+      # Mount repos directory to persist cloned repositories
+      - ./repos:/app/repos
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
