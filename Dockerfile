@@ -3,14 +3,12 @@ FROM node:23.11.0-slim
 
 # Create non-root user with explicit IDs
 RUN groupadd -g 1001 nonroot && \
-    useradd -u 1001 -g nonroot -s /bin/bash -m nonroot
-
-# Install git and other dependencies
-RUN apt-get update && \
+    useradd -u 1001 -g nonroot -s /bin/bash -m nonroot && \
+    apt-get update && \
     apt-get install -y \
-    git \
+    build-essential \
     curl \
-    build-essential && \
+    git && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
