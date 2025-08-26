@@ -47,9 +47,6 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
     throw new Error(`Failed to compile Handlebars template: ${error.message}`)
   }
 
-  const repoName = repositoryUrl.split('/').pop()?.replace('.git', '') || ''
-  const absolutePath = path.join(process.cwd(), repoName)
-
   // Get coding guidelines from configuration
   let codingGuidelines = ''
   try {
@@ -64,7 +61,6 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
   // Populate the template with the data
 
   return template({
-    absolute_code_path: absolutePath,
     pr_title: context?.prTitle,
     pr_body: context?.prBody?.length > 16 ? context.prBody : null,
     pr_git_diff: diff,
