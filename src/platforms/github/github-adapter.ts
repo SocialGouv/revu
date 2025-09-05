@@ -1,6 +1,6 @@
 import type { Context } from 'probot'
 import type { PlatformContext } from '../../core/models/platform-types.ts'
-import { getContextOctokit } from '../../github/context-utils.ts'
+import { getContextOctokit } from './context-utils.ts'
 import { createGitHubClient } from './github-client.ts'
 
 /**

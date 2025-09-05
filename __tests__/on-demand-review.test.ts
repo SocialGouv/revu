@@ -1,116 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
-  isReviewRequestedForBot,
   extractPRInfo,
   isPullRequestOpened
-} from '../src/github/reviewer-utils.ts'
+} from '../src/platforms/github/reviewer-utils.ts'
 
 // Mock environment variables
 vi.stubEnv('PROXY_REVIEWER_USERNAME', 'proxy-reviewer-user')
 
 describe('On-Demand Review - Real Tests', () => {
-  describe('isReviewRequestedForBot', () => {
-    it('should return true when review is requested for proxy user', () => {
-      const event = {
-        action: 'review_requested',
-        requested_reviewer: {
-          login: 'proxy-reviewer-user',
-          type: 'User'
-        },
-        pull_request: {
-          number: 123
-        },
-        repository: {
-          name: 'test-repo',
-          owner: {
-            login: 'test-owner'
-          }
-        }
-      }
-
-      expect(isReviewRequestedForBot(event, 'proxy-reviewer-user')).toBe(true)
-    })
-
-    it('should return false when review is requested for another user', () => {
-      const event = {
-        action: 'review_requested',
-        requested_reviewer: {
-          login: 'another-user',
-          type: 'User'
-        },
-        pull_request: {
-          number: 123
-        },
-        repository: {
-          name: 'test-repo',
-          owner: {
-            login: 'test-owner'
-          }
-        }
-      }
-
-      expect(isReviewRequestedForBot(event, 'proxy-reviewer-user')).toBe(false)
-    })
-
-    it('should return false when action is not "requested"', () => {
-      const event = {
-        action: 'submitted',
-        requested_reviewer: {
-          login: 'proxy-reviewer-user',
-          type: 'User'
-        },
-        pull_request: {
-          number: 123
-        },
-        repository: {
-          name: 'test-repo',
-          owner: {
-            login: 'test-owner'
-          }
-        }
-      }
-
-      expect(isReviewRequestedForBot(event, 'proxy-reviewer-user')).toBe(false)
-    })
-
-    it('should return false when requested_reviewer is undefined', () => {
-      const event = {
-        action: 'review_requested',
-        pull_request: {
-          number: 123
-        },
-        repository: {
-          name: 'test-repo',
-          owner: {
-            login: 'test-owner'
-          }
-        }
-      }
-
-      expect(isReviewRequestedForBot(event, 'proxy-reviewer-user')).toBe(false)
-    })
-
-    it('should handle edge cases with missing properties', () => {
-      const eventWithNullReviewer = {
-        action: 'review_requested',
-        requested_reviewer: null,
-        pull_request: {
-          number: 123
-        },
-        repository: {
-          name: 'test-repo',
-          owner: {
-            login: 'test-owner'
-          }
-        }
-      }
-
-      expect(
-        isReviewRequestedForBot(eventWithNullReviewer, 'proxy-reviewer-user')
-      ).toBe(false)
-    })
-  })
-
   describe('isPullRequestOpened', () => {
     it('should return true for opened action', () => {
       const event = {

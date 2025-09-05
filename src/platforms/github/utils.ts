@@ -1,6 +1,6 @@
 import { createAppAuth } from '@octokit/auth-app'
 import { Octokit } from '@octokit/rest'
-import { logSystemError } from '../utils/logger.ts'
+import { logSystemError } from '../../utils/logger.ts'
 
 /**
  * GitHub App Utilities

@@ -21,7 +21,7 @@ interface ReviewLogEntry extends BaseLogEntry {
 }
 
 interface SystemLogEntry extends BaseLogEntry {
-  event_type: 'app_started' | 'reviewer_added' | 'system_error' | 'system_warn'
+  event_type: 'app_started' | 'reviewer_added' | 'system_error' | 'system_warn' | 'system_info'
   pr_number?: number
   repository?: string
   error_message?: string
@@ -166,6 +166,17 @@ export function logSystemWarning(
       error_message: errObj.message,
       error_stack: errObj.stack,
       error_name: errObj.name,
+      ...context
+    })
+  )
+}
+
+export function logInfo(message: string, context?: { [key: string]: any }) {
+  log(
+    createLogEntry<SystemLogEntry>({
+      level: 'info',
+      event_type: 'system_info',
+      error_message: message,
       ...context
     })
   )

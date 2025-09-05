@@ -30,13 +30,6 @@ export function isPRCreatedByBot(user: {
   return user.type.toLowerCase() === 'bot'
 }
 
-/**
- * Checks if a PR is in draft status
- */
-export function isPRDraft(pullRequest: { draft?: boolean | null }): boolean {
-  return pullRequest.draft === true
-}
-
 interface GitHubEvent {
   action: string
   requested_reviewer?: {
@@ -53,17 +46,6 @@ interface GitHubEvent {
       login: string
     }
   }
-}
-
-export function isReviewRequestedForBot(
-  event: GitHubEvent,
-  botUsername: string
-): boolean {
-  return !!(
-    event.action === 'review_requested' &&
-    event.requested_reviewer &&
-    event.requested_reviewer.login === botUsername
-  )
 }
 
 /**

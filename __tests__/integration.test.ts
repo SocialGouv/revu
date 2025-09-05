@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   addBotAsReviewer,
   getBotUsername,
-  isReviewRequestedForBot,
   resetBotUsernameCache
-} from '../src/github/reviewer-utils.ts'
+} from '../src/platforms/github/reviewer-utils.ts'
+import GithubStore from '../src/platforms/github/store.ts'
 
 // Mock environment variables
 vi.stubEnv('PROXY_REVIEWER_USERNAME', 'proxy-reviewer-user')
@@ -158,94 +158,6 @@ describe('Integration Tests - Real Workflows', () => {
     })
   })
 
-  describe('Review Request Detection Workflow', () => {
-    it('should correctly detect review requests for the bot', () => {
-      const reviewRequestEvent = {
-        action: 'review_requested',
-        requested_reviewer: {
-          login: 'revu-bot[bot]',
-          type: 'Bot'
-        },
-        pull_request: {
-          number: 123
-        },
-        repository: {
-          name: 'test-repo',
-          owner: {
-            login: 'test-owner'
-          }
-        }
-      }
-
-      expect(isReviewRequestedForBot(reviewRequestEvent, 'revu-bot[bot]')).toBe(
-        true
-      )
-    })
-
-    it('should ignore review requests for other reviewers', () => {
-      const reviewRequestEvent = {
-        action: 'review_requested',
-        requested_reviewer: {
-          login: 'human-reviewer',
-          type: 'User'
-        },
-        pull_request: {
-          number: 123
-        },
-        repository: {
-          name: 'test-repo',
-          owner: {
-            login: 'test-owner'
-          }
-        }
-      }
-
-      expect(isReviewRequestedForBot(reviewRequestEvent, 'revu-bot[bot]')).toBe(
-        false
-      )
-    })
-
-    it('should handle various edge cases in review request detection', () => {
-      // Test missing requested_reviewer
-      expect(
-        isReviewRequestedForBot(
-          {
-            action: 'requested',
-            pull_request: { number: 123 },
-            repository: { name: 'test', owner: { login: 'test' } }
-          },
-          'revu-bot[bot]'
-        )
-      ).toBe(false)
-
-      // Test wrong action
-      expect(
-        isReviewRequestedForBot(
-          {
-            action: 'submitted',
-            requested_reviewer: { login: 'revu-bot[bot]', type: 'Bot' },
-            pull_request: { number: 123 },
-            repository: { name: 'test', owner: { login: 'test' } }
-          },
-          'revu-bot[bot]'
-        )
-      ).toBe(false)
-
-      // Test null requested_reviewer
-      expect(
-        isReviewRequestedForBot(
-          {
-            action: 'requested',
-            requested_reviewer: null,
-            pull_request: { number: 123 },
-            repository: { name: 'test', owner: { login: 'test' } }
-          },
-          'revu-bot[bot]'
-        )
-      ).toBe(false)
-    })
-  })
-
   describe('Error Handling Integration', () => {
     it('should handle GitHub API failures gracefully', async () => {
       const context = createIntegrationContext({ apiShouldFail: true })
@@ -371,10 +283,13 @@ describe('Integration Tests - Real Workflows', () => {
           }
         }
       }
+      context.payload = reviewRequestEvent as any
+
+
+      const githubStore = new GithubStore(context)
 
       // Step 3: System detects review request for proxy user
-      const isForProxy = isReviewRequestedForBot(
-        reviewRequestEvent,
+      const isForProxy = githubStore.isReviewRequestedForBot(
         'proxy-reviewer-user'
       )
       expect(isForProxy).toBe(true)

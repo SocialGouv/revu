@@ -1,8 +1,8 @@
 import { config } from 'dotenv'
 import express from 'express'
-import { createNodeMiddleware, createProbot } from 'probot'
 import { logSystemError } from './utils/logger.js'
-import probotApp from './webhooks.js' // Import de l'app Probot existante
+import { container } from './container.ts'
+import type { WebhookApp } from './platforms/index.ts'
 
 // Load environment variables
 config()
@@ -14,20 +14,9 @@ const host = process.env.HOST || '0.0.0.0' // Important pour Docker !
 
 async function startServer() {
   try {
-    // Créer le middleware Probot de manière async
-    const probotMiddleware = await createNodeMiddleware(probotApp, {
-      webhooksPath: '/api/github/webhooks',
-      probot: createProbot({
-        env: {
-          APP_ID: process.env.APP_ID,
-          PRIVATE_KEY: process.env.PRIVATE_KEY,
-          WEBHOOK_SECRET: process.env.WEBHOOK_SECRET
-        }
-      })
-    })
 
-    // Intégrer Probot
-    app.use(probotMiddleware)
+    const webhookApp = container.resolve<WebhookApp>('WebhookApp')
+    app.use(webhookApp.router)
     // Middleware pour JSON
     app.use(express.json())
 

@@ -5,7 +5,7 @@ import {
   getBotUsername,
   isPRCreatedByBot,
   resetBotUsernameCache
-} from '../src/github/reviewer-utils.ts'
+} from '../src/platforms/github/reviewer-utils.ts'
 
 // Mock octokit
 const mockRequestReviewers = vi.fn()

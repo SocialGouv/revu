@@ -12,11 +12,11 @@ import {
   type ValidationIssue,
   type ValidationResult
 } from '../core/services/review-service.ts'
-import { createMinimalContext } from '../github/context-builder.ts'
+import { createMinimalContext } from '../platforms/github/context-builder.ts'
 import {
   createGithubAppOctokit,
   generateInstallationToken
-} from '../github/utils.ts'
+} from '../platforms/github/utils.ts'
 import { createPlatformContextFromGitHub } from '../platforms/github/github-adapter.ts'
 import { logSystemError } from '../utils/logger.ts'
 

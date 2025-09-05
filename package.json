@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.60.0",
+    "@gitbeaker/rest": "^43.5.0",
     "@octokit/auth-app": "^8.0.0",
     "@octokit/rest": "^22.0.0",
     "axios": "^1.11.0",
@@ -30,8 +31,11 @@
     "ioredis": "^5.7.0",
     "js-yaml": "^4.1.0",
     "probot": "^14.0.0",
+    "reflect-metadata": "^0.2.2",
     "ts-deepmerge": "^7.0.3",
     "tsx": "^4.7.1",
+    "tsyringe": "^4.10.0",
+    "vitest-mock-extended": "^3.1.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
