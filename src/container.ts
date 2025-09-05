@@ -9,7 +9,7 @@ if (PROVIDER === 'github') {
   container.registerInstance<WebhookApp>('WebhookApp', await GithubWebhookApp.create())
 } else if (PROVIDER === 'gitlab') {
   // container.register<WebhookApp>('WebhookApp', { useClass: GitlabWebhookApp })
-  throw new Error('GitLab support is not yet implemented')
+  throw new Error('GitLab support is not yet implemented. Please implement GitlabWebhookApp class or set CODE_HOSTING_PROVIDER=github')
 } else {
   throw new Error(`Unsupported CODE_HOSTING_PROVIDER: ${PROVIDER}`)
 }

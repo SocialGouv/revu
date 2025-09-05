@@ -238,5 +238,8 @@ export class GithubWebhookApp implements WebhookApp {
 
     const middleware = await createNodeMiddleware(applicationFunction, { probot, webhooksPath: '/api/github/webhooks' })
     return new GithubWebhookApp(middleware)
+    } catch (error) {
+      throw new Error(`Failed to create GitHub webhook app: ${error.message}`)
+    }
   }
 }
