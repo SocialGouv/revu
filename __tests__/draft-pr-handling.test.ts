@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isPRDraft } from '../src/github/reviewer-utils.ts'
+import { isPRDraft } from '../src/platforms/github/reviewer-utils.ts'
 
 describe('Draft PR Handling', () => {
   describe('isPRDraft', () => {

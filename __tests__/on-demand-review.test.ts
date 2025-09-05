@@ -3,7 +3,7 @@ import {
   isReviewRequestedForBot,
   extractPRInfo,
   isPullRequestOpened
-} from '../src/github/reviewer-utils.ts'
+} from '../src/platforms/github/reviewer-utils.ts'
 
 // Mock environment variables
 vi.stubEnv('PROXY_REVIEWER_USERNAME', 'proxy-reviewer-user')
