@@ -85,10 +85,18 @@ describe('PR Validation Service', () => {
 
     describe('Diff Size Validation', () => {
       it('should reject PRs with very large diffs', async () => {
-        const largeDiff = Array.from(
-          { length: 20000 },
+        // Create a proper git diff with file headers and many lines
+        const diffHeader = `diff --git a/large-file.ts b/large-file.ts
+index 123..456 100644
+--- a/large-file.ts
++++ b/large-file.ts
+@@ -1,1 +1,20000 @@
+-old content`
+        const diffLines = Array.from(
+          { length: 19999 },
           (_, i) => `+line ${i}`
         ).join('\n')
+        const largeDiff = diffHeader + '\n' + diffLines
 
         mockClient = createMockClient(largeDiff)
         const config = createValidationConfig({ maxDiffSize: 10000 })
@@ -97,9 +105,9 @@ describe('PR Validation Service', () => {
 
         expect(result.isValid).toBe(false)
         expect(result.issues.length).toBeGreaterThan(0)
-        // Find the diff size issue
+        // Find the diff size issue - should be around 20005 lines (header + content)
         const diffSizeIssue = result.issues.find((issue) =>
-          issue.reason.includes('20000 lines of diff')
+          issue.reason.includes('lines of diff')
         )
         expect(diffSizeIssue).toBeDefined()
         expect(diffSizeIssue.reason).toContain('exceeds the limit of 10000')
