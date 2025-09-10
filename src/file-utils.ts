@@ -3,6 +3,8 @@ import * as path from 'path'
 import type { PlatformClient } from './core/models/platform-types.ts'
 import { getRemoteIgnoreInstance } from './ignore-utils.ts'
 
+type DiffLineType = 'addition' | 'deletion' | 'context' | 'header' | 'metadata'
+
 /**
  * Gets content of files.
  *
@@ -75,4 +77,67 @@ export async function filterIgnoredFiles(
     // Return original files if filtering fails
     return filePaths
   }
+}
+
+/**
+ * Classifies a diff line by its type
+ */
+export function classifyDiffLine(line: string): DiffLineType {
+  if (line.startsWith('diff --git')) return 'header'
+  if (line.startsWith('+') && !line.startsWith('+++')) return 'addition'
+  if (line.startsWith('-') && !line.startsWith('---')) return 'deletion'
+  if (
+    line.startsWith('@@') ||
+    line.startsWith('index ') ||
+    line.startsWith('+++') ||
+    line.startsWith('---')
+  ) {
+    return 'metadata'
+  }
+  return 'context'
+}
+
+/**
+ * Extracts filename from a git diff header line
+ */
+export function extractFileNameFromDiffHeader(line: string): string | null {
+  const match = line.match(/^diff --git a\/(.*?) b\/(.*)$/)
+  return match ? match[2] : null
+}
+
+/**
+ * Filters diff lines to only include content from reviewable files.
+ * This ensures diff content respects .revuignore patterns and matches
+ * the filtered file list used elsewhere in the review pipeline.
+ *
+ * @param diffLines - Array of diff lines
+ * @param reviewableFiles - Array of reviewable file paths (already filtered)
+ * @returns Filtered array of diff lines containing only reviewable file content
+ */
+export function filterDiffToReviewableFiles(
+  diffLines: string[],
+  reviewableFiles: string[]
+): string[] {
+  const reviewableFilesSet = new Set(reviewableFiles)
+  const filteredLines: string[] = []
+  let currentFileName = ''
+  let includeCurrentFile = false
+
+  for (const line of diffLines) {
+    const lineType = classifyDiffLine(line)
+
+    if (lineType === 'header') {
+      // Extract filename and determine if we should include this file
+      const fileName = extractFileNameFromDiffHeader(line)
+      currentFileName = fileName || ''
+      includeCurrentFile = reviewableFilesSet.has(currentFileName)
+    }
+
+    // Include line if we're processing a reviewable file
+    if (includeCurrentFile) {
+      filteredLines.push(line)
+    }
+  }
+
+  return filteredLines
 }

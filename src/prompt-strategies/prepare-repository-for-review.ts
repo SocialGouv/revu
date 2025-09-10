@@ -5,6 +5,7 @@ import type { PlatformContext } from '../core/models/platform-types.ts'
 import {
   extractModifiedFilePaths,
   filterIgnoredFiles,
+  filterDiffToReviewableFiles,
   getFilesContent
 } from '../file-utils.ts'
 
@@ -70,12 +71,21 @@ export async function prepareRepositoryForReview(
     commitSha
   )
 
+  // Filter diff content to only include reviewable files - this ensures
+  // consistency between the diff sent to Claude and the file content
+  const diffLines = diff.split('\n')
+  const filteredDiffLines = filterDiffToReviewableFiles(
+    diffLines,
+    filteredFiles
+  )
+  const filteredDiff = filteredDiffLines.join('\n')
+
   // Get content of modified files
   const modifiedFilesContent = await getFilesContent(filteredFiles, repoPath)
 
   return {
     repoPath,
-    diff,
+    diff: filteredDiff,
     modifiedFiles,
     filteredFiles,
     modifiedFilesContent,
