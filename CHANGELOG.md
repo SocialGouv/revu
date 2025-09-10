@@ -1,3 +1,10 @@
+## [1.31.2](https://github.com/SocialGouv/revu/compare/v1.31.1...v1.31.2) (2025-09-10)
+
+
+### Bug Fixes
+
+* Properly filter out diff lines that should be ignored ([af28ffc](https://github.com/SocialGouv/revu/commit/af28ffc10ee2fcab60b086720e9800013137ac9d))
+
 ## [1.31.1](https://github.com/SocialGouv/revu/compare/v1.31.0...v1.31.1) (2025-09-08)
 
 
