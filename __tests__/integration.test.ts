@@ -285,7 +285,6 @@ describe('Integration Tests - Real Workflows', () => {
       }
       context.payload = reviewRequestEvent as any
 
-
       const githubStore = new GithubStore(context)
 
       // Step 3: System detects review request for proxy user

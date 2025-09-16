@@ -14,7 +14,6 @@ const host = process.env.HOST || '0.0.0.0' // Important pour Docker !
 
 async function startServer() {
   try {
-
     const webhookApp = container.resolve<WebhookApp>('WebhookApp')
     app.use(webhookApp.router)
     // Middleware pour JSON

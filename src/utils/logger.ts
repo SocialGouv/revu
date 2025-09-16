@@ -21,7 +21,12 @@ interface ReviewLogEntry extends BaseLogEntry {
 }
 
 interface SystemLogEntry extends BaseLogEntry {
-  event_type: 'app_started' | 'reviewer_added' | 'system_error' | 'system_warn' | 'system_info'
+  event_type:
+    | 'app_started'
+    | 'reviewer_added'
+    | 'system_error'
+    | 'system_warn'
+    | 'system_info'
   pr_number?: number
   repository?: string
   error_message?: string

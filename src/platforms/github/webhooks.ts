@@ -1,15 +1,12 @@
+import type { WebhookEvents } from '@octokit/webhooks/types'
 import { config } from 'dotenv'
 import { Router } from 'express'
-import type { IncomingMessage, ServerResponse } from "node:http";
-import { injectable } from 'tsyringe'
+import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Context, createNodeMiddleware, createProbot, Probot } from 'probot'
-import {
-  logAppStarted,
-  logInfo
-} from '../../utils/logger.ts'
+import { injectable } from 'tsyringe'
+import { logAppStarted, logInfo } from '../../utils/logger.ts'
 import type { PlatformService, WebhookApp } from '../index.ts'
-import GithubStore from './store.ts';
-import type { WebhookEvents } from '@octokit/webhooks/types';
+import GithubStore from './store.ts'
 
 // Load environment variables
 config()
@@ -20,7 +17,11 @@ export class GithubWebhookApp implements WebhookApp {
   private platformService: PlatformService
 
   constructor(
-    middleware: (request: IncomingMessage, response: ServerResponse, next?: (err?: Error) => void) => boolean | void | Promise<void | boolean>,
+    middleware: (
+      request: IncomingMessage,
+      response: ServerResponse,
+      next?: (err?: Error) => void
+    ) => boolean | void | Promise<void | boolean>,
     platformService?: PlatformService
   ) {
     this.platformService = platformService
@@ -44,12 +45,15 @@ export class GithubWebhookApp implements WebhookApp {
       logAppStarted()
 
       // Listen for PR opens to add bot as reviewer
-      app.on(['pull_request.opened', 'pull_request.reopened'], async (context: Context<WebhookEvents>) => {
-        logInfo('Received pull_request.opened or pull_request.reopened event')
-        
-        const githubStore = new GithubStore(context)
-        await platformService.pullRequestOpened(githubStore)
-      })
+      app.on(
+        ['pull_request.opened', 'pull_request.reopened'],
+        async (context: Context<WebhookEvents>) => {
+          logInfo('Received pull_request.opened or pull_request.reopened event')
+
+          const githubStore = new GithubStore(context)
+          await platformService.onPullRequestOpened(githubStore)
+        }
+      )
 
       // Listen for review requests to perform on-demand analysis
       app.on(['pull_request.review_requested'], async (context) => {
@@ -59,7 +63,11 @@ export class GithubWebhookApp implements WebhookApp {
         const repo = context.repo()
         const repository = `${repo.owner}/${repo.repo}`
 
-        await platformService.reviewRequested(githubStore, prNumber, repository)
+        await platformService.onReviewRequested(
+          githubStore,
+          prNumber,
+          repository
+        )
       })
 
       // Listen for PR ready for review to automatically perform analysis
@@ -69,12 +77,19 @@ export class GithubWebhookApp implements WebhookApp {
         const prNumber = context.payload.pull_request.number
         const repo = context.repo()
         const repository = `${repo.owner}/${repo.repo}`
-        
-        await platformService.readyForReview(githubStore, prNumber, repository)
+
+        await platformService.onReadyForReview(
+          githubStore,
+          prNumber,
+          repository
+        )
       })
     }
 
-    const middleware = await createNodeMiddleware(applicationFunction, { probot, webhooksPath: '/api/github/webhooks' })
+    const middleware = await createNodeMiddleware(applicationFunction, {
+      probot,
+      webhooksPath: '/api/github/webhooks'
+    })
     return new GithubWebhookApp(middleware)
   }
 }
