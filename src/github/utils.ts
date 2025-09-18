@@ -1,6 +1,12 @@
 import { createAppAuth } from '@octokit/auth-app'
 import { Octokit } from '@octokit/rest'
+import { getPrivateKey } from '@probot/get-private-key'
+import { createPrivateKey } from 'node:crypto'
 import { logSystemError } from '../utils/logger.ts'
+
+function keyFormatHelp(): string {
+  return 'Invalid GitHub App PRIVATE_KEY. Expected a PEM key (PKCS#1 "BEGIN RSA PRIVATE KEY" or PKCS#8 "BEGIN PRIVATE KEY") with proper newlines (or \\n escapes when stored in .env). OpenSSH keys are not supported. See .env.example for formatting.'
+}
 
 /**
  * GitHub App Utilities
@@ -23,11 +29,34 @@ function fetchGitHubCredentials(): {
   privateKey: string
 } {
   const appId = process.env.APP_ID
-  const privateKey = process.env.PRIVATE_KEY
+  let privateKey: string | null = null
+
+  try {
+    privateKey = getPrivateKey({ env: process.env })
+  } catch {
+    // Normalize library validation errors into a consistent, friendly message
+    throw new Error(keyFormatHelp())
+  }
 
   if (!appId || !privateKey) {
     throw new Error(
-      'GitHub App credentials (APP_ID and PRIVATE_KEY) are required'
+      'GitHub App credentials (APP_ID and PRIVATE_KEY or PRIVATE_KEY_PATH) are required'
+    )
+  }
+
+  // Optional: Detect unsupported OpenSSH key format early
+  if (privateKey.includes('BEGIN OPENSSH PRIVATE KEY')) {
+    throw new Error(
+      'Invalid GitHub App PRIVATE_KEY: OpenSSH keys are not supported. Use a PEM key (PKCS#1 "BEGIN RSA PRIVATE KEY" or PKCS#8 "BEGIN PRIVATE KEY"). When stored in .env, ensure \\n-escaped newlines or use PRIVATE_KEY_PATH to a .pem file.'
+    )
+  }
+
+  // Deterministic validation: ensure Node/OpenSSL can parse the provided key
+  try {
+    createPrivateKey(privateKey)
+  } catch {
+    throw new Error(
+      'Invalid GitHub App PRIVATE_KEY. Expected a PEM key (PKCS#1/PKCS#8). If using .env, make sure newlines are \\n-escaped or use PRIVATE_KEY_PATH pointing to a .pem file. OpenSSH keys are not supported.'
     )
   }
 
@@ -123,17 +152,27 @@ export async function createGithubAppOctokit(
     }
   })
 
-  const { data } = await appOctokit.request(
-    'GET /repos/{owner}/{repo}/installation',
-    { owner, repo }
-  )
+  let installationId: number
+  try {
+    const resp = await appOctokit.request(
+      'GET /repos/{owner}/{repo}/installation',
+      { owner, repo }
+    )
+    installationId = resp.data.id
+  } catch (error) {
+    logSystemError(error, {
+      repository: `${owner}/${repo}`,
+      context_msg: `Failed to get installation ID for ${owner}/${repo}`
+    })
+    throw error
+  }
 
   return new Octokit({
     authStrategy: createAppAuth,
     auth: {
       appId,
       privateKey,
-      installationId: data.id
+      installationId
     }
   })
 }
