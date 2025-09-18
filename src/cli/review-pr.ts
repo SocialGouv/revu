@@ -13,7 +13,10 @@ import {
   type ValidationResult
 } from '../core/services/review-service.ts'
 import { createMinimalContext } from '../github/context-builder.ts'
-import { createGithubAppOctokit } from '../github/utils.ts'
+import {
+  createGithubAppOctokit,
+  generateInstallationToken
+} from '../github/utils.ts'
 import { createPlatformContextFromGitHub } from '../platforms/github/github-adapter.ts'
 import { logSystemError } from '../utils/logger.ts'
 import { shouldProcessBranch } from '../config-handler.ts'
@@ -296,7 +299,16 @@ async function reviewPr(
     const prDetails = await fetchPrDetails(context)
 
     // Step 4: Create platform context
-    const platformContext = await createPlatformContext(context, prDetails)
+    // Generate installation token to access private repositories (aligns with webhook flow)
+    const installationToken = await generateInstallationToken(
+      context.owner,
+      context.repo
+    )
+    const platformContext = await createPlatformContext(
+      context,
+      prDetails,
+      installationToken
+    )
     // Step 5: Perform review
     const result = await performCompleteReview(
       context.repositoryUrl,
