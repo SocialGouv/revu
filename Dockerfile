@@ -27,7 +27,7 @@ RUN chmod -R 755 .yarn && \
 USER 1001:1001
 
 # Install dependencies
-RUN yarn install --ignore-scripts
+RUN YARN_ENABLE_SCRIPTS=false yarn
 
 # Copy source code (including templates needed for PR review prompts)
 COPY --chown=root:root src/ src/
