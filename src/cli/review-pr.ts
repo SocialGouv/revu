@@ -19,6 +19,7 @@ import {
 } from '../github/utils.ts'
 import { createPlatformContextFromGitHub } from '../platforms/github/github-adapter.ts'
 import { logSystemError } from '../utils/logger.ts'
+import { shouldProcessBranch } from '../config-handler.ts'
 
 // Load environment variables
 dotenv.config()
@@ -311,23 +312,33 @@ async function reviewPr(
 
   try {
     const { owner, repo, prNumber } = parsePrUrl(prUrl)
-    // Step 1: Setup authentication
+    // Step 1: Create review context (no token needed yet)
+    const context = await createReviewContext(prNumber, { owner, repo })
+
+    // Step 2: Branch filter via .revu.yml (fail-open handled inside helper)
+    const decision = await shouldProcessBranch(context.headBranch)
+    if (!decision.allowed) {
+      console.log(
+        chalk.yellow(
+          'Branch filtered by .revu.yml (branches) — skipping review.'
+        )
+      )
+      return
+    }
+
+    // Step 3: Setup authentication
     const authResult = await setupAuthentication(owner, repo)
 
-    // Step 2: Create review context
-    const context = await createReviewContext(prNumber, authResult)
-
-    // Step 3: Fetch PR details
+    // Step 4: Fetch PR details
     const prDetails = await fetchPrDetails(context)
 
-    // Step 4: Create platform context
+    // Step 5: Create platform context
     const platformContext = await createPlatformContext(
       context,
       prDetails,
       authResult.token
     )
-
-    // Step 5: Perform review
+    // Step 6: Perform review
     const result = await performCompleteReview(
       context.repositoryUrl,
       context.prNumber,
@@ -341,7 +352,7 @@ async function reviewPr(
       }
     )
 
-    // Step 6: Handle results
+    // Step 7: Handle results
     if (result.success) {
       displaySuccessResults(result, submit)
     } else {

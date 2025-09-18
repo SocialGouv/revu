@@ -392,6 +392,31 @@ validation:
   # ... more configurable options
 ```
 
+## Branch Filter Configuration
+
+Revu can skip reviewing PRs based on the head branch name, using glob-like patterns or explicit regex. Configure it in your .revu.yml:
+
+```yaml
+branches:
+  mode: allow # or deny (default-allow)
+  allow:
+    - main
+    - release/*
+    - regex:/^hotfix\/\d+$/i
+  deny:
+    - wip/*
+    - experimental/**
+    - regex:/^throwaway\//
+```
+
+Rules:
+- Deny takes precedence over allow.
+- mode: allow → only branches matching allow are processed (unless denied).
+- mode: deny (or missing) → all branches processed except those in deny.
+- Branch names are normalized (refs/heads/ prefix removed) before matching.
+
+The filter is enforced both in the GitHub App webhooks and the CLI. See docs/branch-filter.md for full details.
+
 ## File Filtering with .revuignore
 
 Revu supports intelligent file filtering to exclude irrelevant files from code review analysis, improving both performance and review quality. This is accomplished through `.revuignore` files that work similarly to `.gitignore` files.
