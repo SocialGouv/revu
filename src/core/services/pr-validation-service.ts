@@ -1,5 +1,8 @@
 import {
+  classifyDiffLine,
+  extractFileNameFromDiffHeader,
   extractModifiedFilePaths,
+  filterDiffToReviewableFiles,
   filterIgnoredFiles
 } from '../../file-utils.ts'
 import { logSystemError } from '../../utils/logger.ts'
@@ -66,34 +69,6 @@ interface FileMetrics {
 interface DiffLineContext {
   currentFileName: string
   currentMetrics: Omit<FileMetrics, 'fileName'>
-}
-
-type DiffLineType = 'addition' | 'deletion' | 'context' | 'header' | 'metadata'
-
-/**
- * Extracts filename from a git diff header line
- */
-function extractFileNameFromDiffHeader(line: string): string | null {
-  const match = line.match(/^diff --git a\/(.*?) b\/(.*)$/)
-  return match ? match[2] : null
-}
-
-/**
- * Classifies a diff line by its type
- */
-function classifyDiffLine(line: string): DiffLineType {
-  if (line.startsWith('diff --git')) return 'header'
-  if (line.startsWith('+') && !line.startsWith('+++')) return 'addition'
-  if (line.startsWith('-') && !line.startsWith('---')) return 'deletion'
-  if (
-    line.startsWith('@@') ||
-    line.startsWith('index ') ||
-    line.startsWith('+++') ||
-    line.startsWith('---')
-  ) {
-    return 'metadata'
-  }
-  return 'context'
 }
 
 /**
@@ -389,12 +364,20 @@ export async function validatePR(
       client,
       commitSha
     )
-    const diffLines = diff.split('\n')
-    const diffSize = diffLines.length
 
-    // Analyze diff content
-    const diffAnalysis = analyzeDiff(
+    const diffLines = diff.split('\n')
+
+    // Filter diff lines to only include reviewable files - this ensures
+    // diff size calculation respects .revuignore patterns
+    const reviewableDiffLines = filterDiffToReviewableFiles(
       diffLines,
+      reviewableFiles
+    )
+    const diffSize = reviewableDiffLines.length
+
+    // Analyze diff content using the filtered diff lines
+    const diffAnalysis = analyzeDiff(
+      reviewableDiffLines,
       reviewableFiles,
       config.maxIndividualFileSize
     )

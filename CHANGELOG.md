@@ -1,3 +1,17 @@
+## [1.31.2](https://github.com/SocialGouv/revu/compare/v1.31.1...v1.31.2) (2025-09-10)
+
+
+### Bug Fixes
+
+* Properly filter out diff lines that should be ignored ([af28ffc](https://github.com/SocialGouv/revu/commit/af28ffc10ee2fcab60b086720e9800013137ac9d))
+
+## [1.31.1](https://github.com/SocialGouv/revu/compare/v1.31.0...v1.31.1) (2025-09-08)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @anthropic-ai/sdk to ^0.61.0 ([f6b6232](https://github.com/SocialGouv/revu/commit/f6b62326adabaca2ac9928da0d188070bafa8184))
+
 # [1.31.0](https://github.com/SocialGouv/revu/compare/v1.30.3...v1.31.0) (2025-08-25)
 
 
