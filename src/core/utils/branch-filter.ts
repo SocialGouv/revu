@@ -64,9 +64,12 @@ function splitPatterns(patterns?: string[]) {
 
     // Malformed regex literal (starts with regex:/ but missing closing /)
     if (raw.toLowerCase().startsWith('regex:/')) {
-      logger.logSystemWarning(new Error('Invalid regex literal in branches filter'), {
-        context_msg: `pattern="${raw}"`
-      })
+      logger.logSystemWarning(
+        new Error('Invalid regex literal in branches filter'),
+        {
+          context_msg: `pattern="${raw}"`
+        }
+      )
       continue
     }
 
