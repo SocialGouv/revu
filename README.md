@@ -241,7 +241,10 @@ To review private repositories, you need to set up GitHub App (Revu) authenticat
 
 1. Set the following environment variables:
    - `APP_ID`: Your GitHub App ID
-   - `PRIVATE_KEY`: Revu's private key (including BEGIN/END markers)
+   - Choose ONE option for the private key:
+     - `PRIVATE_KEY_PATH`: Path to the downloaded `.pem` file
+     - `PRIVATE_KEY`: Paste the key value (use `\n` for line breaks) or paste a base64‑encoded key (auto‑detected)
+   - Note: Use the `.pem` private key downloaded from your GitHub App.
 
 2. Make sure your Revu is installed on the repositories you want to review
 
@@ -298,8 +301,9 @@ Requirements:
 | `ANTHROPIC_API_KEY`       | string | Your Anthropic API key for accessing Claude API                            |
 | `ANTHROPIC_MODEL`         | string | (Optional) Anthropic model to use (default: claude-sonnet-4-20250514)      |
 | `APP_ID`                  | number | GitHub App ID obtained after registering the app                           |
-| `PRIVATE_KEY`             | string | RSA private key generated for the GitHub App (including BEGIN/END markers) |
+| `PRIVATE_KEY`             | string | Private key value (use `\n` for line breaks when in `.env`) or a base64‑encoded key (auto‑detected). |
 | `WEBHOOK_SECRET`          | string | Secret string used to verify GitHub webhook payloads                       |
+| `PRIVATE_KEY_PATH`        | string | Path to the downloaded `.pem` private key file                             |
 | `WEBHOOK_PROXY_URL`       | string | (Optional) Smee.io URL for local development webhook forwarding            |
 | `REPOSITORY_FOLDER`       | string | Absolute path where repositories will be cloned                            |
 | `PROXY_REVIEWER_USERNAME` | string | Username of the proxy user account for manual review requests              |
