@@ -5,6 +5,7 @@ import { performCompleteReview } from './core/services/review-service.ts'
 import {
   addBotAsReviewer,
   getProxyReviewerUsername,
+  isAutomatedSender,
   isPRCreatedByBot,
   isPRDraft,
   isReviewRequestedForBot
@@ -63,6 +64,10 @@ export default async (app: Probot) => {
     // Cast payload to a more flexible type for the review request check
     const reviewPayload = context.payload as {
       action: string
+      sender: {
+        login: string
+        type: string
+      }
       requested_reviewer?: {
         login: string
         type: string
@@ -107,7 +112,12 @@ export default async (app: Probot) => {
       return
     }
 
-    await handlePRReview(context, reviewPayload, 'on-demand')
+    // Determine review type based on sender
+    const reviewType = isAutomatedSender(reviewPayload.sender, proxyUsername)
+      ? 'automatic'
+      : 'on-demand'
+
+    await handlePRReview(context, reviewPayload, reviewType)
   })
 
   // Listen for PR ready for review to automatically perform analysis
