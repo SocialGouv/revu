@@ -15,7 +15,7 @@ import {
 import { createMinimalContext } from '../github/context-builder.ts'
 import {
   createGithubAppOctokit,
-  generateInstallationToken
+  generateOptionalInstallationToken
 } from '../github/utils.ts'
 import { createPlatformContextFromGitHub } from '../platforms/github/github-adapter.ts'
 import { logSystemError } from '../utils/logger.ts'
@@ -65,6 +65,7 @@ function parsePrUrl(url: string): {
 
   return { owner, repo, prNumber }
 }
+
 /**
  * Create review context with all necessary GitHub data
  * @param prUrl GitHub PR URL
@@ -300,7 +301,7 @@ async function reviewPr(
 
     // Step 4: Create platform context
     // Generate installation token to access private repositories (aligns with webhook flow)
-    const installationToken = await generateInstallationToken(
+    const installationToken = await generateOptionalInstallationToken(
       context.owner,
       context.repo
     )

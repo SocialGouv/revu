@@ -103,6 +103,31 @@ export async function generateInstallationToken(
 }
 
 /**
+ * Generates an installation token for a repository, or returns undefined if generation fails
+ * @param owner Repository owner
+ * @param repo Repository name
+ * @returns Installation token or undefined
+ */
+export async function generateOptionalInstallationToken(
+  owner: string,
+  repo: string
+): Promise<string | undefined> {
+  console.log(chalk.gray('⚡ Setting up authentication...'))
+
+  let token: string | undefined
+  try {
+    token = await generateInstallationToken(owner, repo)
+  } catch (error) {
+    console.warn(
+      chalk.yellow('⚠ Failed to generate installation token:'),
+      error
+    )
+    // Continue without token if generation fails
+  }
+  return token
+}
+
+/**
  * Creates an Octokit instance with GitHub App installation authentication
  * @param owner Repository owner
  * @param repo Repository name
