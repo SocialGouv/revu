@@ -50,9 +50,19 @@
     "globals": "^16.0.0",
     "husky": "^9.1.7",
     "knip": "^5.61.2",
+    "lint-staged": "^16.1.6",
     "prettier": "^3.5.1",
     "typescript": "^5.9.2",
     "vitest": "^3.2.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,yaml,yml,md}": [
+      "prettier --write"
+    ]
   },
   "packageManager": "yarn@4.10.0"
 }
