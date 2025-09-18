@@ -30,7 +30,19 @@ interface SystemLogEntry extends BaseLogEntry {
   error_name?: string
 }
 
-function createLogEntry<T extends ReviewLogEntry | SystemLogEntry>(
+interface WebhookLogEntry extends BaseLogEntry {
+  event_type: 'webhook_received'
+  github_event: string
+  action?: string
+  pr_number?: number
+  repository?: string
+  sender_login?: string
+  sender_type?: string
+  payload_size?: number
+  is_processed: boolean
+}
+
+function createLogEntry<T extends ReviewLogEntry | SystemLogEntry | WebhookLogEntry>(
   partial: Omit<T, 'timestamp' | 'service'>
 ): T {
   const entry = {
@@ -42,7 +54,7 @@ function createLogEntry<T extends ReviewLogEntry | SystemLogEntry>(
   return entry as T
 }
 
-function log(entry: ReviewLogEntry | SystemLogEntry) {
+function log(entry: ReviewLogEntry | SystemLogEntry | WebhookLogEntry) {
   console.log(JSON.stringify(entry))
 }
 
@@ -170,6 +182,36 @@ export function logSystemWarning(
       error_stack: errObj.stack,
       error_name: errObj.name,
       ...context
+    })
+  )
+}
+
+export function logWebhookReceived(
+  githubEvent: string,
+  payload: any,
+  isProcessed: boolean = false
+) {
+  // Extract common payload information safely
+  const action = payload?.action
+  const prNumber = payload?.pull_request?.number
+  const repository = payload?.repository ? 
+    `${payload.repository.owner?.login}/${payload.repository.name}` : undefined
+  const senderLogin = payload?.sender?.login
+  const senderType = payload?.sender?.type
+  const payloadSize = JSON.stringify(payload).length
+
+  log(
+    createLogEntry<WebhookLogEntry>({
+      level: 'info',
+      event_type: 'webhook_received',
+      github_event: githubEvent,
+      action,
+      pr_number: prNumber,
+      repository,
+      sender_login: senderLogin,
+      sender_type: senderType,
+      payload_size: payloadSize,
+      is_processed: isProcessed
     })
   )
 }
