@@ -13,7 +13,8 @@ import { createPlatformContextFromGitHub } from './platforms/github/github-adapt
 import {
   logAppStarted,
   logReviewerAdded,
-  logSystemError
+  logSystemError,
+  logWebhookReceived
 } from './utils/logger.ts'
 
 // Load environment variables
@@ -21,6 +22,11 @@ config()
 
 export default async (app: Probot) => {
   logAppStarted()
+
+  // Log all GitHub webhook events for monitoring and debugging
+  app.onAny(async (context) => {
+    logWebhookReceived(context.name, context.payload)
+  })
 
   // Listen for PR opens to add bot as reviewer
   app.on(['pull_request.opened'], async (context) => {
