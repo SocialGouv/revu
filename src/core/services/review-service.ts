@@ -293,7 +293,14 @@ export const performCompleteReview = async (
   } catch (error) {
     const errorMessage = error.message || String(error)
 
-    logReviewFailed(prNumber, repository, reviewType, errorMessage)
+    // Parse HTTP status code if present in format "400 {JSON}"
+    const statusMatch = errorMessage.match(/^(\d{3})\s+(.+)$/)
+    if (statusMatch) {
+      const [, statusCode, jsonError] = statusMatch
+      logReviewFailed(prNumber, repository, reviewType, jsonError, parseInt(statusCode))
+    } else {
+      logReviewFailed(prNumber, repository, reviewType, errorMessage)
+    }
 
     // Try to post error comment if submitting
     if (options.submitComments) {

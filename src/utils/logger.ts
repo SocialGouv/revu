@@ -18,6 +18,7 @@ interface ReviewLogEntry extends BaseLogEntry {
     skipped: number
   }
   error_message?: string
+  http_status_code?: number
 }
 
 interface SystemLogEntry extends BaseLogEntry {
@@ -100,7 +101,8 @@ export function logReviewFailed(
   prNumber: number,
   repository: string,
   reviewType: 'on-demand' | 'automatic',
-  error: string
+  error: string,
+  httpStatusCode?: number
 ) {
   log(
     createLogEntry<ReviewLogEntry>({
@@ -109,7 +111,8 @@ export function logReviewFailed(
       pr_number: prNumber,
       repository,
       review_type: reviewType,
-      error_message: error
+      error_message: error,
+      ...(httpStatusCode && { http_status_code: httpStatusCode })
     })
   )
 }
