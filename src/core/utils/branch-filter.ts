@@ -2,9 +2,14 @@ import picomatch from 'picomatch'
 import * as logger from '../../utils/logger.ts'
 
 export interface BranchFilterConfig {
-  mode?: 'allow' | 'deny'
-  allow?: string[]
-  deny?: string[]
+  /**
+   * Ordered list of patterns. Last matching pattern wins.
+   * Supports:
+   * - Globs (picomatch semantics): *, **, ?
+   * - Regex literals: regex:/pattern/flags
+   * - Negation: prefix '!' to deny on match (e.g., '!wip/**' or '!regex:/^foo/')
+   */
+  patterns?: string[]
 }
 
 /**
@@ -50,73 +55,64 @@ function parseRegexLiteral(input: string): RegexDescriptor | null {
   return { pattern, flags }
 }
 
-function splitPatterns(patterns?: string[]) {
-  const globs: string[] = []
-  const regexes: RegexDescriptor[] = []
-  if (!patterns) return { globs, regexes }
+/**
+ * Evaluate ordered patterns with last-match-wins semantics.
+ * - '!' prefix negates (deny on match)
+ * - regex:/.../flags supported (also with '!' negation).
+ * - If no pattern matches, default allow (fail-open).
+ */
+function evaluatePatterns(patterns: string[], value: string): boolean {
+  let decision: boolean | undefined
 
-  for (const raw of patterns) {
-    const desc = parseRegexLiteral(raw)
-    if (desc) {
-      regexes.push(desc)
-      continue
-    }
-
-    // Malformed regex literal (starts with regex:/ but missing closing /)
-    if (raw.toLowerCase().startsWith('regex:/')) {
-      logger.logSystemWarning(
-        new Error('Invalid regex literal in branches filter'),
-        {
-          context_msg: `pattern="${raw}"`
-        }
-      )
-      continue
-    }
-
-    // Disallow negated glob patterns for predictability (not documented)
+  for (let raw of patterns) {
+    let neg = false
     if (raw.startsWith('!')) {
-      logger.logSystemWarning(
-        new Error('Unsupported negated glob pattern in branches filter'),
-        { context_msg: `Pattern "${raw}" is ignored` }
-      )
+      neg = true
+      raw = raw.slice(1)
+    }
+
+    if (raw.toLowerCase().startsWith('regex:/')) {
+      const desc = parseRegexLiteral(raw)
+      if (!desc) {
+        logger.logSystemWarning(
+          new Error('Invalid regex literal in branches filter'),
+          {
+            context_msg: `pattern="${raw}"`
+          }
+        )
+        continue
+      }
+      try {
+        const re = new RegExp(desc.pattern, desc.flags)
+        if (re.test(value)) decision = !neg
+      } catch {
+        logger.logSystemWarning(new Error('Invalid regex in branches filter'), {
+          context_msg: `pattern="${desc.pattern}" flags="${desc.flags ?? ''}"`
+        })
+      }
       continue
     }
 
-    globs.push(raw)
-  }
-
-  return { globs, regexes }
-}
-
-function regexMatches(regexes: RegexDescriptor[], value: string): boolean {
-  for (const r of regexes) {
+    // Glob (picomatch)
     try {
-      const re = new RegExp(r.pattern, r.flags)
-      if (re.test(value)) return true
+      // Pre-validate glob for common syntax issues (e.g., unbalanced brackets)
+      picomatch.makeRe(raw, { strictBrackets: true })
     } catch {
-      // If regex cannot compile, treat as non-match but warn for visibility
-      logger.logSystemWarning(new Error('Invalid regex in branches filter'), {
-        context_msg: `pattern="${r.pattern}" flags="${r.flags ?? ''}"`
+      logger.logSystemWarning(new Error('Invalid glob in branches filter'), {
+        context_msg: `pattern="${raw}"`
       })
+      continue
+    }
+    if (picomatch.isMatch(value, raw)) {
+      decision = !neg
     }
   }
-  return false
+
+  // Fail-open if no match
+  return decision ?? true
 }
 
-function globMatches(globs: string[], value: string): boolean {
-  if (globs.length === 0) return false
-  for (const g of globs) {
-    // Use picomatch so '*' does not cross '/', while '**' spans segments
-    if (picomatch.isMatch(value, g)) return true
-  }
-  return false
-}
-
-function matchesAny(patterns: string[] | undefined, value: string): boolean {
-  if (!patterns || patterns.length === 0) return false
-  const { globs, regexes } = splitPatterns(patterns)
-  return globMatches(globs, value) || regexMatches(regexes, value)
-}
+/* Legacy helpers removed under patterns-only model */
 
 /**
  * Evaluate branch allowance based on BranchFilterConfig.
@@ -129,18 +125,9 @@ export function isBranchAllowed(
   branch: string,
   cfg?: BranchFilterConfig
 ): boolean {
-  if (!cfg) return true
+  // Fail-open if no config or no patterns
+  if (!cfg || !cfg.patterns || cfg.patterns.length === 0) return true
 
   const b = normalizeBranch(branch)
-
-  if (matchesAny(cfg.deny, b)) {
-    return false
-  }
-
-  if (cfg.mode === 'allow') {
-    return matchesAny(cfg.allow, b)
-  }
-
-  // default mode: deny-list (allow unless explicitly denied)
-  return true
+  return evaluatePatterns(cfg.patterns, b)
 }

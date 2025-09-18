@@ -6,114 +6,89 @@ import {
 } from '../src/core/utils/branch-filter.ts'
 import * as logger from '../src/utils/logger.ts'
 
-describe('branch-filter', () => {
+describe('branch-filter (patterns only, last match wins)', () => {
   describe('normalizeBranch', () => {
-    it('should remove refs/heads/ prefix', () => {
+    it('removes refs/heads/ prefix', () => {
       expect(normalizeBranch('refs/heads/feature/foo')).toBe('feature/foo')
     })
 
-    it('should return branch unchanged if no prefix', () => {
+    it('returns branch unchanged if no prefix', () => {
       expect(normalizeBranch('main')).toBe('main')
       expect(normalizeBranch('release/1.2.3')).toBe('release/1.2.3')
     })
   })
 
-  describe('isBranchAllowed - default (no config)', () => {
-    it('should allow any branch when config is undefined', () => {
+  describe('default behavior', () => {
+    it('allows any branch when cfg is undefined', () => {
       expect(isBranchAllowed('main', undefined)).toBe(true)
       expect(isBranchAllowed('feature/x', undefined)).toBe(true)
     })
+
+    it('allows any branch when patterns are missing or empty', () => {
+      const emptyA: BranchFilterConfig = {}
+      const emptyB: BranchFilterConfig = { patterns: [] }
+      expect(isBranchAllowed('main', emptyA)).toBe(true)
+      expect(isBranchAllowed('feature/x', emptyB)).toBe(true)
+    })
   })
 
-  describe('isBranchAllowed - mode: allow', () => {
-    it('should allow branches that match an allow glob pattern', () => {
+  describe('baseline: default-allow', () => {
+    it('denies targeted branches via negation', () => {
       const cfg: BranchFilterConfig = {
-        mode: 'allow',
-        allow: ['main', 'release/*']
+        patterns: ['**', '!wip/**', '!regex:/^throwaway\\//']
+      }
+      expect(isBranchAllowed('main', cfg)).toBe(true)
+      expect(isBranchAllowed('wip/foo', cfg)).toBe(false)
+      expect(isBranchAllowed('throwaway/tmp', cfg)).toBe(false)
+      expect(isBranchAllowed('feature/bar', cfg)).toBe(true)
+    })
+  })
+
+  describe('baseline: default-deny (allow-list)', () => {
+    it('allows only explicitly allowed branches', () => {
+      const cfg: BranchFilterConfig = {
+        patterns: ['!**', 'main', 'release/*', 'regex:/^hotfix\\/\\d+$/i']
       }
       expect(isBranchAllowed('main', cfg)).toBe(true)
       expect(isBranchAllowed('release/1.2.3', cfg)).toBe(true)
-    })
-
-    it('should deny branches that do not match any allow pattern', () => {
-      const cfg: BranchFilterConfig = {
-        mode: 'allow',
-        allow: ['main', 'release/*']
-      }
-      expect(isBranchAllowed('feature/foo', cfg)).toBe(false)
-      expect(isBranchAllowed('hotfix/123', cfg)).toBe(false)
-    })
-
-    it('should support allow regex patterns with regex:/.../ syntax', () => {
-      const cfg: BranchFilterConfig = {
-        mode: 'allow',
-        allow: ['regex:/^hotfix\\/\\d+$/i']
-      }
       expect(isBranchAllowed('hotfix/123', cfg)).toBe(true)
-      expect(isBranchAllowed('HotFix/456', cfg)).toBe(true) // case-insensitive
+      expect(isBranchAllowed('HotFix/456', cfg)).toBe(true)
+      expect(isBranchAllowed('feature/foo', cfg)).toBe(false)
       expect(isBranchAllowed('hotfix/x', cfg)).toBe(false)
     })
   })
 
-  describe('isBranchAllowed - mode: deny (default-allow)', () => {
-    it('should deny branches that match a deny glob pattern', () => {
+  describe('last match wins', () => {
+    it('applies the later deny over earlier allow', () => {
       const cfg: BranchFilterConfig = {
-        mode: 'deny',
-        deny: ['wip/*', 'experimental/**']
-      }
-      expect(isBranchAllowed('wip/foo', cfg)).toBe(false)
-      expect(isBranchAllowed('experimental/a/b', cfg)).toBe(false)
-    })
-
-    it('should allow branches that do not match any deny pattern', () => {
-      const cfg: BranchFilterConfig = { mode: 'deny', deny: ['wip/*'] }
-      expect(isBranchAllowed('main', cfg)).toBe(true)
-      expect(isBranchAllowed('feature/bar', cfg)).toBe(true)
-    })
-
-    it('should support deny regex patterns with regex:/.../ syntax', () => {
-      const cfg: BranchFilterConfig = {
-        mode: 'deny',
-        deny: ['regex:/^throwaway\\//']
-      }
-      expect(isBranchAllowed('throwaway/test', cfg)).toBe(false)
-      expect(isBranchAllowed('feature/throwaway', cfg)).toBe(true)
-    })
-  })
-
-  describe('deny precedence', () => {
-    it('should deny when both allow and deny match (deny wins)', () => {
-      const cfg: BranchFilterConfig = {
-        mode: 'allow',
-        allow: ['release/**'],
-        deny: ['release/bad/*']
+        patterns: ['release/**', '!release/bad/*']
       }
       expect(isBranchAllowed('release/1.2.3', cfg)).toBe(true)
       expect(isBranchAllowed('release/bad/1', cfg)).toBe(false)
     })
+
+    it('applies later allow over earlier deny', () => {
+      const cfg: BranchFilterConfig = {
+        patterns: ['!**', 'release/**']
+      }
+      expect(isBranchAllowed('release/1.2.3', cfg)).toBe(true)
+      expect(isBranchAllowed('feature/foo', cfg)).toBe(false)
+    })
   })
 
   describe('glob semantics via picomatch', () => {
-    it('should treat * as single path-segment wildcard and ** as multi-segment', () => {
-      // * matches one segment after the slash
-      const allowSingle: BranchFilterConfig = {
-        mode: 'allow',
-        allow: ['release/*']
-      }
-      expect(isBranchAllowed('release/1.2', allowSingle)).toBe(true)
-      expect(isBranchAllowed('release/major/1', allowSingle)).toBe(false)
+    it('* matches a single segment; ** matches across segments', () => {
+      const single: BranchFilterConfig = { patterns: ['!**', 'release/*'] }
+      expect(isBranchAllowed('release/1.2', single)).toBe(true)
+      expect(isBranchAllowed('release/major/1', single)).toBe(false)
 
-      // ** matches across segments
-      const allowMulti: BranchFilterConfig = {
-        mode: 'allow',
-        allow: ['release/**']
-      }
-      expect(isBranchAllowed('release/1.2', allowMulti)).toBe(true)
-      expect(isBranchAllowed('release/major/1', allowMulti)).toBe(true)
+      const multi: BranchFilterConfig = { patterns: ['!**', 'release/**'] }
+      expect(isBranchAllowed('release/1.2', multi)).toBe(true)
+      expect(isBranchAllowed('release/major/1', multi)).toBe(true)
     })
 
-    it('should support ? wildcard', () => {
-      const cfg: BranchFilterConfig = { mode: 'allow', allow: ['hot?ix/*'] }
+    it('? matches a single character', () => {
+      const cfg: BranchFilterConfig = { patterns: ['!**', 'hot?ix/*'] }
       expect(isBranchAllowed('hotfix/1', cfg)).toBe(true)
       expect(isBranchAllowed('hotxix/2', cfg)).toBe(true)
       expect(isBranchAllowed('hotfixx/3', cfg)).toBe(false)
@@ -121,8 +96,8 @@ describe('branch-filter', () => {
   })
 
   describe('refs/heads prefix handling', () => {
-    it('should accept branches with refs/heads/ prefix', () => {
-      const cfg: BranchFilterConfig = { mode: 'allow', allow: ['main'] }
+    it('accepts branches with refs/heads/ prefix', () => {
+      const cfg: BranchFilterConfig = { patterns: ['!**', 'main'] }
       expect(isBranchAllowed('refs/heads/main', cfg)).toBe(true)
     })
   })
@@ -130,17 +105,17 @@ describe('branch-filter', () => {
   describe('warning behavior', () => {
     it('logs a warning and ignores malformed regex pattern', () => {
       const spy = vi.spyOn(logger, 'logSystemWarning')
-      const cfg: BranchFilterConfig = { mode: 'allow', allow: ['regex:/['] }
-      expect(isBranchAllowed('main', cfg)).toBe(false)
+      const cfg: BranchFilterConfig = { patterns: ['!**', 'regex:/['] }
+      expect(isBranchAllowed('main', cfg)).toBe(false) // no allow matched; still default-deny due to '!**'
       expect(spy).toHaveBeenCalledOnce()
       spy.mockRestore()
     })
 
-    it('logs a warning and ignores unsupported negated glob pattern', () => {
+    it('logs a warning and ignores invalid glob pattern', () => {
       const spy = vi.spyOn(logger, 'logSystemWarning')
-      const cfg: BranchFilterConfig = { mode: 'allow', allow: ['!main'] }
+      const cfg: BranchFilterConfig = { patterns: ['!**', '[invalid'] }
       expect(isBranchAllowed('main', cfg)).toBe(false)
-      expect(spy).toHaveBeenCalledOnce()
+      expect(spy).toHaveBeenCalled()
       spy.mockRestore()
     })
   })

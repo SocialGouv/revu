@@ -394,25 +394,23 @@ validation:
 
 ## Branch Filter Configuration
 
-Revu can skip reviewing PRs based on the head branch name, using glob-like patterns or explicit regex. Configure it in your .revu.yml:
+Revu can skip reviewing PRs based on the head branch name, using an ordered patterns list with last-match-wins semantics. Configure it in your `.revu.yml`:
 
 ```yaml
 branches:
-  mode: allow # or deny (default-allow)
-  allow:
-    - main
-    - release/*
-    - regex:/^hotfix\/\d+$/i
-  deny:
-    - wip/*
-    - experimental/**
-    - regex:/^throwaway\//
+  patterns:
+    - "!**"                 # default-deny baseline
+    - "main"                # allowed branches
+    - "release/*"
+    - "regex:/^hotfix\/\d+$/i"
 ```
 
 Rules:
-- Deny takes precedence over allow.
-- mode: allow → only branches matching allow are processed (unless denied).
-- mode: deny (or missing) → all branches processed except those in deny.
+- Ordered list; the last matching pattern decides the outcome.
+- Negation: prefix with "!" to deny on match (e.g., "!wip/**" or "!regex:/^throwaway/").
+- Baselines:
+  - Default-allow: start with "**" and add "!deny" entries.
+  - Default-deny: start with "!**" and add specific allowed entries.
 - Branch names are normalized (refs/heads/ prefix removed) before matching.
 
 The filter is enforced both in the GitHub App webhooks and the CLI. See docs/branch-filter.md for full details.

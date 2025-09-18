@@ -12,25 +12,25 @@ Key properties:
   - CLI (review-pr): before analysis (prints a single-line notice, exits 0)
 - Fail-open: If the configuration cannot be read or contains errors, Revu proceeds with the review
 
-## YAML schema
+## YAML schema (patterns-only, last-match-wins)
 
 ```yaml
 branches:
-  mode: allow | deny       # optional; default is deny (allow all unless denied)
-  allow:                   # optional; list of patterns
-    - main
-    - release/*
-    - regex:/^hotfix\/\d+$/i
-  deny:                    # optional; list of patterns
-    - wip/*
-    - experimental/**
-    - regex:/^throwaway\//
+  patterns:
+    - "**"                 # baseline: default-allow (or use "!**" for default-deny)
+    - "!wip/**"            # deny examples
+    - "!experimental/**"
+    - "!regex:/^throwaway\//"
+    - "release/**"         # allow examples
+    - "regex:/^hotfix\/\d+$/i"
 ```
 
 Behavior rules:
-- Deny takes precedence. If any deny pattern matches, the branch is blocked.
-- mode: allow → default-deny; only branches matching at least one allow pattern are processed (unless denied).
-- mode: deny (or missing) → default-allow; all branches are processed except those matching deny.
+- Ordered list; the last matching pattern decides the outcome.
+- Negation: prefix with "!" to deny on match (e.g., "!wip/**" or "!regex:/^foo/").
+- Baselines:
+  - Default-allow: start with "**" and add "!deny" entries.
+  - Default-deny: start with "!**" and add specific allowed entries.
 - Branch names are normalized (refs/heads/ prefix is removed) before matching.
 
 ## Pattern syntax
@@ -52,40 +52,37 @@ Two pattern types are supported. You can mix both within the same list.
 - The part between the slashes is passed to RegExp; flags are optional (e.g., `i` for case-insensitive)
 
 Notes:
-- A malformed regex entry is ignored as non-matching and a warning is logged (does not crash).
-- Negated glob patterns (starting with !) are not supported; they are ignored with a warning.
+- Malformed regex entries are ignored and a warning is logged (does not crash).
 - Branch names commonly look like `feature/foo`, `release/2025-09`, etc.
 
 ## Examples
 
-Allow-list only:
+Default-allow with targeted denies:
 ```yaml
 branches:
-  mode: allow
-  allow:
-    - main
-    - release/*
-    - regex:/^hotfix\/\d+$/i
+  patterns:
+    - "**"
+    - "!wip/**"
+    - "!experimental/**"
+    - "!regex:/^throwaway\//"
 ```
 
-Deny-list only:
+Default-deny (allow-list):
 ```yaml
 branches:
-  mode: deny
-  deny:
-    - wip/*
-    - experimental/**
-    - regex:/^throwaway\//
+  patterns:
+    - "!**"
+    - "main"
+    - "release/*"
+    - "regex:/^hotfix\/\d+$/i"
 ```
 
-Mixed with deny precedence:
+Ordering (last match wins):
 ```yaml
 branches:
-  mode: allow
-  allow:
-    - release/**
-  deny:
-    - release/bad/*
+  patterns:
+    - "release/**"
+    - "!release/bad/*"   # denies the bad subset
 ```
 
 ## Operational details
