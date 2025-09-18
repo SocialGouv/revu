@@ -293,7 +293,20 @@ export const performCompleteReview = async (
   } catch (error) {
     const errorMessage = error.message || String(error)
 
-    logReviewFailed(prNumber, repository, reviewType, errorMessage)
+    // Parse HTTP status code if present in format "400 {JSON}"
+    const spaceIndex = errorMessage.indexOf(' ')
+    if (spaceIndex > 0) {
+      const statusPart = errorMessage.substring(0, spaceIndex)
+      if (/^\d{3}$/.test(statusPart)) {
+        const statusCode = parseInt(statusPart)
+        const jsonError = errorMessage.substring(spaceIndex + 1)
+        logReviewFailed(prNumber, repository, reviewType, jsonError, statusCode)
+      } else {
+        logReviewFailed(prNumber, repository, reviewType, errorMessage)
+      }
+    } else {
+      logReviewFailed(prNumber, repository, reviewType, errorMessage)
+    }
 
     // Try to post error comment if submitting
     if (options.submitComments) {
