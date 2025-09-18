@@ -37,7 +37,7 @@ Behavior rules:
 
 Two pattern types are supported. You can mix both within the same list.
 
-1) Glob-like (gitignore-style) patterns using the `ignore` library semantics:
+1) Glob-like patterns using picomatch semantics:
 - `*` matches within a single path segment
 - `?` matches a single character
 - `**` matches across path segments
@@ -52,7 +52,8 @@ Two pattern types are supported. You can mix both within the same list.
 - The part between the slashes is passed to RegExp; flags are optional (e.g., `i` for case-insensitive)
 
 Notes:
-- A malformed regex entry is ignored as non-matching (does not crash).
+- A malformed regex entry is ignored as non-matching and a warning is logged (does not crash).
+- Negated glob patterns (starting with !) are not supported; they are ignored with a warning.
 - Branch names commonly look like `feature/foo`, `release/2025-09`, etc.
 
 ## Examples

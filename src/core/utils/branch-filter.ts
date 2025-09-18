@@ -1,3 +1,6 @@
+import picomatch from 'picomatch'
+import * as logger from '../../utils/logger.ts'
+
 export interface BranchFilterConfig {
   mode?: 'allow' | 'deny'
   allow?: string[]
@@ -16,75 +19,100 @@ export function normalizeBranch(branch: string): string {
 
 type RegexDescriptor = { pattern: string; flags?: string }
 
-function parseRegexLiteral(input: string): RegexDescriptor | null {
-  // Accept forms like: regex:/^foo$/  or regex:/^bar/i
-  const match = /^regex:\/(.+)\/([a-z]*)$/i.exec(input)
-  if (!match) return null
-  return { pattern: match[1], flags: match[2] || undefined }
-}
-
 /**
- * Convert a simple glob pattern to a RegExp.
- * Supported:
- *  - *  : any chars except '/'
- *  - ?  : any single char except '/'
- *  - ** : any chars including '/'
+ * Parse a literal of the form: regex:/.../flags
+ * Handles escaped slashes within the pattern body.
  */
-function globToRegExp(pattern: string): RegExp {
-  let re = '^'
-  for (let i = 0; i < pattern.length; i++) {
-    const c = pattern[i]
-    const next = i + 1 < pattern.length ? pattern[i + 1] : ''
+function parseRegexLiteral(input: string): RegexDescriptor | null {
+  const lower = input.toLowerCase()
+  const prefix = 'regex:/'
+  if (!lower.startsWith(prefix)) return null
 
-    // Handle **
-    if (c === '*' && next === '*') {
-      re += '.*'
-      i++ // skip next '*'
-      continue
-    }
+  const start = prefix.length
+  // Find the last unescaped slash to separate pattern and flags
+  let slashIndex = -1
+  for (let i = input.length - 1; i >= start; i--) {
+    if (input[i] !== '/') continue
 
-    if (c === '*') {
-      re += '[^/]*'
-      continue
-    }
-
-    if (c === '?') {
-      re += '[^/]'
-      continue
-    }
-
-    // Escape regex special chars
-    if ('\\.[]{}()+-^$|'.includes(c)) {
-      re += '\\' + c
-    } else {
-      re += c
+    // Count preceding backslashes to determine if this slash is escaped
+    let backslashes = 0
+    for (let k = i - 1; k >= start && input[k] === '\\'; k--) backslashes++
+    const isEscaped = backslashes % 2 === 1
+    if (!isEscaped) {
+      slashIndex = i
+      break
     }
   }
-  re += '$'
-  return new RegExp(re)
+  if (slashIndex === -1) return null
+
+  const pattern = input.slice(start, slashIndex)
+  const flags = input.slice(slashIndex + 1) || undefined
+  return { pattern, flags }
 }
 
-function matchOne(pattern: string, value: string): boolean {
-  const regexDesc = parseRegexLiteral(pattern)
-  if (regexDesc) {
+function splitPatterns(patterns?: string[]) {
+  const globs: string[] = []
+  const regexes: RegexDescriptor[] = []
+  if (!patterns) return { globs, regexes }
+
+  for (const raw of patterns) {
+    const desc = parseRegexLiteral(raw)
+    if (desc) {
+      regexes.push(desc)
+      continue
+    }
+
+    // Malformed regex literal (starts with regex:/ but missing closing /)
+    if (raw.toLowerCase().startsWith('regex:/')) {
+      logger.logSystemWarning(new Error('Invalid regex literal in branches filter'), {
+        context_msg: `pattern="${raw}"`
+      })
+      continue
+    }
+
+    // Disallow negated glob patterns for predictability (not documented)
+    if (raw.startsWith('!')) {
+      logger.logSystemWarning(
+        new Error('Unsupported negated glob pattern in branches filter'),
+        { context_msg: `Pattern "${raw}" is ignored` }
+      )
+      continue
+    }
+
+    globs.push(raw)
+  }
+
+  return { globs, regexes }
+}
+
+function regexMatches(regexes: RegexDescriptor[], value: string): boolean {
+  for (const r of regexes) {
     try {
-      const re = new RegExp(regexDesc.pattern, regexDesc.flags)
-      return re.test(value)
+      const re = new RegExp(r.pattern, r.flags)
+      if (re.test(value)) return true
     } catch {
-      // If regex cannot compile, treat as non-match
-      return false
+      // If regex cannot compile, treat as non-match but warn for visibility
+      logger.logSystemWarning(new Error('Invalid regex in branches filter'), {
+        context_msg: `pattern="${r.pattern}" flags="${r.flags ?? ''}"`
+      })
     }
   }
-  const re = globToRegExp(pattern)
-  return re.test(value)
+  return false
+}
+
+function globMatches(globs: string[], value: string): boolean {
+  if (globs.length === 0) return false
+  for (const g of globs) {
+    // Use picomatch so '*' does not cross '/', while '**' spans segments
+    if (picomatch.isMatch(value, g)) return true
+  }
+  return false
 }
 
 function matchesAny(patterns: string[] | undefined, value: string): boolean {
   if (!patterns || patterns.length === 0) return false
-  for (const pat of patterns) {
-    if (matchOne(pat, value)) return true
-  }
-  return false
+  const { globs, regexes } = splitPatterns(patterns)
+  return globMatches(globs, value) || regexMatches(regexes, value)
 }
 
 /**

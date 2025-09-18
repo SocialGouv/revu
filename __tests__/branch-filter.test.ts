@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import {
   isBranchAllowed,
   normalizeBranch,
   type BranchFilterConfig
 } from '../src/core/utils/branch-filter.ts'
+import * as logger from '../src/utils/logger.ts'
 
 describe('branch-filter', () => {
   describe('normalizeBranch', () => {
@@ -92,7 +93,7 @@ describe('branch-filter', () => {
     })
   })
 
-  describe('glob semantics via ignore library', () => {
+  describe('glob semantics via picomatch', () => {
     it('should treat * as single path-segment wildcard and ** as multi-segment', () => {
       // * matches one segment after the slash
       const allowSingle: BranchFilterConfig = {
@@ -123,6 +124,24 @@ describe('branch-filter', () => {
     it('should accept branches with refs/heads/ prefix', () => {
       const cfg: BranchFilterConfig = { mode: 'allow', allow: ['main'] }
       expect(isBranchAllowed('refs/heads/main', cfg)).toBe(true)
+    })
+  })
+
+  describe('warning behavior', () => {
+    it('logs a warning and ignores malformed regex pattern', () => {
+      const spy = vi.spyOn(logger, 'logSystemWarning')
+      const cfg: BranchFilterConfig = { mode: 'allow', allow: ['regex:/['] }
+      expect(isBranchAllowed('main', cfg)).toBe(false)
+      expect(spy).toHaveBeenCalledOnce()
+      spy.mockRestore()
+    })
+
+    it('logs a warning and ignores unsupported negated glob pattern', () => {
+      const spy = vi.spyOn(logger, 'logSystemWarning')
+      const cfg: BranchFilterConfig = { mode: 'allow', allow: ['!main'] }
+      expect(isBranchAllowed('main', cfg)).toBe(false)
+      expect(spy).toHaveBeenCalledOnce()
+      spy.mockRestore()
     })
   })
 })
