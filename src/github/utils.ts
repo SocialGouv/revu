@@ -4,9 +4,8 @@ import { getPrivateKey } from '@probot/get-private-key'
 import { createPrivateKey } from 'node:crypto'
 import { logSystemError } from '../utils/logger.ts'
 
-function keyFormatHelp(): string {
-  return 'Invalid GitHub App PRIVATE_KEY. Expected a PEM key (PKCS#1 "BEGIN RSA PRIVATE KEY" or PKCS#8 "BEGIN PRIVATE KEY") with proper newlines (or \\n escapes when stored in .env). OpenSSH keys are not supported. See .env.example for formatting.'
-}
+const KEY_FORMAT_HELP =
+  'Invalid GitHub App PRIVATE_KEY. Provide the .pem private key downloaded from your GitHub App. In .env, use \\n-escaped newlines or set PRIVATE_KEY_PATH to the .pem file.'
 
 /**
  * GitHub App Utilities
@@ -35,7 +34,7 @@ function fetchGitHubCredentials(): {
     privateKey = getPrivateKey({ env: process.env })
   } catch {
     // Normalize library validation errors into a consistent, friendly message
-    throw new Error(keyFormatHelp())
+    throw new Error(KEY_FORMAT_HELP)
   }
 
   if (!appId || !privateKey) {
@@ -44,20 +43,16 @@ function fetchGitHubCredentials(): {
     )
   }
 
-  // Optional: Detect unsupported OpenSSH key format early
+  // Detect unsupported OpenSSH key format early
   if (privateKey.includes('BEGIN OPENSSH PRIVATE KEY')) {
-    throw new Error(
-      'Invalid GitHub App PRIVATE_KEY: OpenSSH keys are not supported. Use a PEM key (PKCS#1 "BEGIN RSA PRIVATE KEY" or PKCS#8 "BEGIN PRIVATE KEY"). When stored in .env, ensure \\n-escaped newlines or use PRIVATE_KEY_PATH to a .pem file.'
-    )
+    throw new Error(KEY_FORMAT_HELP)
   }
 
   // Deterministic validation: ensure Node/OpenSSL can parse the provided key
   try {
     createPrivateKey(privateKey)
   } catch {
-    throw new Error(
-      'Invalid GitHub App PRIVATE_KEY. Expected a PEM key (PKCS#1/PKCS#8). If using .env, make sure newlines are \\n-escaped or use PRIVATE_KEY_PATH pointing to a .pem file. OpenSSH keys are not supported.'
-    )
+    throw new Error(KEY_FORMAT_HELP)
   }
 
   return { appId, privateKey }

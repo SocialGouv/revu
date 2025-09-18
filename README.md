@@ -241,10 +241,10 @@ To review private repositories, you need to set up GitHub App (Revu) authenticat
 
 1. Set the following environment variables:
    - `APP_ID`: Your GitHub App ID
-   - One of:
-     - `PRIVATE_KEY`: PEM private key (PKCS#1 "BEGIN RSA PRIVATE KEY" or PKCS#8 "BEGIN PRIVATE KEY"). When stored in `.env`, use `\n`-escaped newlines. Base64-encoded content is also supported.
-     - `PRIVATE_KEY_PATH`: Path to a `.pem` file containing the PEM private key.
-   - Note: OpenSSH keys (`BEGIN OPENSSH PRIVATE KEY`) are not supported.
+   - Choose ONE option for the private key:
+     - `PRIVATE_KEY_PATH`: Path to the downloaded `.pem` file
+     - `PRIVATE_KEY`: Paste the key value (use `\n` for line breaks) or paste a base64‑encoded key (auto‑detected)
+   - Note: Use the `.pem` private key downloaded from your GitHub App.
 
 2. Make sure your Revu is installed on the repositories you want to review
 
@@ -301,9 +301,9 @@ Requirements:
 | `ANTHROPIC_API_KEY`       | string | Your Anthropic API key for accessing Claude API                            |
 | `ANTHROPIC_MODEL`         | string | (Optional) Anthropic model to use (default: claude-sonnet-4-20250514)      |
 | `APP_ID`                  | number | GitHub App ID obtained after registering the app                           |
-| `PRIVATE_KEY`             | string | GitHub App PEM private key (PKCS#1/PKCS#8). When in `.env`, use `\n`-escaped newlines; base64 is also supported. OpenSSH keys are not supported. |
+| `PRIVATE_KEY`             | string | Private key value (use `\n` for line breaks when in `.env`) or a base64‑encoded key (auto‑detected). |
 | `WEBHOOK_SECRET`          | string | Secret string used to verify GitHub webhook payloads                       |
-| `PRIVATE_KEY_PATH`        | string | (Alternative) Path to a PEM file for the GitHub App private key            |
+| `PRIVATE_KEY_PATH`        | string | Path to the downloaded `.pem` private key file                             |
 | `WEBHOOK_PROXY_URL`       | string | (Optional) Smee.io URL for local development webhook forwarding            |
 | `REPOSITORY_FOLDER`       | string | Absolute path where repositories will be cloned                            |
 | `PROXY_REVIEWER_USERNAME` | string | Username of the proxy user account for manual review requests              |
