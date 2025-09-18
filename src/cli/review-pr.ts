@@ -13,10 +13,7 @@ import {
   type ValidationResult
 } from '../core/services/review-service.ts'
 import { createMinimalContext } from '../github/context-builder.ts'
-import {
-  createGithubAppOctokit,
-  generateInstallationToken
-} from '../github/utils.ts'
+import { createGithubAppOctokit } from '../github/utils.ts'
 import { createPlatformContextFromGitHub } from '../platforms/github/github-adapter.ts'
 import { logSystemError } from '../utils/logger.ts'
 import { shouldProcessBranch } from '../config-handler.ts'
@@ -39,13 +36,6 @@ interface PrDetails {
   title: string
   body: string | null
 }
-
-interface AuthenticationResult {
-  token?: string
-  owner: string
-  repo: string
-}
-
 /**
  * Parse a GitHub PR URL and extract owner, repo, and PR number
  * @param url GitHub PR URL in the format https://github.com/{owner}/{repo}/pull/{number}
@@ -72,30 +62,6 @@ function parsePrUrl(url: string): {
 
   return { owner, repo, prNumber }
 }
-
-/**
- * Setup authentication and extract repository information
- * @returns Authentication result with token and repository info
- */
-async function setupAuthentication(
-  owner: string,
-  repo: string
-): Promise<AuthenticationResult> {
-  console.log(chalk.gray('⚡ Setting up authentication...'))
-
-  let token: string | undefined
-  try {
-    token = await generateInstallationToken(owner, repo)
-  } catch (error) {
-    console.warn(
-      chalk.yellow('⚠ Failed to generate installation token:'),
-      error
-    )
-    // Continue without token if generation fails
-  }
-  return { token, owner, repo }
-}
-
 /**
  * Create review context with all necessary GitHub data
  * @param prUrl GitHub PR URL
@@ -104,9 +70,9 @@ async function setupAuthentication(
  */
 async function createReviewContext(
   prNumber: number,
-  authResult: AuthenticationResult
+  repoRef: { owner: string; repo: string }
 ): Promise<CliReviewContext> {
-  const { owner, repo } = authResult
+  const { owner, repo } = repoRef
 
   console.log(chalk.gray(`📁 Repository: ${owner}/${repo}, PR: #${prNumber}`))
 
@@ -326,19 +292,12 @@ async function reviewPr(
       return
     }
 
-    // Step 3: Setup authentication
-    const authResult = await setupAuthentication(owner, repo)
-
-    // Step 4: Fetch PR details
+    // Step 3: Fetch PR details
     const prDetails = await fetchPrDetails(context)
 
-    // Step 5: Create platform context
-    const platformContext = await createPlatformContext(
-      context,
-      prDetails,
-      authResult.token
-    )
-    // Step 6: Perform review
+    // Step 4: Create platform context
+    const platformContext = await createPlatformContext(context, prDetails)
+    // Step 5: Perform review
     const result = await performCompleteReview(
       context.repositoryUrl,
       context.prNumber,
