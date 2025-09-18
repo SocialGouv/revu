@@ -14,7 +14,7 @@ RUN groupadd -g 1001 nonroot && \
 
 # Create app directory and set ownership
 RUN mkdir -p /app && \
-    chown -R 1001:1001 /app
+    chown 1001:1001 /app
 WORKDIR /app
 
 # Switch to non-root user
