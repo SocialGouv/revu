@@ -1,3 +1,10 @@
+## [1.31.3](https://github.com/SocialGouv/revu/compare/v1.31.2...v1.31.3) (2025-09-18)
+
+
+### Bug Fixes
+
+* split http code and error details ([#211](https://github.com/SocialGouv/revu/issues/211)) ([7592202](https://github.com/SocialGouv/revu/commit/75922023551f3cf98b705011c6c992f0a4fe977c))
+
 ## [1.31.2](https://github.com/SocialGouv/revu/compare/v1.31.1...v1.31.2) (2025-09-10)
 
 
