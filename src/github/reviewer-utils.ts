@@ -137,14 +137,25 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
     )
   } catch (error) {
     context.log.error(`Error adding bot as reviewer: ${error}`)
-    context.log.error(`Error details:`, {
-      message: error.message,
-      status: error.status,
-      response: error.response?.data,
-      stack: error.stack
-    })
     // Don't throw error to avoid breaking the workflow
   }
+}
+
+/**
+ * Determines if the sender of a review request is automated (bot or proxy user)
+ * rather than a human user clicking the "Request review" button
+ */
+export function isAutomatedSender(
+  sender: { login: string; type: string },
+  proxyUsername: string
+): boolean {
+  // Check if sender is a bot (GitHub App)
+  if (sender.type.toLowerCase().trim() === 'bot') {
+    return true
+  }
+
+  // Check if sender is the proxy user (when using personal access token)
+  return sender.login === proxyUsername && proxyUsername.length > 0
 }
 
 /**

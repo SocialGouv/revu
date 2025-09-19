@@ -5,6 +5,7 @@ import { performCompleteReview } from './core/services/review-service.ts'
 import {
   addBotAsReviewer,
   getProxyReviewerUsername,
+  isAutomatedSender,
   isPRCreatedByBot,
   isPRDraft,
   isReviewRequestedForBot
@@ -15,7 +16,8 @@ import {
   logAppStarted,
   logReviewerAdded,
   logSystemError,
-  logSystemWarning
+  logSystemWarning,
+  logWebhookReceived,
 } from './utils/logger.ts'
 
 // Load environment variables
@@ -23,6 +25,11 @@ config()
 
 export default async (app: Probot) => {
   logAppStarted()
+
+  // Log all GitHub webhook events for monitoring and debugging
+  app.onAny(async (context) => {
+    logWebhookReceived(context.name, context.payload)
+  })
 
   // Listen for PR opens to add bot as reviewer
   app.on(['pull_request.opened'], async (context) => {
@@ -59,6 +66,10 @@ export default async (app: Probot) => {
     // Cast payload to a more flexible type for the review request check
     const reviewPayload = context.payload as {
       action: string
+      sender: {
+        login: string
+        type: string
+      }
       requested_reviewer?: {
         login: string
         type: string
@@ -69,7 +80,12 @@ export default async (app: Probot) => {
         title: string
         body: string | null
         draft: boolean
-      }
+      }yaml
+
+patterns:
+  - "!*"              # Exclude everything
+  - "main"            # But include main
+  - "deve
       repository: {
         name: string
         owner: {
@@ -103,7 +119,12 @@ export default async (app: Probot) => {
       return
     }
 
-    await handlePRReview(context, reviewPayload, 'on-demand')
+    // Determine review type based on sender
+    const reviewType = isAutomatedSender(reviewPayload.sender, proxyUsername)
+      ? 'automatic'
+      : 'on-demand'
+
+    await handlePRReview(context, reviewPayload, reviewType)
   })
 
   // Listen for PR ready for review to automatically perform analysis

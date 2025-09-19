@@ -1,6 +1,11 @@
 import { createAppAuth } from '@octokit/auth-app'
 import { Octokit } from '@octokit/rest'
+import { getPrivateKey } from '@probot/get-private-key'
+import { createPrivateKey } from 'node:crypto'
 import { logSystemError } from '../utils/logger.ts'
+
+const KEY_FORMAT_HELP =
+  'Invalid GitHub App PRIVATE_KEY. Provide the .pem private key downloaded from your GitHub App. In .env, use \\n-escaped newlines or set PRIVATE_KEY_PATH to the .pem file.'
 
 /**
  * GitHub App Utilities
@@ -23,12 +28,31 @@ function fetchGitHubCredentials(): {
   privateKey: string
 } {
   const appId = process.env.APP_ID
-  const privateKey = process.env.PRIVATE_KEY
+  let privateKey: string | null = null
+
+  try {
+    privateKey = getPrivateKey({ env: process.env })
+  } catch {
+    // Normalize library validation errors into a consistent, friendly message
+    throw new Error(KEY_FORMAT_HELP)
+  }
 
   if (!appId || !privateKey) {
     throw new Error(
-      'GitHub App credentials (APP_ID and PRIVATE_KEY) are required'
+      'GitHub App credentials (APP_ID and PRIVATE_KEY or PRIVATE_KEY_PATH) are required'
     )
+  }
+
+  // Detect unsupported OpenSSH key format early
+  if (privateKey.includes('BEGIN OPENSSH PRIVATE KEY')) {
+    throw new Error(KEY_FORMAT_HELP)
+  }
+
+  // Deterministic validation: ensure Node/OpenSSL can parse the provided key
+  try {
+    createPrivateKey(privateKey)
+  } catch {
+    throw new Error(KEY_FORMAT_HELP)
   }
 
   return { appId, privateKey }
@@ -148,17 +172,27 @@ export async function createGithubAppOctokit(
     }
   })
 
-  const { data } = await appOctokit.request(
-    'GET /repos/{owner}/{repo}/installation',
-    { owner, repo }
-  )
+  let installationId: number
+  try {
+    const resp = await appOctokit.request(
+      'GET /repos/{owner}/{repo}/installation',
+      { owner, repo }
+    )
+    installationId = resp.data.id
+  } catch (error) {
+    logSystemError(error, {
+      repository: `${owner}/${repo}`,
+      context_msg: `Failed to get installation ID for ${owner}/${repo}`
+    })
+    throw error
+  }
 
   return new Octokit({
     authStrategy: createAppAuth,
     auth: {
       appId,
       privateKey,
-      installationId: data.id
+      installationId
     }
   })
 }
