@@ -11,11 +11,13 @@ import {
   isReviewRequestedForBot
 } from './github/reviewer-utils.ts'
 import { createPlatformContextFromGitHub } from './platforms/github/github-adapter.ts'
+import { shouldProcessBranch } from './config-handler.ts'
 import {
   logAppStarted,
   logReviewerAdded,
   logSystemError,
-  logWebhookReceived
+  logSystemWarning,
+  logWebhookReceived,
 } from './utils/logger.ts'
 
 // Load environment variables
@@ -78,7 +80,12 @@ export default async (app: Probot) => {
         title: string
         body: string | null
         draft: boolean
-      }
+      }yaml
+
+patterns:
+  - "!*"              # Exclude everything
+  - "main"            # But include main
+  - "deve
       repository: {
         name: string
         owner: {
@@ -195,6 +202,17 @@ export default async (app: Probot) => {
     // Get repository URL and branch from PR
     const repositoryUrl = `https://github.com/${repo.owner}/${repo.repo}.git`
     const branch = pr.head.ref
+
+    // Branch filter via .revu.yml (fail-open handled inside helper)
+    const decision = await shouldProcessBranch(branch)
+    if (!decision.allowed) {
+      logSystemWarning('Branch filtered by .revu.yml branches', {
+        pr_number: pr.number,
+        repository,
+        context_msg: `Skipping review for filtered branch ${branch}`
+      })
+      return
+    }
 
     try {
       const result = await performCompleteReview(

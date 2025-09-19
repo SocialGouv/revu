@@ -4096,6 +4096,7 @@ __metadata:
     ignore: "npm:^7.0.5"
     js-yaml: "npm:^4.1.0"
     knip: "npm:^5.61.2"
+    picomatch: "npm:^4.0.3"
     prettier: "npm:^3.5.1"
     probot: "npm:^14.0.0"
     ts-deepmerge: "npm:^7.0.3"

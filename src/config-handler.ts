@@ -4,6 +4,11 @@ import * as path from 'path'
 import { merge } from 'ts-deepmerge'
 import type { PRValidationConfig } from './core/services/pr-validation-service.ts'
 import { logSystemError } from './utils/logger.ts'
+import {
+  isBranchAllowed,
+  normalizeBranch,
+  type BranchFilterConfig
+} from './core/utils/branch-filter.ts'
 
 /**
  * Check if a file exists
@@ -26,6 +31,7 @@ async function fileExists(filePath: string): Promise<boolean> {
 interface RevuConfig {
   codingGuidelines: string[]
   validation: Partial<PRValidationConfig>
+  branches?: BranchFilterConfig
 }
 
 /**
@@ -172,5 +178,59 @@ export async function getValidationConfig(
       './core/services/pr-validation-service.ts'
     )
     return DEFAULT_VALIDATION_CONFIG
+  }
+}
+
+export async function getBranchesConfig(
+  repoPath?: string
+): Promise<BranchFilterConfig | undefined> {
+  let configPath = path.join(process.cwd(), '.revu.yml')
+
+  if (repoPath) {
+    const repoConfigPath = path.join(repoPath, '.revu.yml')
+    const exists = await fileExists(repoConfigPath)
+    if (exists) {
+      configPath = repoConfigPath
+    }
+  }
+
+  try {
+    const config = await readConfig(configPath)
+    return config.branches
+  } catch (error) {
+    logSystemError(error, {
+      context_msg: 'Error reading .revu.yml for branches config'
+    })
+    return undefined
+  }
+}
+
+/**
+ * Determine if a given branch should be processed based on .revu.yml "branches" rules.
+ * Fail-open: on any error, returns allowed: true.
+ */
+export async function shouldProcessBranch(
+  branch: string,
+  repoPath?: string
+): Promise<{ allowed: boolean; reason?: string }> {
+  try {
+    const cfg = await getBranchesConfig(repoPath)
+    if (!cfg) {
+      return { allowed: true }
+    }
+    const allowed = isBranchAllowed(branch, cfg)
+    if (!allowed) {
+      return {
+        allowed: false,
+        reason: `Branch "${normalizeBranch(branch)}" filtered by .revu.yml branches`
+      }
+    }
+    return { allowed: true }
+  } catch (error) {
+    logSystemError(error, {
+      context_msg: 'Error evaluating branches filter'
+    })
+    // Fail open on errors
+    return { allowed: true }
   }
 }
