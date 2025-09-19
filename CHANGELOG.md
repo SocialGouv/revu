@@ -1,3 +1,10 @@
+# [1.32.0](https://github.com/SocialGouv/revu/compare/v1.31.6...v1.32.0) (2025-09-19)
+
+
+### Features
+
+* branches filter ([#208](https://github.com/SocialGouv/revu/issues/208)) ([277c028](https://github.com/SocialGouv/revu/commit/277c0283be14b8d8ddcb6fcf8a49e7eb0f42bb34)), closes [#198](https://github.com/SocialGouv/revu/issues/198)
+
 ## [1.31.6](https://github.com/SocialGouv/revu/compare/v1.31.5...v1.31.6) (2025-09-19)
 
 
