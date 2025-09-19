@@ -324,7 +324,7 @@ async function reviewPr(
       }
     )
 
-    // Step 7: Handle results
+    // Step 6: Handle results
     if (result.success) {
       displaySuccessResults(result, submit)
     } else {

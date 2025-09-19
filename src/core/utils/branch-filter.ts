@@ -72,8 +72,8 @@ function evaluatePatterns(patterns: string[], value: string): boolean {
     }
 
     if (raw.toLowerCase().startsWith('regex:/')) {
-      const desc = parseRegexLiteral(raw)
-      if (!desc) {
+      const parsedRegex = parseRegexLiteral(raw)
+      if (!parsedRegex) {
         logger.logSystemWarning(
           new Error('Invalid regex literal in branches filter'),
           {
@@ -83,11 +83,11 @@ function evaluatePatterns(patterns: string[], value: string): boolean {
         continue
       }
       try {
-        const re = new RegExp(desc.pattern, desc.flags)
+        const re = new RegExp(parsedRegex.pattern, parsedRegex.flags)
         if (re.test(value)) decision = !neg
       } catch {
         logger.logSystemWarning(new Error('Invalid regex in branches filter'), {
-          context_msg: `pattern="${desc.pattern}" flags="${desc.flags ?? ''}"`
+          context_msg: `pattern="${parsedRegex.pattern}" flags="${parsedRegex.flags ?? ''}"`
         })
       }
       continue
