@@ -1,3 +1,10 @@
+## [1.31.5](https://github.com/SocialGouv/revu/compare/v1.31.4...v1.31.5) (2025-09-19)
+
+
+### Bug Fixes
+
+* Properly identify if review request is auto or on-demand ([fb0348d](https://github.com/SocialGouv/revu/commit/fb0348dfdc37f6c482a21b410906b4fa4cb0a4ba))
+
 ## [1.31.4](https://github.com/SocialGouv/revu/compare/v1.31.3...v1.31.4) (2025-09-18)
 
 
