@@ -20,15 +20,16 @@ WORKDIR /app
 # Switch to non-root user
 USER 1001:1001
 
+
 # Copy dependencies and Yarn configuration, including the .yarn directory
 COPY --chown=1001:1001 yarn.lock .yarnrc.yml ./
 COPY --chown=1001:1001 .yarn .yarn
 
-# Install dependencies
-RUN yarn fetch workspaces focus --production
-
 # Copy package.json after fetching dependencies
 COPY --chown=1001:1001 package.json ./
+
+# Install dependencies
+RUN yarn fetch workspaces focus --production
 
 # Copy source code (including templates needed for PR review prompts)
 COPY --chmod=444 src/ src/
