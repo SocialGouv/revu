@@ -1,3 +1,10 @@
+## [1.32.1](https://github.com/SocialGouv/revu/compare/v1.32.0...v1.32.1) (2025-09-22)
+
+
+### Bug Fixes
+
+* dockerfile (+yarn) ([#219](https://github.com/SocialGouv/revu/issues/219)) ([f9eb47b](https://github.com/SocialGouv/revu/commit/f9eb47b3815d18cc9d1014acb4a218691213a6d6)), closes [#215](https://github.com/SocialGouv/revu/issues/215)
+
 # [1.32.0](https://github.com/SocialGouv/revu/compare/v1.31.6...v1.32.0) (2025-09-19)
 
 
