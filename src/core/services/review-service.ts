@@ -72,8 +72,13 @@ const createValidationMessage = (
 
   const issuesSection = formatValidationIssues(validationResult.issues)
   const metrics = validationResult.metrics
+  const issueCount = validationResult.issues.length
 
   return `## ⚠️ PR Review Skipped
+> ${issueCount} validation issue${issueCount === 1 ? '' : 's'} found. Review thresholds can be adjusted in \`.revu.yml\`.
+
+<details>
+<summary>See why it was skipped and detailed metrics</summary>
 
 ${issuesSection}
 
@@ -86,7 +91,9 @@ ${metrics.largestFileSize ? `- **Largest file change:** ${metrics.largestFileSiz
 ${metrics.additionDeletionRatio !== undefined ? `- **Addition/Deletion ratio:** ${metrics.additionDeletionRatio.toFixed(2)}` : ''}
 
 ---
-*This validation helps ensure the bot focuses on PRs where automated review provides the most value. You can adjust these limits in your \`.revu.yml\` configuration file.*`
+
+*This validation helps ensure the bot focuses on PRs where automated review provides the most value.*
+</details>`
 }
 
 const logValidationResult = (
@@ -293,7 +300,20 @@ export const performCompleteReview = async (
   } catch (error) {
     const errorMessage = error.message || String(error)
 
-    logReviewFailed(prNumber, repository, reviewType, errorMessage)
+    // Parse HTTP status code if present in format "400 {JSON}"
+    const spaceIndex = errorMessage.indexOf(' ')
+    if (spaceIndex > 0) {
+      const statusPart = errorMessage.substring(0, spaceIndex)
+      if (/^\d{3}$/.test(statusPart)) {
+        const statusCode = parseInt(statusPart)
+        const jsonError = errorMessage.substring(spaceIndex + 1)
+        logReviewFailed(prNumber, repository, reviewType, jsonError, statusCode)
+      } else {
+        logReviewFailed(prNumber, repository, reviewType, errorMessage)
+      }
+    } else {
+      logReviewFailed(prNumber, repository, reviewType, errorMessage)
+    }
 
     // Try to post error comment if submitting
     if (options.submitComments) {

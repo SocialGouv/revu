@@ -1,3 +1,39 @@
+# [1.32.0](https://github.com/SocialGouv/revu/compare/v1.31.6...v1.32.0) (2025-09-19)
+
+
+### Features
+
+* branches filter ([#208](https://github.com/SocialGouv/revu/issues/208)) ([277c028](https://github.com/SocialGouv/revu/commit/277c0283be14b8d8ddcb6fcf8a49e7eb0f42bb34)), closes [#198](https://github.com/SocialGouv/revu/issues/198)
+
+## [1.31.6](https://github.com/SocialGouv/revu/compare/v1.31.5...v1.31.6) (2025-09-19)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @anthropic-ai/sdk to ^0.63.0 ([2494734](https://github.com/SocialGouv/revu/commit/24947343f57ed0ce618fd10ab61d16a943ff486c))
+
+## [1.31.5](https://github.com/SocialGouv/revu/compare/v1.31.4...v1.31.5) (2025-09-19)
+
+
+### Bug Fixes
+
+* Properly identify if review request is auto or on-demand ([fb0348d](https://github.com/SocialGouv/revu/commit/fb0348dfdc37f6c482a21b410906b4fa4cb0a4ba))
+
+## [1.31.4](https://github.com/SocialGouv/revu/compare/v1.31.3...v1.31.4) (2025-09-18)
+
+
+### Bug Fixes
+
+* improve error handling (fix [#207](https://github.com/SocialGouv/revu/issues/207)) ([#210](https://github.com/SocialGouv/revu/issues/210)) ([1edf400](https://github.com/SocialGouv/revu/commit/1edf400da581365fe0d0d0b2b86c5dd3561ae5cd))
+* pr review skiped message - fix [#197](https://github.com/SocialGouv/revu/issues/197) ([#206](https://github.com/SocialGouv/revu/issues/206)) ([aaf10e7](https://github.com/SocialGouv/revu/commit/aaf10e7a2c44743e68346c09219ec4f644456b81))
+
+## [1.31.3](https://github.com/SocialGouv/revu/compare/v1.31.2...v1.31.3) (2025-09-18)
+
+
+### Bug Fixes
+
+* split http code and error details ([#211](https://github.com/SocialGouv/revu/issues/211)) ([7592202](https://github.com/SocialGouv/revu/commit/75922023551f3cf98b705011c6c992f0a4fe977c))
+
 ## [1.31.2](https://github.com/SocialGouv/revu/compare/v1.31.1...v1.31.2) (2025-09-10)
 
 
