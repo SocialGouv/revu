@@ -1,3 +1,10 @@
+## [1.32.2](https://github.com/SocialGouv/revu/compare/v1.32.1...v1.32.2) (2025-09-22)
+
+
+### Bug Fixes
+
+* package.json copy in dockerfile ([6c5c75b](https://github.com/SocialGouv/revu/commit/6c5c75ba175d3bc24206bce4add1296057839fbb))
+
 ## [1.32.1](https://github.com/SocialGouv/revu/compare/v1.32.0...v1.32.1) (2025-09-22)
 
 
