@@ -1,3 +1,10 @@
+## [1.32.3](https://github.com/SocialGouv/revu/compare/v1.32.2...v1.32.3) (2025-09-23)
+
+
+### Bug Fixes
+
+* typo ([e6df88a](https://github.com/SocialGouv/revu/commit/e6df88a8888114a0619ed00500dd0e02c02b8a61))
+
 ## [1.32.2](https://github.com/SocialGouv/revu/compare/v1.32.1...v1.32.2) (2025-09-22)
 
 
