@@ -21,19 +21,16 @@ WORKDIR /app
 USER 1001:1001
 
 
-# Copy dependencies and Yarn configuration, including the .yarn directory
-COPY --chown=1001:1001 yarn.lock .yarnrc.yml ./
+# Copy dependencies and Yarn configuration FIRST for better Docker caching
+COPY --chown=1001:1001 package.json yarn.lock .yarnrc.yml ./
 COPY --chown=1001:1001 .yarn .yarn
 
-# Copy package.json after fetching dependencies
-COPY --chown=1001:1001 package.json ./
-
-# Install dependencies
-RUN yarn fetch workspaces focus --production
+# Install dependencies (CORRECTION PRINCIPALE)
+RUN yarn install --immutable
 
 # Copy source code (including templates needed for PR review prompts)
-COPY --chmod=444 src/ src/
-COPY --chmod=444 templates/ templates/
+COPY --chown=1001:1001 src/ src/
+COPY --chown=1001:1001 templates/ templates/
 
 # Create repository directory for cloning with appropriate permissions
 RUN mkdir -p /app/repos && \

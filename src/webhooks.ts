@@ -80,12 +80,7 @@ export default async (app: Probot) => {
         title: string
         body: string | null
         draft: boolean
-      }yaml
-
-patterns:
-  - "!*"              # Exclude everything
-  - "main"            # But include main
-  - "deve
+      }
       repository: {
         name: string
         owner: {
