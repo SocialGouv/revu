@@ -8,6 +8,10 @@ import type {
   IssueDetails,
   PlatformContext
 } from './core/models/platform-types.ts'
+import {
+  createSanitizedError,
+  sanitizeGitCommand
+} from './utils/error-sanitizer.ts'
 import { logSystemError } from './utils/logger.ts'
 
 const execAsync = promisify(exec)
@@ -51,7 +55,17 @@ export async function cloneRepository({
     cloneCommand += ` --branch ${branch}`
   }
 
-  await execAsync(cloneCommand)
+  try {
+    await execAsync(cloneCommand)
+  } catch (error) {
+    // Sanitize the error to remove any tokens before re-throwing
+    if (error instanceof Error) {
+      throw createSanitizedError(error)
+    }
+    // For non-Error objects, create a sanitized error message
+    const errorMessage = typeof error === 'string' ? error : String(error)
+    throw new Error(`Git clone failed: ${sanitizeGitCommand(errorMessage)}`)
+  }
 }
 
 /**

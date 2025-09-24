@@ -1,3 +1,5 @@
+import { sanitizeErrorMessage } from './error-sanitizer.ts'
+
 interface BaseLogEntry {
   timestamp: string
   level: 'info' | 'warn' | 'error'
@@ -42,9 +44,9 @@ interface WebhookLogEntry extends BaseLogEntry {
   is_processed: boolean
 }
 
-function createLogEntry<T extends ReviewLogEntry | SystemLogEntry | WebhookLogEntry>(
-  partial: Omit<T, 'timestamp' | 'service'>
-): T {
+function createLogEntry<
+  T extends ReviewLogEntry | SystemLogEntry | WebhookLogEntry
+>(partial: Omit<T, 'timestamp' | 'service'>): T {
   const entry = {
     timestamp: new Date().toISOString(),
     service: 'revu' as const,
@@ -123,7 +125,7 @@ export function logReviewFailed(
       pr_number: prNumber,
       repository,
       review_type: reviewType,
-      error_message: error,
+      error_message: sanitizeErrorMessage(error),
       ...(httpStatusCode && { http_status_code: httpStatusCode })
     })
   )
@@ -158,8 +160,10 @@ export function logSystemError(
     createLogEntry<SystemLogEntry>({
       level: 'error',
       event_type: 'system_error',
-      error_message: errObj.message,
-      error_stack: errObj.stack,
+      error_message: sanitizeErrorMessage(errObj.message),
+      error_stack: errObj.stack
+        ? sanitizeErrorMessage(errObj.stack)
+        : undefined,
       error_name: errObj.name,
       ...context
     })
@@ -178,8 +182,10 @@ export function logSystemWarning(
     createLogEntry<SystemLogEntry>({
       level: 'warn',
       event_type: 'system_warn',
-      error_message: errObj.message,
-      error_stack: errObj.stack,
+      error_message: sanitizeErrorMessage(errObj.message),
+      error_stack: errObj.stack
+        ? sanitizeErrorMessage(errObj.stack)
+        : undefined,
       error_name: errObj.name,
       ...context
     })
@@ -194,8 +200,9 @@ export function logWebhookReceived(
   // Extract common payload information safely
   const action = payload?.action
   const prNumber = payload?.pull_request?.number
-  const repository = payload?.repository ? 
-    `${payload.repository.owner?.login}/${payload.repository.name}` : undefined
+  const repository = payload?.repository
+    ? `${payload.repository.owner?.login}/${payload.repository.name}`
+    : undefined
   const senderLogin = payload?.sender?.login
   const senderType = payload?.sender?.type
   const payloadSize = JSON.stringify(payload).length

@@ -17,7 +17,7 @@ import {
   logReviewerAdded,
   logSystemError,
   logSystemWarning,
-  logWebhookReceived,
+  logWebhookReceived
 } from './utils/logger.ts'
 
 // Load environment variables
