@@ -1,3 +1,10 @@
+## [1.32.5](https://github.com/SocialGouv/revu/compare/v1.32.4...v1.32.5) (2025-09-24)
+
+
+### Bug Fixes
+
+* SSL Certificate Issues with docker container ([80a4eba](https://github.com/SocialGouv/revu/commit/80a4eba0f06566cd1360d6993e4239248ba3c58c))
+
 ## [1.32.4](https://github.com/SocialGouv/revu/compare/v1.32.3...v1.32.4) (2025-09-24)
 
 
