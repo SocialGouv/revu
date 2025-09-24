@@ -1,3 +1,10 @@
+## [1.32.4](https://github.com/SocialGouv/revu/compare/v1.32.3...v1.32.4) (2025-09-24)
+
+
+### Bug Fixes
+
+* Sanitize error messages to avoid leaking important info ([09e08f7](https://github.com/SocialGouv/revu/commit/09e08f7977e0ba714421283ff80060ee5a4ccc22))
+
 ## [1.32.3](https://github.com/SocialGouv/revu/compare/v1.32.2...v1.32.3) (2025-09-23)
 
 
