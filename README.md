@@ -296,18 +296,18 @@ Requirements:
 
 ### Environment Configuration
 
-| Variable                  | Type   | Description                                                                |
-| ------------------------- | ------ | -------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`       | string | Your Anthropic API key for accessing Claude API                            |
-| `ANTHROPIC_MODEL`         | string | (Optional) Anthropic model to use (default: claude-sonnet-4-20250514)      |
-| `APP_ID`                  | number | GitHub App ID obtained after registering the app                           |
+| Variable                  | Type   | Description                                                                                          |
+| ------------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`       | string | Your Anthropic API key for accessing Claude API                                                      |
+| `ANTHROPIC_MODEL`         | string | (Optional) Anthropic model to use (default: claude-sonnet-4-5-20250929)                              |
+| `APP_ID`                  | number | GitHub App ID obtained after registering the app                                                     |
 | `PRIVATE_KEY`             | string | Private key value (use `\n` for line breaks when in `.env`) or a base64‑encoded key (auto‑detected). |
-| `WEBHOOK_SECRET`          | string | Secret string used to verify GitHub webhook payloads                       |
-| `PRIVATE_KEY_PATH`        | string | Path to the downloaded `.pem` private key file                             |
-| `WEBHOOK_PROXY_URL`       | string | (Optional) Smee.io URL for local development webhook forwarding            |
-| `REPOSITORY_FOLDER`       | string | Absolute path where repositories will be cloned                            |
-| `PROXY_REVIEWER_USERNAME` | string | Username of the proxy user account for manual review requests              |
-| `PROXY_REVIEWER_TOKEN`    | string | GitHub personal access token for the proxy user account                    |
+| `WEBHOOK_SECRET`          | string | Secret string used to verify GitHub webhook payloads                                                 |
+| `PRIVATE_KEY_PATH`        | string | Path to the downloaded `.pem` private key file                                                       |
+| `WEBHOOK_PROXY_URL`       | string | (Optional) Smee.io URL for local development webhook forwarding                                      |
+| `REPOSITORY_FOLDER`       | string | Absolute path where repositories will be cloned                                                      |
+| `PROXY_REVIEWER_USERNAME` | string | Username of the proxy user account for manual review requests                                        |
+| `PROXY_REVIEWER_TOKEN`    | string | GitHub personal access token for the proxy user account                                              |
 
 ## Running the App
 
@@ -349,7 +349,7 @@ docker run -d \
 
 - Model: Claude Sonnet 4 (configurable via `ANTHROPIC_MODEL`)
 - Available models:
-  - `claude-sonnet-4-20250514` (default, recommended)
+  - `claude-sonnet-4-5-20250929` (default, recommended)
   - `claude-opus-4-20250514` (more powerful, higher cost)
   - `claude-3-7-sonnet-latest`
 - Max tokens: 4096

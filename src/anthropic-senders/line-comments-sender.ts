@@ -35,7 +35,7 @@ export async function lineCommentsSender(
 
   // Send to Anthropic API with tool use configuration
   const message = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
     max_tokens: maxTokens,
     temperature: enableThinking ? 1 : 0, // We are forced to use temperature 1 for thinking
     ...thinkingConfig,

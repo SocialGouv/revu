@@ -30,7 +30,7 @@ Extended thinking is controlled through separate configuration options in `confi
 
 - **Thinking Budget**: 16,000 tokens allocated for internal reasoning
 - **Total Max Tokens**: 20,096 tokens (16k thinking + ~4k structured output)
-- **Model**: Claude Sonnet 4 (`claude-sonnet-4-20250514`)
+- **Model**: Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`)
 
 ### Response Processing
 
