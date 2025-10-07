@@ -40,15 +40,7 @@ export default defineConfig([
         }
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
-      'prettier/prettier': [
-        'error',
-        {
-          printWidth: 80,
-          semi: false,
-          singleQuote: true,
-          trailingComma: 'none'
-        }
-      ]
+      'prettier/prettier': 'error'
     }
   }
 ])
