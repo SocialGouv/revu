@@ -1,3 +1,10 @@
+## [1.32.9](https://github.com/SocialGouv/revu/compare/v1.32.8...v1.32.9) (2025-10-07)
+
+
+### Bug Fixes
+
+* Stop extractLineContent from attempting to fetch the wrong lines ([f3c26ab](https://github.com/SocialGouv/revu/commit/f3c26abbea06e225fbd2dc72c57c6e39ae605f78))
+
 ## [1.32.8](https://github.com/SocialGouv/revu/compare/v1.32.7...v1.32.8) (2025-10-07)
 
 
