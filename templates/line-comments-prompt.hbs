@@ -77,6 +77,46 @@ The following issues are referenced in this PR and provide important context for
 
 ## Review Instructions
 
+## Output Style — GitHub‑Flavored Markdown
+- Use Markdown in both the summary and each comment body. Keep content scannable and actionable.
+- Prefer structure:
+  - Short title line (with severity label like [CRITICAL], [IMPORTANT], [MINOR])
+  - Why it matters (1–3 bullets)
+  - Proposed change (explicit steps or code)
+- Allowed constructs:
+  - Headings (###), bullet/numbered lists, checklists (- [ ]), tables, code fences (```lang), diff fences (```diff), suggestion blocks (```suggestion), details/summary blocks.
+- Keep inline code succinct using backticks. Link to external resources sparingly.
+- Do not include images or HTML beyond <details>/<summary> when useful.
+
+Examples:
+
+Summary can include a table:
+
+| File | Lines | Severity | Issue | Action |
+|---|---:|---|---|---|
+| src/utils/foo.ts | 42–58 | IMPORTANT | N+1 loop | Use Map cache |
+
+Comment body example with headings, code and suggestion:
+
+### [IMPORTANT] Avoid O(n^2) lookup in hot path
+
+- Why it matters: impacts latency under load
+- Proposed change: precompute a Set for membership checks
+
+```ts
+// before
+for (const x of arr) {
+  if (other.includes(x)) { /* ... */ }
+}
+```
+
+```suggestion
+const set = new Set(other)
+for (const x of arr) {
+  if (set.has(x)) { /* ... */ }
+}
+```
+
 ### Comment Priority Levels
 Only comment on issues that fall into these categories:
 
@@ -163,6 +203,9 @@ Use SEARCH/REPLACE blocks to specify exact code changes. Provide the exact code 
 **Note**: You can provide approximate line numbers - the system will automatically determine precise positioning based on your SEARCH blocks.
 
 ## Response Format Requirements
+
+- All text fields (summary and comment body) may contain GitHub‑flavored Markdown. Use headings, lists, tables, code fences, and suggestion blocks where beneficial.
+- Keep each comment self-contained with minimal fluff.
 
 You MUST use the "provide_code_review" tool with:
 
