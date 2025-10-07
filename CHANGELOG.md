@@ -1,3 +1,10 @@
+## [1.32.6](https://github.com/SocialGouv/revu/compare/v1.32.5...v1.32.6) (2025-10-07)
+
+
+### Bug Fixes
+
+* implement lint-staged ([#216](https://github.com/SocialGouv/revu/issues/216)) ([380cf8a](https://github.com/SocialGouv/revu/commit/380cf8ac400d78faa4ea21a681d8af0a75d868bc)), closes [#209](https://github.com/SocialGouv/revu/issues/209)
+
 ## [1.32.5](https://github.com/SocialGouv/revu/compare/v1.32.4...v1.32.5) (2025-09-24)
 
 
