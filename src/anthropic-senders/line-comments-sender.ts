@@ -106,7 +106,7 @@ export async function lineCommentsSender(
               }
             }
           },
-          required: ['summary', 'comments']
+          required: ['summary']
         }
       }
     ]

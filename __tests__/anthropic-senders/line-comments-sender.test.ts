@@ -62,6 +62,25 @@ describe('lineCommentsSender', () => {
     expect(result).toBe(JSON.stringify(expectedResponse))
   })
 
+  it('should handle tool use response with only summary (no comments)', async () => {
+    const expectedResponse = {
+      summary: 'No issues found in this PR'
+    }
+
+    mockAnthropic.messages.create.mockResolvedValue({
+      content: [
+        {
+          type: 'tool_use',
+          name: 'provide_code_review',
+          input: expectedResponse
+        }
+      ]
+    })
+
+    const result = await lineCommentsSender('test prompt')
+    expect(result).toBe(JSON.stringify(expectedResponse))
+  })
+
   it('should handle fallback with JSON in code block', async () => {
     const expectedJson = {
       summary: 'Fallback summary',

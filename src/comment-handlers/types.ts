@@ -38,7 +38,7 @@ const CommentSchema = z
 // Schema for the complete analysis response
 export const AnalysisSchema = z.object({
   summary: z.string(),
-  comments: z.array(CommentSchema)
+  comments: z.array(CommentSchema).default([])
 })
 
 // Type for GitHub API errors
