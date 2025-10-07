@@ -1,3 +1,10 @@
+## [1.32.10](https://github.com/SocialGouv/revu/compare/v1.32.9...v1.32.10) (2025-10-07)
+
+
+### Bug Fixes
+
+* Make sure Revu can comment just a summary ([7579982](https://github.com/SocialGouv/revu/commit/757998297c061d34589b095aada687dd1f5c0cc6))
+
 ## [1.32.9](https://github.com/SocialGouv/revu/compare/v1.32.8...v1.32.9) (2025-10-07)
 
 
