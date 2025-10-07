@@ -1,12 +1,12 @@
-import { createAppAuth } from "@octokit/auth-app";
-import { Octokit } from "@octokit/rest";
-import { getPrivateKey } from "@probot/get-private-key";
-import { createPrivateKey } from "node:crypto";
-import { logSystemError } from "../utils/logger.ts";
-import chalk from "chalk";
+import { createAppAuth } from '@octokit/auth-app'
+import { Octokit } from '@octokit/rest'
+import { getPrivateKey } from '@probot/get-private-key'
+import { createPrivateKey } from 'node:crypto'
+import { logSystemError } from '../utils/logger.ts'
+import chalk from 'chalk'
 
 const KEY_FORMAT_HELP =
-  "Invalid GitHub App PRIVATE_KEY. Provide the .pem private key downloaded from your GitHub App. In .env, use \\n-escaped newlines or set PRIVATE_KEY_PATH to the .pem file.";
+  'Invalid GitHub App PRIVATE_KEY. Provide the .pem private key downloaded from your GitHub App. In .env, use \\n-escaped newlines or set PRIVATE_KEY_PATH to the .pem file.'
 
 /**
  * GitHub App Utilities
@@ -25,38 +25,38 @@ const KEY_FORMAT_HELP =
  * Fetches GitHub App credentials from environment variables
  */
 function fetchGitHubCredentials(): {
-  appId: string;
-  privateKey: string;
+  appId: string
+  privateKey: string
 } {
-  const appId = process.env.APP_ID;
-  let privateKey: string | null = null;
+  const appId = process.env.APP_ID
+  let privateKey: string | null = null
 
   try {
-    privateKey = getPrivateKey({ env: process.env });
+    privateKey = getPrivateKey({ env: process.env })
   } catch {
     // Normalize library validation errors into a consistent, friendly message
-    throw new Error(KEY_FORMAT_HELP);
+    throw new Error(KEY_FORMAT_HELP)
   }
 
   if (!appId || !privateKey) {
     throw new Error(
-      "GitHub App credentials (APP_ID and PRIVATE_KEY or PRIVATE_KEY_PATH) are required",
-    );
+      'GitHub App credentials (APP_ID and PRIVATE_KEY or PRIVATE_KEY_PATH) are required'
+    )
   }
 
   // Detect unsupported OpenSSH key format early
-  if (privateKey.includes("BEGIN OPENSSH PRIVATE KEY")) {
-    throw new Error(KEY_FORMAT_HELP);
+  if (privateKey.includes('BEGIN OPENSSH PRIVATE KEY')) {
+    throw new Error(KEY_FORMAT_HELP)
   }
 
   // Deterministic validation: ensure Node/OpenSSL can parse the provided key
   try {
-    createPrivateKey(privateKey);
+    createPrivateKey(privateKey)
   } catch {
-    throw new Error(KEY_FORMAT_HELP);
+    throw new Error(KEY_FORMAT_HELP)
   }
 
-  return { appId, privateKey };
+  return { appId, privateKey }
 }
 
 /**
@@ -64,16 +64,16 @@ function fetchGitHubCredentials(): {
  * @returns Octokit instance with app-level authentication
  */
 function createAppOctokit(): Octokit {
-  const { appId, privateKey } = fetchGitHubCredentials();
+  const { appId, privateKey } = fetchGitHubCredentials()
 
   return new Octokit({
     authStrategy: createAppAuth,
     auth: {
       appId,
       privateKey,
-      type: "app",
-    },
-  });
+      type: 'app'
+    }
+  })
 }
 
 /**
@@ -83,24 +83,24 @@ function createAppOctokit(): Octokit {
  * @returns Installation ID
  */
 async function getInstallationId(owner: string, repo: string): Promise<number> {
-  const appOctokit = createAppOctokit();
+  const appOctokit = createAppOctokit()
 
   try {
     const { data: installation } = await appOctokit.request(
-      "GET /repos/{owner}/{repo}/installation",
+      'GET /repos/{owner}/{repo}/installation',
       {
         owner,
-        repo,
-      },
-    );
+        repo
+      }
+    )
 
-    return installation.id;
+    return installation.id
   } catch (error) {
     logSystemError(error, {
       repository: `${owner}/${repo}`,
-      context_msg: `Failed to get installation ID for ${owner}/${repo}`,
-    });
-    throw error;
+      context_msg: `Failed to get installation ID for ${owner}/${repo}`
+    })
+    throw error
   }
 }
 
@@ -112,19 +112,19 @@ async function getInstallationId(owner: string, repo: string): Promise<number> {
  */
 export async function generateInstallationToken(
   owner: string,
-  repo: string,
+  repo: string
 ): Promise<string> {
-  const { appId, privateKey } = fetchGitHubCredentials();
-  const installationId = await getInstallationId(owner, repo);
+  const { appId, privateKey } = fetchGitHubCredentials()
+  const installationId = await getInstallationId(owner, repo)
 
   const auth = createAppAuth({
     appId,
     privateKey,
-    installationId,
-  });
+    installationId
+  })
 
-  const { token } = await auth({ type: "installation" });
-  return token;
+  const { token } = await auth({ type: 'installation' })
+  return token
 }
 
 /**
@@ -135,21 +135,21 @@ export async function generateInstallationToken(
  */
 export async function generateOptionalInstallationToken(
   owner: string,
-  repo: string,
+  repo: string
 ): Promise<string | undefined> {
-  console.log(chalk.gray("⚡ Setting up authentication..."));
+  console.log(chalk.gray('⚡ Setting up authentication...'))
 
-  let token: string | undefined;
+  let token: string | undefined
   try {
-    token = await generateInstallationToken(owner, repo);
+    token = await generateInstallationToken(owner, repo)
   } catch (error) {
     console.warn(
-      chalk.yellow("⚠ Failed to generate installation token:"),
-      error,
-    );
+      chalk.yellow('⚠ Failed to generate installation token:'),
+      error
+    )
     // Continue without token if generation fails
   }
-  return token;
+  return token
 }
 
 /**
@@ -160,32 +160,32 @@ export async function generateOptionalInstallationToken(
  */
 export async function createGithubAppOctokit(
   owner: string,
-  repo: string,
+  repo: string
 ): Promise<Octokit> {
-  const { appId, privateKey } = fetchGitHubCredentials();
+  const { appId, privateKey } = fetchGitHubCredentials()
 
   const appOctokit = new Octokit({
     authStrategy: createAppAuth,
     auth: {
       appId,
       privateKey,
-      type: "app",
-    },
-  });
+      type: 'app'
+    }
+  })
 
-  let installationId: number;
+  let installationId: number
   try {
     const resp = await appOctokit.request(
-      "GET /repos/{owner}/{repo}/installation",
-      { owner, repo },
-    );
-    installationId = resp.data.id;
+      'GET /repos/{owner}/{repo}/installation',
+      { owner, repo }
+    )
+    installationId = resp.data.id
   } catch (error) {
     logSystemError(error, {
       repository: `${owner}/${repo}`,
-      context_msg: `Failed to get installation ID for ${owner}/${repo}`,
-    });
-    throw error;
+      context_msg: `Failed to get installation ID for ${owner}/${repo}`
+    })
+    throw error
   }
 
   return new Octokit({
@@ -193,7 +193,7 @@ export async function createGithubAppOctokit(
     auth: {
       appId,
       privateKey,
-      installationId,
-    },
-  });
+      installationId
+    }
+  })
 }
