@@ -3,6 +3,7 @@ import { Octokit } from '@octokit/rest'
 import { getPrivateKey } from '@probot/get-private-key'
 import { createPrivateKey } from 'node:crypto'
 import { logSystemError } from '../utils/logger.ts'
+import chalk from 'chalk'
 
 const KEY_FORMAT_HELP =
   'Invalid GitHub App PRIVATE_KEY. Provide the .pem private key downloaded from your GitHub App. In .env, use \\n-escaped newlines or set PRIVATE_KEY_PATH to the .pem file.'

@@ -1,6 +1,6 @@
 {
   "name": "revu",
-  "version": "1.32.6",
+  "version": "1.32.7",
   "description": "Automated PR reviews using Claude Sonnet API",
   "private": true,
   "type": "module",
@@ -13,7 +13,8 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "prepare": "husky",
-    "lint": "eslint --config eslint.config.mjs \"**/*.ts\" --fix",
+    "lint": "eslint --config eslint.config.mjs \"**/*.ts\" --fix && yarn typecheck",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "review-pr": "tsx src/cli/review-pr.ts"
   },
   "dependencies": {
@@ -57,8 +58,7 @@
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
+      "eslint --fix"
     ],
     "*.{json,yaml,yml,md}": [
       "prettier --write"

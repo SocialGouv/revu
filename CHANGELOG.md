@@ -1,3 +1,10 @@
+## [1.32.7](https://github.com/SocialGouv/revu/compare/v1.32.6...v1.32.7) (2025-10-07)
+
+
+### Bug Fixes
+
+* missing dep ([cfb16dd](https://github.com/SocialGouv/revu/commit/cfb16ddb5017606deb4c80d2c0b32d882778360e))
+
 ## [1.32.6](https://github.com/SocialGouv/revu/compare/v1.32.5...v1.32.6) (2025-10-07)
 
 
