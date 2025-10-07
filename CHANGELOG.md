@@ -1,3 +1,10 @@
+## [1.32.8](https://github.com/SocialGouv/revu/compare/v1.32.7...v1.32.8) (2025-10-07)
+
+
+### Bug Fixes
+
+* lint + prettier + typecheck + types ([#230](https://github.com/SocialGouv/revu/issues/230)) ([9c67869](https://github.com/SocialGouv/revu/commit/9c6786999f9385adafe72eff5e154547c0d073fc))
+
 ## [1.32.7](https://github.com/SocialGouv/revu/compare/v1.32.6...v1.32.7) (2025-10-07)
 
 
