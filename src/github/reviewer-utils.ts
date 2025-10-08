@@ -1,5 +1,4 @@
 import { Context } from 'probot'
-import { withRetryOctokit } from '../utils/retry.ts'
 
 // Cache for bot username to avoid repeated API calls
 let cachedBotUsername: string | null = null
@@ -125,22 +124,13 @@ export async function addBotAsReviewer(context: Context): Promise<void> {
       return
     }
 
-    // Add proxy user as reviewer (with retry)
-    await withRetryOctokit(
-      () =>
-        context.octokit.rest.pulls.requestReviewers({
-          owner: repo.owner,
-          repo: repo.repo,
-          pull_number: pr.number,
-          reviewers: [proxyUsername]
-        }),
-      {
-        context: {
-          operation: 'pulls.requestReviewers',
-          repository: `${repo.owner}/${repo.repo}`
-        }
-      }
-    )
+    // Add proxy user as reviewer
+    await context.octokit.rest.pulls.requestReviewers({
+      owner: repo.owner,
+      repo: repo.repo,
+      pull_number: pr.number,
+      reviewers: [proxyUsername]
+    })
 
     context.log.info(
       `Successfully added proxy user as reviewer for PR #${pr.number}`
@@ -179,14 +169,7 @@ export async function getBotUsername(context: Context): Promise<string> {
   }
 
   try {
-    const app = await withRetryOctokit(
-      () => context.octokit.rest.apps.getAuthenticated(),
-      {
-        context: {
-          operation: 'apps.getAuthenticated'
-        }
-      }
-    )
+    const app = await context.octokit.rest.apps.getAuthenticated()
     const username = `${app.data.slug}[bot]`
 
     // Cache the successful result

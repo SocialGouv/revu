@@ -4,7 +4,6 @@ import type { Octokit } from '@octokit/rest'
 import axios from 'axios'
 import chalk from 'chalk'
 import { program } from 'commander'
-import { withRetryOctokit } from '../utils/retry.ts'
 import * as dotenv from 'dotenv'
 import type { PlatformContext } from '../core/models/platform-types.ts'
 import {
@@ -111,15 +110,11 @@ async function fetchPrDetails(context: CliReviewContext): Promise<PrDetails> {
   const { owner, repo, prNumber, octokit } = context
 
   try {
-    const prResponse = await withRetryOctokit(
-      () =>
-        octokit.rest.pulls.get({
-          owner,
-          repo,
-          pull_number: prNumber
-        }),
-      { context: { operation: 'pulls.get' } }
-    )
+    const prResponse = await octokit.rest.pulls.get({
+      owner,
+      repo,
+      pull_number: prNumber
+    })
     return {
       title: prResponse.data.title,
       body: prResponse.data.body
@@ -152,15 +147,11 @@ async function fetchPrBranch(
 ): Promise<BranchName> {
   try {
     // Get PR details
-    const { data: prData } = await withRetryOctokit(
-      () =>
-        octokit.rest.pulls.get({
-          owner,
-          repo,
-          pull_number: prNumber
-        }),
-      { context: { operation: 'pulls.get' } }
-    )
+    const { data: prData } = await octokit.rest.pulls.get({
+      owner,
+      repo,
+      pull_number: prNumber
+    })
 
     const headBranch = prData.head.ref
 

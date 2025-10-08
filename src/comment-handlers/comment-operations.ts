@@ -1,7 +1,6 @@
 import { type Context } from 'probot'
 import { isLineInfoInDiff, parseLineString } from '../core/utils/line-parser.ts'
 import { logSystemError } from '../utils/logger.ts'
-import { withRetryOctokit } from '../utils/retry.ts'
 import { extractMarkerIdFromComment } from './comment-utils.ts'
 import {
   COMMENT_MARKER_PREFIX,
@@ -18,20 +17,11 @@ export async function findExistingComments(context: Context, prNumber: number) {
   const repo = context.repo()
 
   // Get all review comments on the PR
-  const { data: comments } = await withRetryOctokit(
-    () =>
-      context.octokit.rest.pulls.listReviewComments({
-        ...repo,
-        pull_number: prNumber
-      }),
-    {
-      context: {
-        operation: 'pulls.listReviewComments',
-        pr_number: prNumber,
-        repository: `${repo.owner}/${repo.repo}`
-      }
-    }
-  )
+  const { data: comments } =
+    await context.octokit.rest.pulls.listReviewComments({
+      ...repo,
+      pull_number: prNumber
+    })
 
   // Filter to comments with our marker
   return comments.filter((comment) =>
@@ -57,20 +47,10 @@ export async function findExistingSummaryComment(
   const repo = context.repo()
 
   // Get all reviews on the PR
-  const { data: reviews } = await withRetryOctokit(
-    () =>
-      context.octokit.rest.pulls.listReviews({
-        ...repo,
-        pull_number: prNumber
-      }),
-    {
-      context: {
-        operation: 'pulls.listReviews',
-        pr_number: prNumber,
-        repository: `${repo.owner}/${repo.repo}`
-      }
-    }
-  )
+  const { data: reviews } = await context.octokit.rest.pulls.listReviews({
+    ...repo,
+    pull_number: prNumber
+  })
 
   // Filter reviews by proxy user and containing our marker, get the most recent
   const proxyReviews = reviews
@@ -98,19 +78,10 @@ export async function checkCommentExistence(
 ): Promise<CommentExistenceResult> {
   try {
     const repo = context.repo()
-    await withRetryOctokit(
-      () =>
-        context.octokit.rest.pulls.getReviewComment({
-          ...repo,
-          comment_id: commentId
-        }),
-      {
-        context: {
-          operation: 'pulls.getReviewComment',
-          repository: `${repo.owner}/${repo.repo}`
-        }
-      }
-    )
+    await context.octokit.rest.pulls.getReviewComment({
+      ...repo,
+      comment_id: commentId
+    })
     return { exists: true }
   } catch (error) {
     // Support both direct GitHub errors and wrapped AbortError with cause
@@ -222,20 +193,10 @@ export async function cleanupObsoleteComments(
     if (shouldDelete) {
       try {
         // Delete the obsolete comment
-        await withRetryOctokit(
-          () =>
-            context.octokit.rest.pulls.deleteReviewComment({
-              ...repo,
-              comment_id: comment.id
-            }),
-          {
-            context: {
-              operation: 'pulls.deleteReviewComment',
-              pr_number: prNumber,
-              repository: repo.owner + '/' + repo.repo
-            }
-          }
-        )
+        await context.octokit.rest.pulls.deleteReviewComment({
+          ...repo,
+          comment_id: comment.id
+        })
         deletedCount++
       } catch (error) {
         logSystemError(error, {
