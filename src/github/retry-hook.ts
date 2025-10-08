@@ -21,17 +21,19 @@ type HasHook = {
   }
 }
 
+// Track instances that already have retry attached
+const attachedInstances = new WeakSet<HasHook>()
+
 export function attachOctokitRetry<T extends HasHook>(
   octokit: T,
   ctx?: Ctx
 ): T {
   // Avoid attaching twice
-  const anyOcto = octokit as any
-  if (anyOcto.__revuRetryHookAttached) {
+  if (attachedInstances.has(octokit)) {
     return octokit
   }
 
-  anyOcto.__revuRetryHookAttached = true
+  attachedInstances.add(octokit)
 
   // Wrap the base request pipeline
   anyOcto.hook.wrap('request', async (request: any, options: any) => {
