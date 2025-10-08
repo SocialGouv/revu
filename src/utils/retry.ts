@@ -22,7 +22,7 @@ const defaultOptions: Partial<PRetryOptions> = {
           return Number.isFinite(val) && val >= 0 ? val : 5
         })()
       : isTest
-        ? 0
+        ? 1
         : 5,
   factor: 2,
   minTimeout: isTest ? 0 : 500,
