@@ -121,6 +121,10 @@ export async function withRetry<T>(
                 (abortErr as any).headers = orig.headers
               if (orig.name && !(abortErr as any).name)
                 (abortErr as any).name = orig.name
+              // Preserve stack trace if available
+              if (orig.stack && !abortErr.stack) {
+                abortErr.stack = orig.stack
+              }
             }
             // Also attach as cause for tooling that inspects .cause
             ;(abortErr as any).cause = err
