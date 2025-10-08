@@ -17,7 +17,10 @@ export interface WithRetryOptions extends Partial<PRetryOptions> {
 const defaultOptions: Partial<PRetryOptions> = {
   retries:
     process.env.P_RETRY_RETRIES != null
-      ? Number(process.env.P_RETRY_RETRIES)
+      ? (() => {
+          const val = Number(process.env.P_RETRY_RETRIES)
+          return Number.isFinite(val) && val >= 0 ? val : 5
+        })()
       : isTest
         ? 0
         : 5,
