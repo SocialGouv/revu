@@ -33,6 +33,8 @@ export function attachOctokitRetry<T extends HasHook>(
     return octokit
   }
 
+  const anyOcto = octokit as any
+
   attachedInstances.add(octokit)
 
   // Wrap the base request pipeline
