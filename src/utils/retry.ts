@@ -17,15 +17,12 @@ export interface WithRetryOptions extends Partial<PRetryOptions> {
 const defaultOptions: Partial<PRetryOptions> = {
   retries:
     process.env.P_RETRY_RETRIES != null
-const defaultOptions: Partial<PRetryOptions> = {
-  retries:
-    process.env.P_RETRY_RETRIES != null
       ? (() => {
           const val = Number(process.env.P_RETRY_RETRIES)
           return Number.isFinite(val) && val >= 0 ? val : 5
         })()
       : isTest
-        ? 1  // Use 1 retry in tests to exercise retry logic without delays
+        ? 0
         : 5,
   factor: 2,
   minTimeout: isTest ? 0 : 500,
