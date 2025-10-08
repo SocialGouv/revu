@@ -9,6 +9,7 @@ import type {
 import { parseDiff } from '../../core/services/diff-parser.ts'
 import { cloneRepository } from '../../repo-utils.ts'
 import { logSystemError } from '../../utils/logger.ts'
+import { withRetryOctokit } from '../../utils/retry.ts'
 
 /**
  * Creates a GitHub-specific implementation of PlatformClient
@@ -184,14 +185,21 @@ export const createGitHubClient = (
 
   return {
     fetchPullRequestDiff: async (prNumber: number): Promise<string> => {
-      const response = await octokit.request(
-        'GET /repos/{owner}/{repo}/pulls/{pull_number}',
+      const response = await withRetryOctokit(
+        () =>
+          octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+            owner,
+            repo,
+            pull_number: prNumber,
+            headers: {
+              accept: 'application/vnd.github.v3.diff'
+            }
+          }),
         {
-          owner,
-          repo,
-          pull_number: prNumber,
-          headers: {
-            accept: 'application/vnd.github.v3.diff'
+          context: {
+            operation: 'pulls.diff',
+            pr_number: prNumber,
+            repository: `${owner}/${repo}`
           }
         }
       )
@@ -203,16 +211,34 @@ export const createGitHubClient = (
     ): Promise<IssueDetails | null> => {
       try {
         const [{ data: issue }, { data: comments }] = await Promise.all([
-          octokit.rest.issues.get({
-            owner,
-            repo,
-            issue_number: issueNumber
-          }),
-          octokit.rest.issues.listComments({
-            owner,
-            repo,
-            issue_number: issueNumber
-          })
+          withRetryOctokit(
+            () =>
+              octokit.rest.issues.get({
+                owner,
+                repo,
+                issue_number: issueNumber
+              }),
+            {
+              context: {
+                operation: 'issues.get',
+                repository: `${owner}/${repo}`
+              }
+            }
+          ),
+          withRetryOctokit(
+            () =>
+              octokit.rest.issues.listComments({
+                owner,
+                repo,
+                issue_number: issueNumber
+              }),
+            {
+              context: {
+                operation: 'issues.listComments',
+                repository: `${owner}/${repo}`
+              }
+            }
+          )
         ])
 
         return {
@@ -254,13 +280,22 @@ export const createGitHubClient = (
         throw new Error('PROXY_REVIEWER_TOKEN not configured')
       }
 
-      await proxyClient.rest.pulls.createReview({
-        owner,
-        repo,
-        pull_number: prNumber,
-        body,
-        event: 'COMMENT'
-      })
+      await withRetryOctokit(
+        () =>
+          proxyClient.rest.pulls.createReview({
+            owner,
+            repo,
+            pull_number: prNumber,
+            body,
+            event: 'COMMENT'
+          }),
+        {
+          context: {
+            operation: 'pulls.createReview',
+            repository: `${owner}/${repo}`
+          }
+        }
+      )
     },
 
     createReviewComment: async (params: {
@@ -283,7 +318,15 @@ export const createGitHubClient = (
       const commentParams = buildCommentParams(owner, repo, params)
 
       try {
-        await proxyClient.rest.pulls.createReviewComment(commentParams)
+        await withRetryOctokit(
+          () => proxyClient.rest.pulls.createReviewComment(commentParams),
+          {
+            context: {
+              operation: 'pulls.createReviewComment',
+              repository: `${owner}/${repo}`
+            }
+          }
+        )
       } catch (error) {
         const { errorMessage, shouldAttemptFallback } = analyzeGitHubError(
           error,
@@ -314,21 +357,40 @@ export const createGitHubClient = (
         throw new Error('PROXY_REVIEWER_TOKEN not configured')
       }
 
-      await proxyClient.rest.pulls.updateReviewComment({
-        owner,
-        repo,
-        comment_id: commentId,
-        body
-      })
+      await withRetryOctokit(
+        () =>
+          proxyClient.rest.pulls.updateReviewComment({
+            owner,
+            repo,
+            comment_id: commentId,
+            body
+          }),
+        {
+          context: {
+            operation: 'pulls.updateReviewComment',
+            repository: `${owner}/${repo}`
+          }
+        }
+      )
     },
 
     // PR operations
     getPullRequest: async (prNumber: number) => {
-      const { data } = await octokit.rest.pulls.get({
-        owner,
-        repo,
-        pull_number: prNumber
-      })
+      const { data } = await withRetryOctokit(
+        () =>
+          octokit.rest.pulls.get({
+            owner,
+            repo,
+            pull_number: prNumber
+          }),
+        {
+          context: {
+            operation: 'pulls.get',
+            pr_number: prNumber,
+            repository: `${owner}/${repo}`
+          }
+        }
+      )
       return {
         head: { sha: data.head.sha },
         number: data.number,
@@ -341,11 +403,21 @@ export const createGitHubClient = (
 
     // Review comment operations
     listReviewComments: async (prNumber: number) => {
-      const { data } = await octokit.rest.pulls.listReviewComments({
-        owner,
-        repo,
-        pull_number: prNumber
-      })
+      const { data } = await withRetryOctokit(
+        () =>
+          octokit.rest.pulls.listReviewComments({
+            owner,
+            repo,
+            pull_number: prNumber
+          }),
+        {
+          context: {
+            operation: 'pulls.listReviewComments',
+            pr_number: prNumber,
+            repository: `${owner}/${repo}`
+          }
+        }
+      )
       return data.map((comment) => ({
         id: comment.id,
         path: comment.path,
@@ -356,11 +428,20 @@ export const createGitHubClient = (
 
     getReviewComment: async (commentId: number) => {
       try {
-        const { data } = await octokit.rest.pulls.getReviewComment({
-          owner,
-          repo,
-          comment_id: commentId
-        })
+        const { data } = await withRetryOctokit(
+          () =>
+            octokit.rest.pulls.getReviewComment({
+              owner,
+              repo,
+              comment_id: commentId
+            }),
+          {
+            context: {
+              operation: 'pulls.getReviewComment',
+              repository: `${owner}/${repo}`
+            }
+          }
+        )
         return {
           id: data.id,
           body: data.body
@@ -380,23 +461,39 @@ export const createGitHubClient = (
         throw new Error('PROXY_REVIEWER_TOKEN not configured')
       }
 
-      await proxyClient.rest.pulls.deleteReviewComment({
-        owner,
-        repo,
-        comment_id: commentId
-      })
+      await withRetryOctokit(
+        () =>
+          proxyClient.rest.pulls.deleteReviewComment({
+            owner,
+            repo,
+            comment_id: commentId
+          }),
+        {
+          context: {
+            operation: 'pulls.deleteReviewComment',
+            repository: `${owner}/${repo}`
+          }
+        }
+      )
     },
 
     fetchPullRequestDiffMap: async (prNumber: number): Promise<DiffFileMap> => {
       try {
-        const response = await octokit.request(
-          'GET /repos/{owner}/{repo}/pulls/{pull_number}',
+        const response = await withRetryOctokit(
+          () =>
+            octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+              owner,
+              repo,
+              pull_number: prNumber,
+              headers: {
+                accept: 'application/vnd.github.v3.diff'
+              }
+            }),
           {
-            owner,
-            repo,
-            pull_number: prNumber,
-            headers: {
-              accept: 'application/vnd.github.v3.diff'
+            context: {
+              operation: 'pulls.diff',
+              pr_number: prNumber,
+              repository: `${owner}/${repo}`
             }
           }
         )
@@ -419,12 +516,21 @@ export const createGitHubClient = (
       commitSha: string
     ): Promise<string> => {
       try {
-        const response = await octokit.rest.repos.getContent({
-          owner,
-          repo,
-          path: filePath,
-          ref: commitSha
-        })
+        const response = await withRetryOctokit(
+          () =>
+            octokit.rest.repos.getContent({
+              owner,
+              repo,
+              path: filePath,
+              ref: commitSha
+            }),
+          {
+            context: {
+              operation: 'repos.getContent',
+              repository: `${owner}/${repo}`
+            }
+          }
+        )
 
         const data = response.data
         if (!('content' in data) || !data.content) {
@@ -440,11 +546,21 @@ export const createGitHubClient = (
     },
 
     listReviews: async (prNumber: number): Promise<Array<Review>> => {
-      const { data } = await octokit.rest.pulls.listReviews({
-        owner,
-        repo,
-        pull_number: prNumber
-      })
+      const { data } = await withRetryOctokit(
+        () =>
+          octokit.rest.pulls.listReviews({
+            owner,
+            repo,
+            pull_number: prNumber
+          }),
+        {
+          context: {
+            operation: 'pulls.listReviews',
+            pr_number: prNumber,
+            repository: `${owner}/${repo}`
+          }
+        }
+      )
       return data.map((review) => ({
         id: review.id,
         user: review.user,

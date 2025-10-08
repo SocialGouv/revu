@@ -19,6 +19,7 @@ import {
   logSystemWarning,
   logWebhookReceived
 } from './utils/logger.ts'
+import { withRetryOctokit } from './utils/retry.ts'
 
 // Load environment variables
 config()
@@ -169,11 +170,21 @@ export default async (app: Probot) => {
 
     // Get an installation token for authentication with private repositories
     const installationId = payload.installation.id
-    const installationAccessToken = await context.octokit.rest.apps
-      .createInstallationAccessToken({
-        installation_id: installationId
-      })
-      .then((response) => response.data.token)
+    const installationAccessToken = await withRetryOctokit(
+      () =>
+        context.octokit.rest.apps
+          .createInstallationAccessToken({
+            installation_id: installationId
+          })
+          .then((response) => response.data.token),
+      {
+        context: {
+          operation: 'apps.createInstallationAccessToken',
+          pr_number: pr.number,
+          repository
+        }
+      }
+    )
 
     let platformContext: PlatformContext
     try {

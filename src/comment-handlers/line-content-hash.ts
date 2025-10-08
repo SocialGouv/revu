@@ -1,5 +1,6 @@
 import { type Context } from 'probot'
 import { extractLineContent } from '../core/services/line-content-service.ts'
+import { withRetryOctokit } from '../utils/retry.ts'
 
 /**
  * Fetches the content of specific lines from a file
@@ -20,12 +21,21 @@ export async function getLineContent(
   try {
     const repo = context.repo()
 
-    // Fetch file content from GitHub API
-    const response = await context.octokit.rest.repos.getContent({
-      ...repo,
-      path: filePath,
-      ref: commitSha
-    })
+    // Fetch file content from GitHub API (with retry)
+    const response = await withRetryOctokit(
+      () =>
+        context.octokit.rest.repos.getContent({
+          ...repo,
+          path: filePath,
+          ref: commitSha
+        }),
+      {
+        context: {
+          operation: 'repos.getContent',
+          repository: `${repo.owner}/${repo.repo}`
+        }
+      }
+    )
 
     // Handle the response data
     const data = response.data
