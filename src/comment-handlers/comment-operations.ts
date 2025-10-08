@@ -77,16 +77,48 @@ export async function checkCommentExistence(
   commentId: number
 ): Promise<CommentExistenceResult> {
   try {
+    const repo = context.repo()
     await context.octokit.rest.pulls.getReviewComment({
-      ...context.repo(),
+      ...repo,
       comment_id: commentId
     })
     return { exists: true }
   } catch (error) {
-    if (isGitHubApiError(error) && error.status === 404) {
+    // Support both direct GitHub errors and wrapped AbortError with cause
+    const candidates = [
+      (error as any)?.status,
+      (error as any)?.response?.status,
+      (error as any)?.cause?.status,
+      (error as any)?.cause?.response?.status
+    ]
+    let status: number | undefined = candidates.find(
+      (s) => typeof s === 'number'
+    ) as number | undefined
+
+    // Fallback: parse status from formatted message like "[404] Not Found"
+    if (status === undefined) {
+      const msg = (error as any)?.message
+      const match =
+        typeof msg === 'string' ? msg.match(/\[(\d{3})\]/) : undefined
+      if (match) status = Number(match[1])
+    }
+
+    if (
+      status === 404 ||
+      (isGitHubApiError(error) && (error as any).status === 404)
+    ) {
       return { exists: false, reason: 'not_found' }
     }
-    return { exists: false, reason: 'error', error }
+
+    // Prefer returning the original underlying error if present (for tests and callers)
+    const errorForResult =
+      (error as any)?.cause &&
+      (((error as any).cause as any)?.status !== undefined ||
+        ((error as any).cause as any)?.message)
+        ? (error as any).cause
+        : error
+
+    return { exists: false, reason: 'error', error: errorForResult }
   }
 }
 
