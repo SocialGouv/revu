@@ -13,7 +13,6 @@ import {
   sanitizeGitCommand
 } from './utils/error-sanitizer.ts'
 import { logSystemError } from './utils/logger.ts'
-import { withRetryOctokit } from './utils/retry.ts'
 
 const execAsync = promisify(exec)
 
@@ -158,31 +157,18 @@ export async function fetchIssueDetails(
 ): Promise<IssueDetails | null> {
   try {
     // Fetch issue details
-    const { data: issue } = await withRetryOctokit(
-      () =>
-        octokit.rest.issues.get({
-          owner,
-          repo,
-          issue_number: issueNumber
-        }),
-      { context: { operation: 'issues.get', repository: `${owner}/${repo}` } }
-    )
+    const { data: issue } = await octokit.rest.issues.get({
+      owner,
+      repo,
+      issue_number: issueNumber
+    })
 
     // Fetch issue comments
-    const { data: comments } = await withRetryOctokit(
-      () =>
-        octokit.rest.issues.listComments({
-          owner,
-          repo,
-          issue_number: issueNumber
-        }),
-      {
-        context: {
-          operation: 'issues.listComments',
-          repository: `${owner}/${repo}`
-        }
-      }
-    )
+    const { data: comments } = await octokit.rest.issues.listComments({
+      owner,
+      repo,
+      issue_number: issueNumber
+    })
 
     return {
       number: issue.number,
