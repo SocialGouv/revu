@@ -3,6 +3,7 @@ import { Octokit } from '@octokit/rest'
 import { getPrivateKey } from '@probot/get-private-key'
 import { createPrivateKey } from 'node:crypto'
 import { logSystemError } from '../utils/logger.ts'
+import { withRetryOctokit } from '../utils/retry.ts'
 import chalk from 'chalk'
 
 const KEY_FORMAT_HELP =
@@ -86,11 +87,17 @@ async function getInstallationId(owner: string, repo: string): Promise<number> {
   const appOctokit = createAppOctokit()
 
   try {
-    const { data: installation } = await appOctokit.request(
-      'GET /repos/{owner}/{repo}/installation',
+    const { data: installation } = await withRetryOctokit(
+      () =>
+        appOctokit.request('GET /repos/{owner}/{repo}/installation', {
+          owner,
+          repo
+        }),
       {
-        owner,
-        repo
+        context: {
+          operation: 'repos.getInstallation',
+          repository: `${owner}/${repo}`
+        }
       }
     )
 
@@ -175,9 +182,18 @@ export async function createGithubAppOctokit(
 
   let installationId: number
   try {
-    const resp = await appOctokit.request(
-      'GET /repos/{owner}/{repo}/installation',
-      { owner, repo }
+    const resp = await withRetryOctokit(
+      () =>
+        appOctokit.request('GET /repos/{owner}/{repo}/installation', {
+          owner,
+          repo
+        }),
+      {
+        context: {
+          operation: 'repos.getInstallation',
+          repository: `${owner}/${repo}`
+        }
+      }
     )
     installationId = resp.data.id
   } catch (error) {
