@@ -6,6 +6,7 @@ import { createAnthropicResponseProcessor } from './response-processor/processor
  * This sender uses Anthropic's Tool Use / Function Calling capability
  * to enforce a structured JSON response with specific line-based comments.
  * Supports extended thinking when strategy includes "thinking".
+ * Supports 1M token context window via Anthropic's beta API (enabled by default).
  *
  * @param prompt - The prompt to send to Anthropic
  * @param enableThinking - Optional flag to enable extended thinking capabilities
@@ -33,15 +34,18 @@ export async function lineCommentsSender(
   // Adjust max_tokens based on thinking configuration
   const maxTokens = enableThinking ? 20096 : 4096
 
-  // Send to Anthropic API with tool use configuration
-  const message = await anthropic.messages.create({
+  // Determine if extended context should be used (opt-out: enabled by default)
+  const useExtendedContext = process.env.ANTHROPIC_EXTENDED_CONTEXT !== 'false'
+
+  // Prepare message parameters
+  const messageParams = {
     model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
     max_tokens: maxTokens,
     temperature: enableThinking ? 1 : 0, // We are forced to use temperature 1 for thinking
     ...thinkingConfig,
     messages: [
       {
-        role: 'user',
+        role: 'user' as const,
         content: prompt
       }
     ],
@@ -51,7 +55,7 @@ export async function lineCommentsSender(
         description:
           'Provide structured code review with line-specific comments',
         input_schema: {
-          type: 'object',
+          type: 'object' as const,
           properties: {
             summary: {
               type: 'string',
@@ -109,9 +113,24 @@ export async function lineCommentsSender(
           required: ['summary']
         }
       }
-    ]
-  })
+    ],
+    // Add beta flag only when using extended context
+    ...(useExtendedContext ? { betas: ['context-1m-2025-08-07'] } : {})
+  }
 
+  // Send to Anthropic API with tool use configuration
+  // Use beta API for extended context, standard API otherwise
+  let message
+  try {
+    message = useExtendedContext
+      ? await anthropic.beta.messages.create(messageParams)
+      : await anthropic.messages.create(messageParams)
+  } catch (error) {
+    const apiType = useExtendedContext ? 'beta (extended context)' : 'standard'
+    throw new Error(
+      `Failed to create message using Anthropic ${apiType} API: ${error instanceof Error ? error.message : String(error)}`
+    )
+  }
   // Use shared response processor with basic validation
   const processResponse = createAnthropicResponseProcessor({
     expectedToolName: 'provide_code_review',
