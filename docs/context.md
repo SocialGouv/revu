@@ -30,8 +30,20 @@
 - **Comment Handlers**: Post reviews as global comments or line-specific comments
 - **SEARCH/REPLACE Processing**: Pattern matching system for precise code suggestions with exact character-for-character matching
 - **Extended Thinking Support**: Enhanced reasoning capabilities using Anthropic's Extended Thinking feature
+- **Extended Context Window Support**: Leverages Anthropic's 1M token context window for comprehensive codebase analysis
 - **Configuration Structure**: Separate `promptStrategy` and `thinkingEnabled` settings for better modularity
 - Current config: "line-comments" strategy with thinking enabled (provides feedback as inline comments with extended thinking for deeper analysis)
+
+## Extended Context Window
+
+- **1M Token Context**: Leverages Anthropic's beta feature for extended context windows (enabled by default)
+- **Configuration**: Controlled via `ANTHROPIC_EXTENDED_CONTEXT` environment variable
+  - Set to `"true"` (default): Uses 1M token context window via beta API
+  - Set to `"false"`: Uses standard 200K token context window
+- **Benefits**: Allows analysis of larger codebases and more comprehensive PR context without truncation
+- **Model Support**: Currently supported for Claude Sonnet 4.5 models
+- **Beta Feature**: Uses Anthropic's beta API with `betas: ['context-1m-2025-08-07']` flag
+- **Implementation**: Isolated in Anthropic sender layer ([`src/anthropic-senders/line-comments-sender.ts`](../src/anthropic-senders/line-comments-sender.ts)) to maintain model-agnostic architecture
 
 ## Key Files
 

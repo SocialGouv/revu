@@ -246,7 +246,7 @@ To review private repositories, you need to set up GitHub App (Revu) authenticat
      - `PRIVATE_KEY`: Paste the key value (use `\n` for line breaks) or paste a base64‑encoded key (auto‑detected)
    - Note: Use the `.pem` private key downloaded from your GitHub App.
 
-2. Make sure your Revu is installed on the repositories you want to review
+2. Make sure Revu is added as collaborator on the repositories you want to review
 
 By default, the CLI will output the analysis results to the console only, making it easy to test and debug the review process. When the `--submit` flag is provided, it will also post comments to GitHub using the appropriate comment handler based on the strategy.
 
@@ -296,18 +296,19 @@ Requirements:
 
 ### Environment Configuration
 
-| Variable                  | Type   | Description                                                                                          |
-| ------------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY`       | string | Your Anthropic API key for accessing Claude API                                                      |
-| `ANTHROPIC_MODEL`         | string | (Optional) Anthropic model to use (default: claude-sonnet-4-5-20250929)                              |
-| `APP_ID`                  | number | GitHub App ID obtained after registering the app                                                     |
-| `PRIVATE_KEY`             | string | Private key value (use `\n` for line breaks when in `.env`) or a base64‑encoded key (auto‑detected). |
-| `WEBHOOK_SECRET`          | string | Secret string used to verify GitHub webhook payloads                                                 |
-| `PRIVATE_KEY_PATH`        | string | Path to the downloaded `.pem` private key file                                                       |
-| `WEBHOOK_PROXY_URL`       | string | (Optional) Smee.io URL for local development webhook forwarding                                      |
-| `REPOSITORY_FOLDER`       | string | Absolute path where repositories will be cloned                                                      |
-| `PROXY_REVIEWER_USERNAME` | string | Username of the proxy user account for manual review requests                                        |
-| `PROXY_REVIEWER_TOKEN`    | string | GitHub personal access token for the proxy user account                                              |
+| Variable                     | Type   | Description                                                                                          |
+| ---------------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
+| `ANTHROPIC_API_KEY`          | string | Your Anthropic API key for accessing Claude API                                                      |
+| `ANTHROPIC_MODEL`            | string | (Optional) Anthropic model to use (default: claude-sonnet-4-5-20250929)                              |
+| `ANTHROPIC_EXTENDED_CONTEXT` | string | (Optional) Enable 1M token context window. Set to "false" to disable (default: "true")               |
+| `APP_ID`                     | number | GitHub App ID obtained after registering the app                                                     |
+| `PRIVATE_KEY`                | string | Private key value (use `\n` for line breaks when in `.env`) or a base64‑encoded key (auto‑detected). |
+| `WEBHOOK_SECRET`             | string | Secret string used to verify GitHub webhook payloads                                                 |
+| `PRIVATE_KEY_PATH`           | string | Path to the downloaded `.pem` private key file                                                       |
+| `WEBHOOK_PROXY_URL`          | string | (Optional) Smee.io URL for local development webhook forwarding                                      |
+| `REPOSITORY_FOLDER`          | string | Absolute path where repositories will be cloned                                                      |
+| `PROXY_REVIEWER_USERNAME`    | string | Username of the proxy user account for manual review requests                                        |
+| `PROXY_REVIEWER_TOKEN`       | string | GitHub personal access token for the proxy user account                                              |
 
 ## Running the App
 
@@ -352,10 +353,11 @@ docker run -d \
   - `claude-sonnet-4-5-20250929` (default, recommended)
   - `claude-opus-4-20250514` (more powerful, higher cost)
   - `claude-3-7-sonnet-latest`
-- Max tokens: 4096
-- Temperature: 0 (deterministic for consistent code reviews)
+- Max tokens: 4096 (or 20096 with thinking enabled)
+- Context window: 1M tokens (configurable via `ANTHROPIC_EXTENDED_CONTEXT`)
+- Temperature: 0 (deterministic for consistent code reviews; 1 when thinking enabled)
 - Required env: `ANTHROPIC_API_KEY`
-- Optional env: `ANTHROPIC_MODEL`
+- Optional env: `ANTHROPIC_MODEL`, `ANTHROPIC_EXTENDED_CONTEXT`
 
 #### Coding Guidelines Configuration
 
