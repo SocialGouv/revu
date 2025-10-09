@@ -3,5 +3,4 @@ apiVersion: v1
 metadata:
   name: app
 data:
-  REPOSITORY_FOLDER: "/app/repos"
   ANTHROPIC_MODEL: "claude-sonnet-4-5-20250929"
