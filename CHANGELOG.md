@@ -1,3 +1,10 @@
+## [1.33.1](https://github.com/SocialGouv/revu/compare/v1.33.0...v1.33.1) (2025-10-09)
+
+
+### Bug Fixes
+
+* Use revu's .revuignore if none is found in the reviewed repository ([370a86c](https://github.com/SocialGouv/revu/commit/370a86cc44709c800a675ce6432b9ec5ca96fc33))
+
 # [1.33.0](https://github.com/SocialGouv/revu/compare/v1.32.10...v1.33.0) (2025-10-09)
 
 
