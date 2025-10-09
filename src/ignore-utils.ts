@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises'
 import ignore from 'ignore'
 import * as path from 'path'
+import { fileURLToPath } from 'url'
 import type { PlatformClient } from './core/models/platform-types.ts'
 
 /**
@@ -38,7 +39,12 @@ export async function getRemoteIgnoreInstance(
     content = await client.getFileContent('.revuignore', commitSha)
   } catch {
     // Fall back to default .revuignore from this repo
-    const defaultIgnorePath = path.join(process.cwd(), '.revuignore')
+    // Use import.meta.url to reliably find the project root
+    const currentFileUrl = import.meta.url
+    const currentFilePath = fileURLToPath(currentFileUrl)
+    const srcDir = path.dirname(currentFilePath)
+    const projectRoot = path.resolve(srcDir, '..')
+    const defaultIgnorePath = path.join(projectRoot, '.revuignore')
     try {
       content = await fs.readFile(defaultIgnorePath, 'utf-8')
     } catch {

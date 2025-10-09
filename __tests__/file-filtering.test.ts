@@ -1,23 +1,20 @@
-import * as fs from 'fs/promises'
-import * as os from 'os'
-import * as path from 'path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import type { PlatformClient } from '../src/core/models/platform-types.ts'
 import { filterIgnoredFiles } from '../src/file-utils.ts'
 
 describe('file filtering', () => {
   describe('filterIgnoredFiles', () => {
-    it('should filter files based on ignore patterns', async () => {
-      // Create a temporary directory for testing
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'revu-test-'))
-
-      // Create a test .revuignore file
+    it('should filter files based on remote .revuignore patterns', async () => {
+      // Create a mock client that returns .revuignore content
       const revuIgnoreContent = `
 *.lock
 dist/
 node_modules/
 *.min.js
 `
-      await fs.writeFile(path.join(tempDir, '.revuignore'), revuIgnoreContent)
+      const mockClient = {
+        getFileContent: vi.fn().mockResolvedValue(revuIgnoreContent)
+      } as unknown as PlatformClient
 
       const filePaths = [
         'src/index.ts',
@@ -30,7 +27,11 @@ node_modules/
         'README.md'
       ]
 
-      const filteredFiles = await filterIgnoredFiles(filePaths, tempDir)
+      const filteredFiles = await filterIgnoredFiles(
+        filePaths,
+        mockClient,
+        'abc123'
+      )
 
       expect(filteredFiles).toEqual([
         'src/index.ts',
@@ -38,35 +39,44 @@ node_modules/
         'README.md'
       ])
 
-      // Clean up
-      await fs.rm(tempDir, { recursive: true, force: true })
+      expect(mockClient.getFileContent).toHaveBeenCalledWith(
+        '.revuignore',
+        'abc123'
+      )
     })
 
-    it('should return all files when no .revuignore exists and no default patterns', async () => {
-      // Create a temporary directory without .revuignore
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'revu-test-'))
+    it('should fall back to default .revuignore when remote file does not exist', async () => {
+      // Create a mock client that throws an error (file not found)
+      const mockClient = {
+        getFileContent: vi.fn().mockRejectedValue(new Error('File not found'))
+      } as unknown as PlatformClient
 
       const filePaths = ['src/index.ts', 'package.json', 'yarn.lock']
 
       // This will fall back to the default .revuignore in the project root
-      const filteredFiles = await filterIgnoredFiles(filePaths, tempDir)
+      const filteredFiles = await filterIgnoredFiles(
+        filePaths,
+        mockClient,
+        'abc123'
+      )
 
       // yarn.lock should be filtered out by the default .revuignore
       expect(filteredFiles).toEqual(['src/index.ts', 'package.json'])
 
-      // Clean up
-      await fs.rm(tempDir, { recursive: true, force: true })
+      expect(mockClient.getFileContent).toHaveBeenCalledWith(
+        '.revuignore',
+        'abc123'
+      )
     })
 
     it('should handle empty file list', async () => {
-      const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'revu-test-'))
+      const mockClient = {
+        getFileContent: vi.fn().mockResolvedValue('')
+      } as unknown as PlatformClient
 
-      const filteredFiles = await filterIgnoredFiles([], tempDir)
+      const filteredFiles = await filterIgnoredFiles([], mockClient, 'abc123')
 
       expect(filteredFiles).toEqual([])
-
-      // Clean up
-      await fs.rm(tempDir, { recursive: true, force: true })
     })
   })
 })
