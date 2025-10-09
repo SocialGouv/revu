@@ -1,3 +1,10 @@
+# [1.33.0](https://github.com/SocialGouv/revu/compare/v1.32.10...v1.33.0) (2025-10-09)
+
+
+### Features
+
+* Add support for 1m token context ([4d8b9c1](https://github.com/SocialGouv/revu/commit/4d8b9c1b64c46e8f7de99834b6597820e3049f50))
+
 ## [1.32.10](https://github.com/SocialGouv/revu/compare/v1.32.9...v1.32.10) (2025-10-07)
 
 
