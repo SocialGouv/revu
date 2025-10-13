@@ -131,7 +131,6 @@ export async function lineCommentsSender(
       `Failed to create message using Anthropic ${apiType} API: ${error instanceof Error ? error.message : String(error)}`
     )
   }
-
   // Use shared response processor with basic validation
   const processResponse = createAnthropicResponseProcessor({
     expectedToolName: 'provide_code_review',
