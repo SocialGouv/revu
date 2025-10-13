@@ -6,7 +6,7 @@ import {
   getComputeCache,
   simpleHash
 } from '../utils/compute-cache.ts'
-import { logSystemError } from '../utils/logger.ts'
+import { logSystemError, logSystemWarning } from '../utils/logger.ts'
 
 export interface ThreadMessage {
   author: string
@@ -27,6 +27,7 @@ export interface DiscussionHandlerParams {
   commitSha?: string
   history?: ThreadMessage[]
   cacheTtlSeconds?: number
+  replyVersion?: string
 }
 
 /**
@@ -36,6 +37,9 @@ export interface DiscussionHandlerParams {
  * - Posts a threaded reply to the review comment
  * - Uses a compute cache to avoid duplicate work
  */
+const MAX_REPLY_PROMPT_CHARS = 4000
+const MAX_REPLY_HASH_CHARS = 8192
+
 export async function handleDiscussionReply(params: DiscussionHandlerParams) {
   const {
     platformContext,
@@ -49,8 +53,23 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     owner,
     repo,
     history = [],
-    cacheTtlSeconds = 3600
+    cacheTtlSeconds = 3600,
+    replyVersion
   } = params
+
+  // Validate required parameters
+  if (!prNumber || prNumber <= 0) {
+    throw new Error('Invalid PR number')
+  }
+  if (!parentCommentId || parentCommentId <= 0) {
+    throw new Error('Invalid parent comment ID')
+  }
+  if (!userReplyCommentId || userReplyCommentId <= 0) {
+    throw new Error('Invalid user reply comment ID')
+  }
+  if (!userReplyBody?.trim()) {
+    throw new Error('User reply body cannot be empty')
+  }
 
   // Build review context (shared with main review flow)
   const reviewCtx = await buildReviewContext(
@@ -59,9 +78,33 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     platformContext
   )
 
+  // Early stale-guard: if the reply has changed since webhook reception, skip
+  try {
+    const currentBefore =
+      await platformContext.client.getReviewComment(userReplyCommentId)
+    if (currentBefore?.body && currentBefore.body !== userReplyBody) {
+      logSystemWarning(
+        'Stale reply detected before processing - skipping discussion generation',
+        {
+          pr_number: prNumber,
+          repository: `${owner}/${repo}`,
+          context_msg: 'User edited reply before processing started'
+        }
+      )
+      return 'stale_skipped'
+    }
+  } catch {
+    // Ignore guard failure and proceed
+  }
+
   // Cache key built from stable inputs
   const cache = getComputeCache()
-  const bodyHash = simpleHash(userReplyBody, 16)
+  const replyLen = userReplyBody.length
+  const truncatedForHash =
+    replyLen > MAX_REPLY_HASH_CHARS
+      ? userReplyBody.slice(0, MAX_REPLY_HASH_CHARS)
+      : userReplyBody
+  const bodyHash = simpleHash(truncatedForHash, 16)
   const cacheKey = buildDiscussionCacheKey({
     owner,
     repo,
@@ -71,7 +114,9 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     lastUserReplyBodyHash: bodyHash,
     commitSha: reviewCtx.commitSha,
     model: process.env.ANTHROPIC_MODEL,
-    strategyVersion: 'v1'
+    strategyVersion: 'v1',
+    lastUserReplyLen: replyLen,
+    replyVersion
   })
 
   // Try cache
@@ -87,10 +132,15 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
   }
 
   // Build concise discussion prompt. Re-include the same context as review.
+  const replyForPrompt =
+    replyLen > MAX_REPLY_PROMPT_CHARS
+      ? userReplyBody.slice(0, MAX_REPLY_PROMPT_CHARS)
+      : userReplyBody
+
   const prompt = buildPrompt({
     reviewCtx,
     parentCommentBody,
-    userReplyBody,
+    userReplyBody: replyForPrompt,
     history
   })
 
@@ -110,8 +160,23 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     throw error
   }
 
-  // Post threaded reply under the user's comment
+  // Post threaded reply under the user's comment (with stale-guard)
   try {
+    const current =
+      await platformContext.client.getReviewComment(userReplyCommentId)
+    if (current?.body && current.body !== userReplyBody) {
+      logSystemWarning(
+        'Stale reply detected before posting - skipping discussion reply',
+        {
+          pr_number: prNumber,
+          repository: `${owner}/${repo}`,
+          context_msg:
+            'User edited reply during processing; not posting potentially stale response'
+        }
+      )
+      return 'stale_skipped'
+    }
+
     await platformContext.client.replyToReviewComment(
       prNumber,
       userReplyCommentId,
@@ -155,14 +220,23 @@ function buildPrompt(input: {
           .join('\n')
       : 'None'
 
+  const MAX_CHARS_PER_FILE =
+    Number(process.env.MAX_FILE_CONTENT_CHARS) || 50_000
+  const MAX_TOTAL_CHARS = 200_000
+  let totalChars = 0
+
   const filesSection = Object.entries(reviewCtx.modifiedFilesContent)
     .map(([file, content]) => {
-      // Trim extremely large files for safety (LLM cost control)
-      const MAX_CHARS = 50_000
+      // Trim extremely large files and cap overall prompt size (LLM cost control)
+      const remainingBudget = Math.max(0, MAX_TOTAL_CHARS - totalChars)
+      const maxForThisFile = Math.min(MAX_CHARS_PER_FILE, remainingBudget)
+
       const body =
-        content.length > MAX_CHARS
-          ? content.slice(0, MAX_CHARS) + '\n... (truncated)'
+        content.length > maxForThisFile
+          ? content.slice(0, maxForThisFile) + '\n... (truncated)'
           : content
+
+      totalChars += body.length
       return `--- File: ${file}\n${body}`
     })
     .join('\n\n')
@@ -211,5 +285,13 @@ function buildPrompt(input: {
 
 function sanitize(text: string): string {
   // Basic sanitation to avoid breaking prompt formatting
-  return (text || '').replace(/\r/g, '')
+  const cleaned = (text || '').replace(/\r/g, '')
+
+  // Limit input length to prevent excessively large prompts
+  const MAX_INPUT_LENGTH = 10000
+  if (cleaned.length > MAX_INPUT_LENGTH) {
+    return cleaned.slice(0, MAX_INPUT_LENGTH) + '\n... (truncated)'
+  }
+
+  return cleaned
 }

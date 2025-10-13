@@ -5,7 +5,7 @@ import type { Octokit } from '@octokit/rest'
  * Returns false on any 404 or permission error (fail-closed).
  */
 export async function isUserOrgMember(
-  octokit: Octokit | any,
+  octokit: Octokit,
   org: string,
   username: string
 ): Promise<boolean> {

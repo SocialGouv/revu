@@ -23,37 +23,49 @@ export async function buildReviewContext(
   branch: string,
   context: PlatformContext
 ): Promise<ReviewContextData> {
-  // Setup repository and extract PR data using shared utility
-  const { repoPath, diff, modifiedFilesContent, commitSha } =
-    await prepareRepositoryForReview(repositoryUrl, branch, context)
-
-  // Get coding guidelines from configuration
-  let codingGuidelines = ''
+  // Setup repository and extract PR data using shared utility with guaranteed cleanup
+  let repoPath = ''
   try {
-    codingGuidelines = await getCodingGuidelines(repoPath)
-  } catch (error) {
-    console.warn(
-      `Failed to load coding guidelines: ${error instanceof Error ? error.message : String(error)}`
+    const prepared = await prepareRepositoryForReview(
+      repositoryUrl,
+      branch,
+      context
     )
-  }
+    repoPath = prepared.repoPath
 
-  // Fetch related issues using platform client
-  const relatedIssues = await fetchRelatedIssues(context)
+    // Get coding guidelines from configuration
+    let codingGuidelines = ''
+    try {
+      codingGuidelines = await getCodingGuidelines(repoPath)
+    } catch (error) {
+      console.warn(
+        `Failed to load coding guidelines: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
 
-  // Clean up cloned repository (we only need its contents for building prompt)
-  await cleanUpRepository(repoPath)
+    // Fetch related issues using platform client
+    const relatedIssues = await fetchRelatedIssues(context)
 
-  return {
-    prTitle: context?.prTitle,
-    prBody:
-      context?.prBody && context.prBody.length > 16
-        ? context.prBody
-        : undefined,
-    diff,
-    modifiedFilesContent,
-    codingGuidelines,
-    relatedIssues,
-    commitSha,
-    repoPath
+    return {
+      prTitle: context?.prTitle,
+      prBody:
+        context?.prBody && context.prBody.length > 16
+          ? context.prBody
+          : undefined,
+      diff: prepared.diff,
+      modifiedFilesContent: prepared.modifiedFilesContent,
+      codingGuidelines,
+      relatedIssues,
+      commitSha: prepared.commitSha,
+      repoPath: prepared.repoPath
+    }
+  } finally {
+    if (repoPath) {
+      try {
+        await cleanUpRepository(repoPath)
+      } catch {
+        // swallow cleanup errors
+      }
+    }
   }
 }
