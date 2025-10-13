@@ -26,6 +26,15 @@ vi.mock('../src/populate-template.ts', () => ({
   populateTemplate: vi.fn().mockResolvedValue('Mocked template content')
 }))
 
+// Force provider to Anthropic for this test
+vi.mock('../src/core/utils/config-loader.ts', () => ({
+  getAppConfig: vi.fn().mockResolvedValue({
+    promptStrategy: 'line-comments',
+    thinkingEnabled: false,
+    llmProvider: 'anthropic'
+  })
+}))
+
 describe('sendToAnthropic', () => {
   it('should send prompt to Anthropic API and return response', async () => {
     const mockContext = {
