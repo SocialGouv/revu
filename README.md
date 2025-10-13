@@ -32,9 +32,11 @@ yarn install
    Permissions:
      - Pull requests: Read & write
      - Contents: Read
+     - Organization members: Read # required for org membership checks
    Events:
      - Pull request
      - Pull request review
+     - Pull request review comment # required for threaded discussion replies
    ```
 
 1. Save your App ID, Private Key, and Webhook Secret
@@ -128,6 +130,29 @@ yarn start
 4. Revu analyzes the code and posts detailed feedback
 
 For CLI usage and testing, see [CLI Documentation](docs/cli-usage.md).
+
+## Discussion replies
+
+When a human user replies to a Revu inline review comment on a PR, Revu posts a concise threaded reply under the same review thread.
+
+Behavior:
+
+- Triggers only for replies (not new root comments) to Revu-marked comments.
+- Requires the replying user to be an organization member (or at least a repo collaborator if org membership cannot be checked).
+- Reuses the same review context (PR diff, modified files’ contents, coding guidelines, related issues) to ground the answer.
+- Responses are concise; if a concrete fix is clear, a single GitHub suggestion fence is included.
+
+Setup checklist:
+
+- Enable the GitHub App event: “Pull request review comment”.
+- Grant permission: “Organization members: Read”.
+- Ensure PROXY_REVIEWER_USERNAME and PROXY_REVIEWER_TOKEN are configured.
+
+Compute cache:
+
+- Discussion replies are cached to avoid duplicate work on repeated deliveries.
+- Cache key includes repo, PR, thread ids, reply content hash and commit SHA.
+- Cache TTL defaults to 1 hour. Editing the user’s reply invalidates the cache automatically.
 
 ## Configuration
 

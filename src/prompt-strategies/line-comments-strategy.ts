@@ -1,11 +1,9 @@
 import * as fs from 'fs/promises'
 import Handlebars from 'handlebars'
 import * as path from 'path'
-import { getCodingGuidelines } from '../config-handler.ts'
 import type { PlatformContext } from '../core/models/platform-types.ts'
-import { cleanUpRepository, fetchRelatedIssues } from '../repo-utils.ts'
-import { prepareRepositoryForReview } from './prepare-repository-for-review.ts'
 import type { PromptStrategy } from './prompt-strategy.ts'
+import { buildReviewContext } from './build-review-context.ts'
 
 /**
  * Line comments prompt generation strategy.
@@ -27,10 +25,7 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
   templatePath?: string
 ): Promise<string> => {
   // Setup repository and extract PR data using shared utility
-  const { repoPath, diff, modifiedFilesContent } =
-    await prepareRepositoryForReview(repositoryUrl, branch, context)
-
-  await cleanUpRepository(repoPath)
+  const reviewCtx = await buildReviewContext(repositoryUrl, branch, context)
 
   // Read and compile the template
   const defaultTemplatePath = path.join(
@@ -47,24 +42,19 @@ export const lineCommentsPromptStrategy: PromptStrategy = async (
     throw new Error(`Failed to compile Handlebars template: ${error.message}`)
   }
 
-  // Get coding guidelines from configuration
-  let codingGuidelines = ''
-  try {
-    codingGuidelines = await getCodingGuidelines(repoPath)
-  } catch (error) {
-    console.warn(`Failed to load coding guidelines: ${error.message}`)
-  }
+  // Get coding guidelines from shared review context
+  const codingGuidelines = reviewCtx.codingGuidelines
 
-  // Fetch related issues using platform client
-  const relatedIssues = await fetchRelatedIssues(context)
+  // Related issues from shared review context
+  const relatedIssues = reviewCtx.relatedIssues
 
   // Populate the template with the data
 
   return template({
-    pr_title: context?.prTitle,
-    pr_body: context?.prBody?.length > 16 ? context.prBody : null,
-    pr_git_diff: diff,
-    modified_files: modifiedFilesContent,
+    pr_title: reviewCtx.prTitle || context?.prTitle,
+    pr_body: reviewCtx.prBody ?? null,
+    pr_git_diff: reviewCtx.diff,
+    modified_files: reviewCtx.modifiedFilesContent,
     coding_guidelines: codingGuidelines,
     related_issues: relatedIssues
   })
