@@ -3,6 +3,7 @@ import { Octokit } from '@octokit/rest'
 import { getPrivateKey } from '@probot/get-private-key'
 import { createPrivateKey } from 'node:crypto'
 import { logSystemError } from '../utils/logger.ts'
+import { attachOctokitRetry } from './retry-hook.ts'
 import chalk from 'chalk'
 
 const KEY_FORMAT_HELP =
@@ -66,7 +67,7 @@ function fetchGitHubCredentials(): {
 function createAppOctokit(): Octokit {
   const { appId, privateKey } = fetchGitHubCredentials()
 
-  return new Octokit({
+  const octo = new Octokit({
     authStrategy: createAppAuth,
     auth: {
       appId,
@@ -74,6 +75,7 @@ function createAppOctokit(): Octokit {
       type: 'app'
     }
   })
+  return attachOctokitRetry(octo)
 }
 
 /**
@@ -164,14 +166,16 @@ export async function createGithubAppOctokit(
 ): Promise<Octokit> {
   const { appId, privateKey } = fetchGitHubCredentials()
 
-  const appOctokit = new Octokit({
-    authStrategy: createAppAuth,
-    auth: {
-      appId,
-      privateKey,
-      type: 'app'
-    }
-  })
+  const appOctokit = attachOctokitRetry(
+    new Octokit({
+      authStrategy: createAppAuth,
+      auth: {
+        appId,
+        privateKey,
+        type: 'app'
+      }
+    })
+  )
 
   let installationId: number
   try {
@@ -188,12 +192,14 @@ export async function createGithubAppOctokit(
     throw error
   }
 
-  return new Octokit({
-    authStrategy: createAppAuth,
-    auth: {
-      appId,
-      privateKey,
-      installationId
-    }
-  })
+  return attachOctokitRetry(
+    new Octokit({
+      authStrategy: createAppAuth,
+      auth: {
+        appId,
+        privateKey,
+        installationId
+      }
+    })
+  )
 }
