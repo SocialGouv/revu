@@ -66,6 +66,14 @@ PROXY_REVIEWER_TOKEN=proxy_user_token
 ANTHROPIC_MODEL=claude-sonnet-4-5-20250929
 ANTHROPIC_EXTENDED_CONTEXT=true
 WEBHOOK_PROXY_URL=https://smee.io/your-url
+
+# Optional: Valkey/Redis cache (recommended for discussion replies)
+# When REDIS_URL is set, Revu uses Redis-backed compute cache; otherwise it falls back to in-memory.
+# Example for docker-compose setup (service name "valkey"):
+# REDIS_URL=redis://valkey:6379/0
+# REDIS_DB=0
+# REDIS_PASSWORD=
+# REDIS_TLS=false
 ```
 
 See [.env.example](.env.example) for an example.
