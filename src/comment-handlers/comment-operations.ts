@@ -83,23 +83,14 @@ export async function checkCommentExistence(
     })
     return { exists: true }
   } catch (error) {
-    // Minimal and explicit: prefer status on error or its cause
+    // Check for 404 status from error or wrapped error
     const err = error as any
-    const status =
-      err?.status ??
-      (err?.cause && typeof err.cause === 'object'
-        ? err.cause.status
-        : undefined)
+    const status = err?.status ?? err?.response?.status ?? err?.statusCode
     if (status === 404) {
       return { exists: false, reason: 'not_found' }
     }
 
-    // Return underlying cause if present, else original error
-    return {
-      exists: false,
-      reason: 'error',
-      error: err?.cause && typeof err.cause === 'object' ? err.cause : error
-    }
+    return { exists: false, reason: 'error', error }
   }
 }
 

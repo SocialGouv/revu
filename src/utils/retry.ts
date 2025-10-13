@@ -52,17 +52,21 @@ export function getStatus(err: any): number | undefined {
 
 function getHeaders(err: any): Record<string, string> | undefined {
   // Normalize to a plain object of lower-cased header names
-  const headers =
-    err?.headers ??
-    err?.response?.headers ??
-    (err?.response?.headers?.get
-      ? Object.fromEntries(
-          Array.from(err.response.headers.keys()).map((k: string) => [
-            k,
-            err.response.headers.get(k) as string
-          ])
-        )
-      : undefined)
+  let headers = err?.headers ?? err?.response?.headers
+
+  // Handle Headers object (like from fetch)
+  if (!headers && err?.response?.headers?.get && err?.response?.headers?.keys) {
+    try {
+      headers = Object.fromEntries(
+        Array.from(err.response.headers.keys()).map((k: string) => [
+          k,
+          err.response.headers.get(k) as string
+        ])
+      )
+    } catch {
+      headers = undefined
+    }
+  }
 
   if (!headers) return undefined
   const out: Record<string, string> = {}
@@ -119,36 +123,15 @@ export async function withRetry<T>(
 
           const orig: any = err as any
           if (orig && typeof orig === 'object') {
-            // Copy essential properties that downstream code expects
-            const essentialProps = [
-              'response',
-              'headers',
-              'code',
-              'name'
-            ] as const
-            for (const prop of essentialProps) {
-              if ((orig as any)[prop] !== undefined) {
-                ;(abortErr as any)[prop] = (orig as any)[prop]
-              }
-            }
-
-            // Preserve original identifiers for downstream type-aware handlers
-            const origCtorName = orig?.constructor?.name
-            if (orig.name) (abortErr as any).originalName = orig.name
-            if (origCtorName)
-              (abortErr as any).originalConstructorName = origCtorName
-
-            // Preserve and combine stack traces when possible
-            if (abortErr.stack && orig.stack) {
-              abortErr.stack = `${abortErr.stack}\nCaused by: ${orig.stack}`
-            } else if (orig.stack && !abortErr.stack) {
-              abortErr.stack = orig.stack
-            }
+            // Only copy response and headers for API error compatibility
+            if (orig.response !== undefined)
+              (abortErr as any).response = orig.response
+            if (orig.headers !== undefined)
+              (abortErr as any).headers = orig.headers
           }
 
-          // Also attach as cause and alias for tooling that inspects .cause
+          // Attach original error as cause for debugging
           ;(abortErr as any).cause = err
-          ;(abortErr as any).originalError = err
           throw abortErr
         }
         if (!(err instanceof Error)) {
