@@ -1,5 +1,6 @@
 import { config } from 'dotenv'
 import { Context, Probot } from 'probot'
+import { shouldProcessBranch } from './config-handler.ts'
 import type { PlatformContext } from './core/models/platform-types.ts'
 import { performCompleteReview } from './core/services/review-service.ts'
 import {
@@ -11,7 +12,7 @@ import {
   isReviewRequestedForBot
 } from './github/reviewer-utils.ts'
 import { createPlatformContextFromGitHub } from './platforms/github/github-adapter.ts'
-import { shouldProcessBranch } from './config-handler.ts'
+import { validateBranchName, validateRepositoryUrl } from './repo-utils.ts'
 import {
   logAppStarted,
   logReviewerAdded,
