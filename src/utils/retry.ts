@@ -119,15 +119,22 @@ export async function withRetry<T>(
                 (abortErr as any).response = orig.response
               if (orig.headers !== undefined)
                 (abortErr as any).headers = orig.headers
-              if (orig.name && !(abortErr as any).name)
-                (abortErr as any).name = orig.name
-              // Preserve stack trace if available
-              if (orig.stack && !abortErr.stack) {
+              if (orig.code !== undefined) (abortErr as any).code = orig.code
+              // Preserve original identifiers for downstream type-aware handlers
+              const origCtorName = orig?.constructor?.name
+              if (orig.name) (abortErr as any).originalName = orig.name
+              if (origCtorName)
+                (abortErr as any).originalConstructorName = origCtorName
+              // Preserve and combine stack traces when possible
+              if (abortErr.stack && orig.stack) {
+                abortErr.stack = `${abortErr.stack}\nCaused by: ${orig.stack}`
+              } else if (orig.stack && !abortErr.stack) {
                 abortErr.stack = orig.stack
               }
             }
-            // Also attach as cause for tooling that inspects .cause
+            // Also attach as cause and alias for tooling that inspects .cause
             ;(abortErr as any).cause = err
+            ;(abortErr as any).originalError = err
           } catch {
             /* noop */
           }
@@ -141,11 +148,23 @@ export async function withRetry<T>(
           try {
             const orig: any = err as any
             if (orig) {
-              if (orig.response !== undefined) wrap.response = orig.response
-              if (orig.headers !== undefined) wrap.headers = orig.headers
-              if (orig.name && !wrap.name) wrap.name = orig.name
+              if (orig.response !== undefined)
+                (wrap as any).response = orig.response
+              if (orig.headers !== undefined)
+                (wrap as any).headers = orig.headers
+              if ((orig as any).code !== undefined)
+                (wrap as any).code = (orig as any).code
+              const origCtorName = orig?.constructor?.name
+              if ((orig as any).name)
+                (wrap as any).originalName = (orig as any).name
+              if (origCtorName)
+                (wrap as any).originalConstructorName = origCtorName
+              if ((orig as any).stack && !(wrap as any).stack) {
+                ;(wrap as any).stack = (orig as any).stack
+              }
             }
             ;(wrap as any).cause = err
+            ;(wrap as any).originalError = err
           } catch {
             /* noop */
           }
