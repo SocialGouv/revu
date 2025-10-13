@@ -24,6 +24,9 @@ type HasHook = {
 // Track instances that already have retry attached
 const attachedInstances = new WeakSet<HasHook>()
 
+const isTest =
+  process.env.NODE_ENV === 'test' || process.env.VITEST_WORKER_ID != null
+
 export function attachOctokitRetry<T extends HasHook>(
   octokit: T,
   ctx?: Ctx
@@ -34,6 +37,12 @@ export function attachOctokitRetry<T extends HasHook>(
   }
 
   const anyOcto = octokit as any
+
+  // If Octokit already has a built-in retry plugin, skip our wrapper to avoid double-wrapping
+  if (anyOcto && typeof anyOcto.retry !== 'undefined') {
+    attachedInstances.add(octokit)
+    return octokit
+  }
 
   attachedInstances.add(octokit)
 
@@ -59,13 +68,24 @@ export function attachOctokitRetry<T extends HasHook>(
     const treatDelete404AsSuccess =
       options?.revuDeleteTreat404AsSuccess !== undefined
         ? Boolean(options.revuDeleteTreat404AsSuccess)
-        : true
+        : false
 
-    const statusOf = (err: any): number | undefined =>
-      err?.status ??
-      err?.response?.status ??
-      err?.statusCode ??
-      err?.response?.statusCode
+    const statusOf = (err: any): number | undefined => {
+      const raw =
+        err?.status ??
+        err?.response?.status ??
+        err?.statusCode ??
+        err?.response?.statusCode
+      const n = Number(raw)
+      if (Number.isFinite(n)) return n
+      const msg = String(err?.message ?? '')
+      const m = msg.match(/(\d{3})/)
+      if (m) {
+        const code = Number(m[1])
+        if (code >= 400 && code < 600) return code
+      }
+      return undefined
+    }
 
     // Map override or method to effective policy
     const effective =
@@ -89,35 +109,45 @@ export function attachOctokitRetry<T extends HasHook>(
       maxTimeout = 2000
     }
 
-    try {
-      // Use default withRetryOctokit classification which:
-      // - Retries 5xx, 429, and network errors
-      // - For 403: retries when rate-limited (Retry-After or remaining=0), otherwise aborts
-      // - Aborts other 4xx
-      const res = await withRetryOctokit(() => request(options), {
-        context: {
-          operation,
-          repository: ctx?.repository,
-          pr_number: ctx?.pr_number
-        },
-        retries,
-        minTimeout,
-        maxTimeout
-      })
-      return res
-    } catch (err) {
-      // For DELETE, treat missing resource as success after retries (idempotent delete)
-      if (effective === 'delete' && treatDelete404AsSuccess) {
-        const st = statusOf(err) ?? statusOf((err as any)?.cause)
-        if (st === 404 || st === 410) {
-          return {
-            status: 204,
-            data: undefined
+    if (isTest) {
+      minTimeout = 0
+      maxTimeout = 0
+    }
+
+    // Build a runner that converts DELETE 404/410 into success immediately (no retry)
+    const runner = async () => {
+      try {
+        return await request(options)
+      } catch (err) {
+        if (effective === 'delete' && treatDelete404AsSuccess) {
+          const st = statusOf(err) ?? statusOf((err as any)?.cause)
+          const msg = String((err as any)?.message ?? '')
+          if (st === 404 || st === 410 || /\b(404|410)\b/.test(msg)) {
+            return {
+              status: 204,
+              data: undefined
+            }
           }
         }
+        throw err
       }
-      throw err
     }
+
+    // Use default withRetryOctokit classification which:
+    // - Retries 5xx, 429, and network errors
+    // - For 403: retries when rate-limited (Retry-After or remaining=0), otherwise aborts
+    // - Aborts other 4xx
+    const res = await withRetryOctokit(runner, {
+      context: {
+        operation,
+        repository: ctx?.repository,
+        pr_number: ctx?.pr_number
+      },
+      retries,
+      minTimeout,
+      maxTimeout
+    })
+    return res
   })
 
   return octokit

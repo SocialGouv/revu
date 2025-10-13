@@ -242,7 +242,10 @@ export async function withRetryFetch(
         throw e
       }
       if (res.status >= 400 && res.status < 500) {
-        throw new AbortError(res.statusText || `HTTP ${res.status}`)
+        const e: any = new AbortError(res.statusText || `HTTP ${res.status}`)
+        e.status = res.status
+        e.headers = Object.fromEntries(res.headers.entries())
+        throw e
       }
       return res
     },
