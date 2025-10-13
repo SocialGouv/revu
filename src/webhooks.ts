@@ -24,6 +24,7 @@ import { COMMENT_MARKER_PREFIX } from './comment-handlers/types.ts'
 import { handleDiscussionReply } from './comment-handlers/discussion-handler.ts'
 import { isUserAllowedForRepo } from './github/membership.ts'
 import { evictDiscussionCacheByReply } from './utils/compute-cache.ts'
+import { checkAndConsumeRateLimit } from './utils/rate-limit.ts'
 
 // Load environment variables
 config()
@@ -92,14 +93,57 @@ export default async (app: Probot) => {
         ? payload.repository.owner.login
         : undefined)
 
+    const fallbackToRepo =
+      (process.env.AUTHZ_FALLBACK_TO_REPO || '').toLowerCase() === 'true'
+
+    if (fallbackToRepo) {
+      logSystemWarning(
+        'Authorization fallback to repo collaborators is enabled',
+        {
+          repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+          pr_number: payload.pull_request.number,
+          context_msg:
+            'AUTHZ_FALLBACK_TO_REPO=true - using repo collaborator permission when org membership is not available'
+        }
+      )
+    }
+
     const allowed = await isUserAllowedForRepo(context.octokit, {
       org: orgLogin,
       owner: payload.repository.owner.login,
       repo: payload.repository.name,
       username: payload.sender.login,
-      fallbackToRepo: true
+      fallbackToRepo
     })
     if (!allowed) return
+
+    // Rate limiting - protect from abuse before expensive operations
+    try {
+      const rate = await checkAndConsumeRateLimit({
+        owner: payload.repository.owner.login,
+        repo: payload.repository.name,
+        prNumber: payload.pull_request.number,
+        username: payload.sender.login
+      })
+      if (!rate.allowed) {
+        logSystemWarning(
+          `Rate limit exceeded for ${payload.sender.login}: ${rate.count}/${rate.limit}`,
+          {
+            repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+            pr_number: payload.pull_request.number,
+            context_msg: 'Discussion reply skipped due to rate limiting'
+          }
+        )
+        return
+      }
+    } catch (error) {
+      logSystemWarning(error, {
+        repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+        pr_number: payload.pull_request.number,
+        context_msg:
+          'Rate limiting check failed - proceeding without enforcement'
+      })
+    }
 
     // Prepare platform context using installation token
     let installationAccessToken: string | undefined
@@ -150,7 +194,13 @@ export default async (app: Probot) => {
         userReplyCommentId: payload.comment.id,
         userReplyBody: payload.comment.body,
         owner: payload.repository.owner.login,
-        repo: payload.repository.name
+        repo: payload.repository.name,
+        // Version for cache and race-condition guard
+        replyVersion:
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (payload as any)?.comment?.updated_at ||
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (payload as any)?.comment?.created_at
       })
     } catch (error) {
       logSystemError(error, {

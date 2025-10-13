@@ -1,4 +1,5 @@
 import * as IORedis from 'ioredis'
+import { logSystemWarning } from './logger.ts'
 
 /**
  * Simple compute cache with TTL support.
@@ -19,6 +20,27 @@ type Entry = {
 
 class InMemoryComputeCache implements ComputeCache {
   private store = new Map<string, Entry>()
+  private readonly maxSize: number
+
+  constructor(maxSize: number = 10000) {
+    this.maxSize = maxSize
+  }
+
+  private evictExpired(): void {
+    const now = Date.now()
+    for (const [key, entry] of this.store.entries()) {
+      if (now >= entry.expiresAt) {
+        this.store.delete(key)
+      }
+    }
+  }
+
+  private evictOldest(): void {
+    const oldestKey = this.store.keys().next().value
+    if (oldestKey) {
+      this.store.delete(oldestKey)
+    }
+  }
 
   async get<T>(key: string): Promise<T | null> {
     const entry = this.store.get(key)
@@ -35,6 +57,16 @@ class InMemoryComputeCache implements ComputeCache {
     value: T,
     ttlSeconds: number = 3600
   ): Promise<void> {
+    // Periodic cleanup of expired entries when approaching capacity
+    if (this.store.size > this.maxSize * 0.8) {
+      this.evictExpired()
+    }
+
+    // Enforce size limit with oldest-first eviction for new keys
+    while (this.store.size >= this.maxSize && !this.store.has(key)) {
+      this.evictOldest()
+    }
+
     const expiresAt = Date.now() + ttlSeconds * 1000
     this.store.set(key, { value, expiresAt })
   }
@@ -145,10 +177,18 @@ export function getComputeCache(): ComputeCache {
     try {
       singleton = new RedisComputeCache(url)
       return singleton
-    } catch {
+    } catch (error) {
       // Fail open to in-memory if Redis cannot be initialized
-      // (Optional: log once to avoid noisy output)
-      // console.warn('RedisComputeCache init failed, using in-memory cache', error)
+      logSystemWarning(error, {
+        context_msg:
+          'REDIS_URL is set but Redis initialization failed - falling back to in-memory cache (degraded mode)'
+      })
+      // Additional operator-visible log
+
+      console.warn(
+        'RedisComputeCache initialization failed, falling back to in-memory cache:',
+        error instanceof Error ? error.message : String(error)
+      )
     }
   }
 
@@ -170,6 +210,8 @@ export function buildDiscussionCacheKey(params: {
   commitSha: string
   model?: string
   strategyVersion?: string
+  lastUserReplyLen?: number
+  replyVersion?: string // e.g., updated_at timestamp
 }): string {
   const {
     owner,
@@ -191,6 +233,10 @@ export function buildDiscussionCacheKey(params: {
     `root${rootCommentId}`,
     `reply${lastUserReplyId}`,
     `hash:${lastUserReplyBodyHash}`,
+    params.lastUserReplyLen !== undefined
+      ? `len:${params.lastUserReplyLen}`
+      : 'len:-',
+    params.replyVersion ? `ver:${params.replyVersion}` : 'ver:-',
     `sha:${commitSha}`,
     `model:${model}`
   ].join('|')
@@ -226,10 +272,18 @@ export async function evictDiscussionCacheByReply(params: {
 /**
  * Small helper to stable-hash a string to hex (8 or 16 chars).
  * Not cryptographic; intended for cache keys only.
+ * Note: FNV-1a has potential for collisions with similar strings.
+ * Consider crypto.createHash('sha256') for collision-sensitive cases.
  */
-export function simpleHash(input: string, length: 8 | 16 = 8): string {
+const FNV_OFFSET_BASIS = 0x811c9dc5
+const DEFAULT_HASH_LENGTH = 8
+
+export function simpleHash(
+  input: string,
+  length: 8 | 16 = DEFAULT_HASH_LENGTH
+): string {
   // Fowler–Noll–Vo hash (FNV-1a) 32-bit
-  let hash = 0x811c9dc5
+  let hash = FNV_OFFSET_BASIS
   for (let i = 0; i < input.length; i++) {
     hash ^= input.charCodeAt(i)
     hash =

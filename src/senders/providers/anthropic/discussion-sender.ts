@@ -31,7 +31,8 @@ export async function discussionSender(
   const messageParams = {
     model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
     max_tokens: maxTokens,
-    temperature: enableThinking ? 0.2 : 0,
+    // For deterministic replies in threaded discussions, always use temperature 0
+    temperature: 0,
     ...thinkingConfig,
     messages: [
       {
