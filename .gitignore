@@ -4,6 +4,7 @@ node_modules
 output
 .husky/_
 coverage
+codebase.md
 
 # yarn berry
 .yarn/*
