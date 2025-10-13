@@ -5,6 +5,7 @@ output
 .husky/_
 coverage
 codebase.md
+chunks/
 
 # yarn berry
 .yarn/*
