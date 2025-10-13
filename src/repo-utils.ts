@@ -17,7 +17,57 @@ import { logSystemError } from './utils/logger.ts'
 const execAsync = promisify(exec)
 
 /**
+ * Validates a branch name to prevent command injection attacks
+ * @param branch - The branch name to validate
+ * @throws {Error} If the branch name is invalid or potentially malicious
+ */
+export function validateBranchName(branch: string): void {
+  // Allow only: alphanumeric, dash, underscore, forward slash, dot
+  const safeBranchPattern = /^[a-zA-Z0-9/_.,@+=:-]+$/
+  if (!safeBranchPattern.test(branch)) {
+    throw new Error(`Invalid branch name: ${branch}`)
+  }
+  if (branch.startsWith('-')) {
+    throw new Error(`Branch name cannot start with dash: ${branch}`)
+  }
+  if (branch.length > 255) {
+    throw new Error(`Branch name too long: ${branch}`)
+  }
+}
+
+/**
+ * Validates a repository URL to ensure it's a valid GitHub URL
+ * @param url - The repository URL to validate
+ * @throws {Error} If the URL is not a valid GitHub URL
+ */
+export function validateRepositoryUrl(url: string): void {
+  try {
+    const parsedUrl = new URL(url)
+    // Only allow github.com domains
+
+    if (
+      !(
+        parsedUrl.hostname === 'github.com' ||
+        parsedUrl.hostname.endsWith('.github.com')
+      )
+    ) {
+      throw new Error(`Invalid repository URL: only GitHub URLs are allowed`)
+    }
+    // Ensure it's HTTPS
+    if (parsedUrl.protocol !== 'https:') {
+      throw new Error(`Invalid repository URL: only HTTPS protocol is allowed`)
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error(`Invalid repository URL format: ${url}`)
+  }
+}
+
+/**
  * Clone a repository with support for authentication tokens and branch specification
+ * Uses secure spawn to prevent command injection attacks
  *
  * @param {Object} options - Options for cloning
  * @param {string} options.repositoryUrl - The URL of the repository to clone
@@ -37,6 +87,12 @@ export async function cloneRepository({
   destination: string
   token?: string
 }): Promise<void> {
+  // Validate inputs
+  validateRepositoryUrl(repositoryUrl)
+  if (branch) {
+    validateBranchName(branch)
+  }
+
   // Transform the URL with token if provided, use x-access-token to avoid showing the token in URL
   let authUrl = repositoryUrl
   if (token) {
@@ -70,6 +126,7 @@ export async function cloneRepository({
 
 /**
  * Prepares a repository for extraction by cloning it and fetching all branches.
+ * Uses secure spawn to prevent command injection attacks
  *
  * @param {string} repositoryUrl - The URL of the GitHub repository to clone
  * @param {string} branch - The branch to checkout
@@ -84,6 +141,9 @@ export async function prepareRepository(
   tempFolder = path.join(os.tmpdir(), 'revu-all-' + Date.now()),
   token?: string
 ): Promise<string> {
+  // Validate branch name at the start
+  validateBranchName(branch)
+
   // Create temporary directory, deleting it first if it already exists
   try {
     await fs.rm(tempFolder, { recursive: true, force: true })
