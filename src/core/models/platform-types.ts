@@ -56,6 +56,11 @@ export interface PlatformClient {
     body: string
   }) => Promise<void>
   updateReviewComment: (commentId: number, body: string) => Promise<void>
+  replyToReviewComment: (
+    prNumber: number,
+    parentCommentId: number,
+    body: string
+  ) => Promise<void>
 
   // PR operations
   getPullRequest: (prNumber: number) => Promise<{
