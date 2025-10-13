@@ -84,7 +84,12 @@ export async function checkCommentExistence(
     return { exists: true }
   } catch (error) {
     // Minimal and explicit: prefer status on error or its cause
-    const status = (error as any)?.status ?? (error as any)?.cause?.status
+    const err = error as any
+    const status =
+      err?.status ??
+      (err?.cause && typeof err.cause === 'object'
+        ? err.cause.status
+        : undefined)
     if (status === 404) {
       return { exists: false, reason: 'not_found' }
     }
@@ -93,7 +98,7 @@ export async function checkCommentExistence(
     return {
       exists: false,
       reason: 'error',
-      error: (error as any)?.cause ?? error
+      error: err?.cause && typeof err.cause === 'object' ? err.cause : error
     }
   }
 }

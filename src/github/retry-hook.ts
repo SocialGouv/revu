@@ -81,11 +81,12 @@ export function attachOctokitRetry<T extends HasHook>(
 
     const statusOf = (err: any): number | undefined => {
       const pick = (e: any) => {
+        if (!e || typeof e !== 'object') return undefined
         const candidates = [
-          e?.status,
-          e?.response?.status,
-          e?.statusCode,
-          e?.response?.statusCode
+          e.status,
+          e.response?.status,
+          e.statusCode,
+          e.response?.statusCode
         ]
         for (const val of candidates) {
           const n = Number(val)

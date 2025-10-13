@@ -37,12 +37,16 @@ function coerceStatus(val: any): number | undefined {
 }
 
 function getStatus(err: any): number | undefined {
+  if (!err || typeof err !== 'object') return undefined
+
   // Handle shapes from Octokit/axios/fetch-like wrappers and coerce to number
   const raw =
-    err?.status ??
-    err?.response?.status ??
-    err?.response?.statusCode ??
-    err?.statusCode
+    err.status ??
+    err.response?.status ??
+    err.response?.statusCode ??
+    err.statusCode ??
+    err.cause?.status ??
+    err.cause?.response?.status
   return coerceStatus(raw)
 }
 
@@ -109,35 +113,42 @@ export async function withRetry<T>(
         if (abort) {
           const abortErr: any = new AbortError(errorToMessage(err))
           // Preserve original useful fields for downstream error handling (e.g., Octokit)
-          try {
-            // Always attach an HTTP status if we can derive it
-            const status = getStatus(err as any)
-            if (status !== undefined) (abortErr as any).status = status
-            const orig: any = err as any
-            if (orig) {
-              if (orig.response !== undefined)
-                (abortErr as any).response = orig.response
-              if (orig.headers !== undefined)
-                (abortErr as any).headers = orig.headers
-              if (orig.code !== undefined) (abortErr as any).code = orig.code
-              // Preserve original identifiers for downstream type-aware handlers
-              const origCtorName = orig?.constructor?.name
-              if (orig.name) (abortErr as any).originalName = orig.name
-              if (origCtorName)
-                (abortErr as any).originalConstructorName = origCtorName
-              // Preserve and combine stack traces when possible
-              if (abortErr.stack && orig.stack) {
-                abortErr.stack = `${abortErr.stack}\nCaused by: ${orig.stack}`
-              } else if (orig.stack && !abortErr.stack) {
-                abortErr.stack = orig.stack
+          // Always attach an HTTP status if we can derive it
+          const status = getStatus(err as any)
+          if (status !== undefined) (abortErr as any).status = status
+
+          const orig: any = err as any
+          if (orig && typeof orig === 'object') {
+            // Copy essential properties that downstream code expects
+            const essentialProps = [
+              'response',
+              'headers',
+              'code',
+              'name'
+            ] as const
+            for (const prop of essentialProps) {
+              if ((orig as any)[prop] !== undefined) {
+                ;(abortErr as any)[prop] = (orig as any)[prop]
               }
             }
-            // Also attach as cause and alias for tooling that inspects .cause
-            ;(abortErr as any).cause = err
-            ;(abortErr as any).originalError = err
-          } catch {
-            /* noop */
+
+            // Preserve original identifiers for downstream type-aware handlers
+            const origCtorName = orig?.constructor?.name
+            if (orig.name) (abortErr as any).originalName = orig.name
+            if (origCtorName)
+              (abortErr as any).originalConstructorName = origCtorName
+
+            // Preserve and combine stack traces when possible
+            if (abortErr.stack && orig.stack) {
+              abortErr.stack = `${abortErr.stack}\nCaused by: ${orig.stack}`
+            } else if (orig.stack && !abortErr.stack) {
+              abortErr.stack = orig.stack
+            }
           }
+
+          // Also attach as cause and alias for tooling that inspects .cause
+          ;(abortErr as any).cause = err
+          ;(abortErr as any).originalError = err
           throw abortErr
         }
         if (!(err instanceof Error)) {
