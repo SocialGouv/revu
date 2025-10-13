@@ -36,7 +36,7 @@ function coerceStatus(val: any): number | undefined {
   return Number.isFinite(n) ? n : undefined
 }
 
-function getStatus(err: any): number | undefined {
+export function getStatus(err: any): number | undefined {
   if (!err || typeof err !== 'object') return undefined
 
   // Handle shapes from Octokit/axios/fetch-like wrappers and coerce to number

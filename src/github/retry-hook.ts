@@ -1,4 +1,4 @@
-import { withRetryOctokit } from '../utils/retry.ts'
+import { withRetryOctokit, getStatus } from '../utils/retry.ts'
 
 type Ctx = {
   repository?: string
@@ -79,22 +79,9 @@ export function attachOctokitRetry<T extends HasHook>(
         ? Boolean(options.revuDeleteTreat404AsSuccess)
         : false
 
+    // Import getStatus from retry.ts to avoid duplication
     const statusOf = (err: any): number | undefined => {
-      const pick = (e: any) => {
-        if (!e || typeof e !== 'object') return undefined
-        const candidates = [
-          e.status,
-          e.response?.status,
-          e.statusCode,
-          e.response?.statusCode
-        ]
-        for (const val of candidates) {
-          const n = Number(val)
-          if (Number.isFinite(n)) return n
-        }
-        return undefined
-      }
-      return pick(err) ?? (err?.cause ? pick(err.cause) : undefined)
+      return getStatus(err)
     }
 
     // Map override or method to effective policy
