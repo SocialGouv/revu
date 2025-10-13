@@ -1,3 +1,5 @@
+import * as IORedis from 'ioredis'
+
 /**
  * Simple compute cache with TTL support.
  * - Default: in-memory singleton Map with expiry.
@@ -51,14 +53,105 @@ class InMemoryComputeCache implements ComputeCache {
   }
 }
 
+class RedisComputeCache implements ComputeCache {
+  // Use broad type to maximize compatibility across ESM/CJS environments
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private client: any
+
+  constructor(url: string) {
+    const tls =
+      process.env.REDIS_TLS && process.env.REDIS_TLS.toLowerCase() === 'true'
+        ? {}
+        : undefined
+    const db =
+      process.env.REDIS_DB && !Number.isNaN(Number(process.env.REDIS_DB))
+        ? Number(process.env.REDIS_DB)
+        : undefined
+    const password = process.env.REDIS_PASSWORD || undefined
+
+    // ioredis can take URL + options (tls/password/db override URL settings if provided)
+    // Support ESM/CJS interop by treating module as a constructor via any cast
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.client = new (IORedis as any)(url, {
+      ...(tls ? ({ tls } as any) : {}),
+      db,
+      password
+    })
+  }
+
+  async get<T>(key: string): Promise<T | null> {
+    const str = await this.client.get(key)
+    if (str == null) return null
+    try {
+      return JSON.parse(str) as T
+    } catch {
+      // fallback when legacy/plain values exist
+      return str as unknown as T
+    }
+  }
+
+  async set<T>(
+    key: string,
+    value: T,
+    ttlSeconds: number = 3600
+  ): Promise<void> {
+    const payload = JSON.stringify(value)
+    // EX sets TTL in seconds
+    await this.client.set(key, payload, 'EX', ttlSeconds)
+  }
+
+  async del(key: string): Promise<void> {
+    await this.client.del(key)
+  }
+
+  // Delete discussion keys for a specific reply using SCAN + MATCH
+  async deleteByReplyPattern(params: {
+    owner: string
+    repo: string
+    prNumber: number
+    replyId: number
+  }): Promise<void> {
+    const { owner, repo, prNumber, replyId } = params
+    const pattern = `discuss|*|${owner}/${repo}|pr${prNumber}|*|reply${replyId}|*`
+    let cursor = '0'
+    do {
+      const [next, keys] = (await this.client.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        1000
+      )) as unknown as [string, string[]]
+      if (keys && keys.length) {
+        const pipeline = this.client.pipeline()
+        for (const k of keys) {
+          pipeline.del(k)
+        }
+        await pipeline.exec()
+      }
+      cursor = next
+    } while (cursor !== '0')
+  }
+}
+
 // Singleton instance
 let singleton: ComputeCache | null = null
 
 export function getComputeCache(): ComputeCache {
   if (singleton) return singleton
 
-  // In the future, we can add a REDIS_URL-based implementation here.
-  // For now, use in-memory cache by default.
+  const url = process.env.REDIS_URL
+  if (url) {
+    try {
+      singleton = new RedisComputeCache(url)
+      return singleton
+    } catch {
+      // Fail open to in-memory if Redis cannot be initialized
+      // (Optional: log once to avoid noisy output)
+      // console.warn('RedisComputeCache init failed, using in-memory cache', error)
+    }
+  }
+
   singleton = new InMemoryComputeCache()
   return singleton
 }
@@ -110,9 +203,15 @@ export async function evictDiscussionCacheByReply(params: {
   replyId: number
 }): Promise<void> {
   const { owner, repo, prNumber, replyId } = params
-  // Access internal deleteByPredicate if available (in-memory cache)
+  // Try Redis backend fast-path
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cacheAny = getComputeCache() as any
+  if (typeof cacheAny.deleteByReplyPattern === 'function') {
+    await cacheAny.deleteByReplyPattern({ owner, repo, prNumber, replyId })
+    return
+  }
+
+  // In-memory fallback
   if (typeof cacheAny.deleteByPredicate === 'function') {
     const mustContain = [
       `|${owner}/${repo}|`,
@@ -120,7 +219,7 @@ export async function evictDiscussionCacheByReply(params: {
       `|reply${replyId}|`
     ]
     cacheAny.deleteByPredicate((key: string) =>
-      mustContain.every((seg) => key.includes(seg))
+      mustContain.every((seg: string) => key.includes(seg))
     )
   }
 }
