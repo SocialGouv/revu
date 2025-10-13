@@ -10,7 +10,8 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx src/index.ts",
-    "test": "vitest",
+    "test": "vitest --run",
+    "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "prepare": "husky",
     "lint": "eslint --config eslint.config.mjs \"**/*.ts\" --fix && yarn typecheck",
