@@ -71,20 +71,20 @@ export function attachOctokitRetry<T extends HasHook>(
         : false
 
     const statusOf = (err: any): number | undefined => {
-      const raw =
-        err?.status ??
-        err?.response?.status ??
-        err?.statusCode ??
-        err?.response?.statusCode
-      const n = Number(raw)
-      if (Number.isFinite(n)) return n
-      const msg = String(err?.message ?? '')
-      const m = msg.match(/(\d{3})/)
-      if (m) {
-        const code = Number(m[1])
-        if (code >= 400 && code < 600) return code
+      const pick = (e: any) => {
+        const candidates = [
+          e?.status,
+          e?.response?.status,
+          e?.statusCode,
+          e?.response?.statusCode
+        ]
+        for (const val of candidates) {
+          const n = Number(val)
+          if (Number.isFinite(n)) return n
+        }
+        return undefined
       }
-      return undefined
+      return pick(err) ?? (err?.cause ? pick(err.cause) : undefined)
     }
 
     // Map override or method to effective policy
@@ -121,8 +121,7 @@ export function attachOctokitRetry<T extends HasHook>(
       } catch (err) {
         if (effective === 'delete' && treatDelete404AsSuccess) {
           const st = statusOf(err) ?? statusOf((err as any)?.cause)
-          const msg = String((err as any)?.message ?? '')
-          if (st === 404 || st === 410 || /\b(404|410)\b/.test(msg)) {
+          if (st === 404 || st === 410) {
             return {
               status: 204,
               data: undefined
