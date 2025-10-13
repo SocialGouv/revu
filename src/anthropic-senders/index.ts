@@ -1,5 +1,6 @@
 import { getAppConfig } from '../core/utils/config-loader.ts'
 import { lineCommentsSender } from './line-comments-sender.ts'
+import { openaiLineCommentsSender } from '../openai-senders/line-comments-sender.ts'
 
 /**
  * Type definition for all Anthropic senders
@@ -16,6 +17,11 @@ type LLMSender = (prompt: string) => Promise<string>
 export async function getSender(_strategyName?: string): Promise<LLMSender> {
   const config = await getAppConfig()
   const enableThinking = config.thinkingEnabled || false
+  const provider = config.llmProvider || 'anthropic'
+
+  if (provider === 'openai') {
+    return (prompt: string) => openaiLineCommentsSender(prompt, enableThinking)
+  }
 
   return (prompt: string) => lineCommentsSender(prompt, enableThinking)
 }
