@@ -1,10 +1,9 @@
-import type { ExecException, ExecOptions } from 'child_process'
 import { ChildProcess } from 'child_process'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Set up mocks before importing anything else
 vi.mock('child_process', () => ({
-  exec: vi.fn()
+  spawn: vi.fn()
 }))
 
 vi.mock('util', () => ({
@@ -15,49 +14,40 @@ vi.mock('util', () => ({
 import * as childProcess from 'child_process'
 import { cloneRepository } from '../src/repo-utils.ts'
 
-/**
- * Exact type for exec callback function
- */
-type ExecCallback = (
-  error: ExecException | null,
-  stdout: string,
-  stderr: string
-) => void
-
 describe('Private Repository Support', () => {
-  const mockExec = vi.mocked(childProcess.exec)
+  const mockSpawn = vi.mocked(childProcess.spawn)
 
   beforeEach(() => {
     // Reset the mock implementation for each test
-    mockExec.mockReset()
+    mockSpawn.mockReset()
 
     /**
-     * Mock implementation that matches Node.js API format,
-     * using an explicit cast as needed
+     * Mock implementation that matches Node.js spawn API signature
      */
-    mockExec.mockImplementation(
-      (
-        _command: string,
-        optionsOrCallback?: ExecOptions | ExecCallback,
-        callback?: ExecCallback
-      ) => {
-        // Handle case where options is actually the callback
-        if (typeof optionsOrCallback === 'function') {
-          callback = optionsOrCallback
-        }
-
-        // Call the callback if provided
-        if (callback && typeof callback === 'function') {
-          callback(null, '', '')
-        }
-
-        // Return a minimal object simulating a ChildProcess
-        // The cast is necessary since we can't implement all ChildProcess properties in this test context
-        return {
+    mockSpawn.mockImplementation(
+      (_command: string, _args?: readonly string[], _options?: any) => {
+        // Return a minimal object simulating a ChildProcess returned by spawn
+        const mockProcess = {
           stdout: { on: vi.fn(), pipe: vi.fn() },
-          stderr: { on: vi.fn(), pipe: vi.fn() },
-          stdin: { on: vi.fn(), pipe: vi.fn() }
+          stderr: {
+            on: vi.fn((_event: string, _handler: (data: Buffer) => void) => {
+              // Don't call the handler, simulating successful execution with no stderr
+              return mockProcess.stderr
+            }),
+            pipe: vi.fn()
+          },
+          stdin: { on: vi.fn(), pipe: vi.fn() },
+          on: vi.fn((event: string, handler: (code: number) => void) => {
+            // Simulate successful completion
+            if (event === 'close') {
+              // Call close handler with exit code 0 (success)
+              setImmediate(() => handler(0))
+            }
+            return mockProcess
+          })
         } as unknown as ChildProcess
+
+        return mockProcess
       }
     )
   })
@@ -78,16 +68,20 @@ describe('Private Repository Support', () => {
         token
       })
 
-      // Verify the command includes the token in the correct format
-      expect(mockExec).toHaveBeenCalled()
-      const command = mockExec.mock.calls[0][0]
-      expect(command).toContain(
+      // Verify spawn was called with correct arguments
+      expect(mockSpawn).toHaveBeenCalled()
+      const args = mockSpawn.mock.calls[0][1] as string[]
+
+      // Check that the args contain the authenticated URL
+      const urlArg = args.find((arg) => arg.includes('github.com'))
+      expect(urlArg).toContain(
         `https://x-access-token:${token}@github.com/owner/repo.git`
       )
-      // The token is present in the URL for authentication
-      expect(command).toContain('github-token-123@')
-      expect(command).toContain(`git clone`)
-      expect(command).toContain(destination)
+      expect(urlArg).toContain('github-token-123@')
+
+      // Check that clone command and destination are in the args
+      expect(args).toContain('clone')
+      expect(args).toContain(destination)
     })
 
     it('should not transform URL when no token is provided', async () => {
@@ -99,10 +93,13 @@ describe('Private Repository Support', () => {
         destination
       })
 
-      // Verify the command uses the original URL
-      expect(mockExec).toHaveBeenCalled()
-      const command = mockExec.mock.calls[0][0]
-      expect(command).toBe(`git clone ${repositoryUrl} ${destination}`)
+      // Verify spawn was called with the original URL
+      expect(mockSpawn).toHaveBeenCalled()
+      const args = mockSpawn.mock.calls[0][1] as string[]
+
+      expect(args).toContain('clone')
+      expect(args).toContain(repositoryUrl)
+      expect(args).toContain(destination)
     })
 
     it('should include branch option when branch is specified', async () => {
@@ -116,12 +113,15 @@ describe('Private Repository Support', () => {
         branch
       })
 
-      // Verify the command includes the branch option
-      expect(mockExec).toHaveBeenCalled()
-      const command = mockExec.mock.calls[0][0]
-      expect(command).toBe(
-        `git clone ${repositoryUrl} ${destination} --branch ${branch}`
-      )
+      // Verify spawn was called with the branch option
+      expect(mockSpawn).toHaveBeenCalled()
+      const args = mockSpawn.mock.calls[0][1] as string[]
+
+      expect(args).toContain('clone')
+      expect(args).toContain(repositoryUrl)
+      expect(args).toContain(destination)
+      expect(args).toContain('--branch')
+      expect(args).toContain(branch)
     })
 
     it('should handle both token and branch correctly', async () => {
@@ -137,13 +137,19 @@ describe('Private Repository Support', () => {
         token
       })
 
-      // Verify the command includes both token and branch
-      expect(mockExec).toHaveBeenCalled()
-      const command = mockExec.mock.calls[0][0]
-      expect(command).toContain(
+      // Verify spawn was called with both token and branch
+      expect(mockSpawn).toHaveBeenCalled()
+      const args = mockSpawn.mock.calls[0][1] as string[]
+
+      // Check that the args contain the authenticated URL
+      const urlArg = args.find((arg) => arg.includes('github.com'))
+      expect(urlArg).toContain(
         `https://x-access-token:${token}@github.com/owner/repo.git`
       )
-      expect(command).toContain(`--branch ${branch}`)
+
+      // Check that branch option is present
+      expect(args).toContain('--branch')
+      expect(args).toContain(branch)
     })
   })
 })

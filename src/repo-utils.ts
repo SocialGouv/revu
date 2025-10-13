@@ -1,9 +1,8 @@
-import { exec } from 'child_process'
+import { spawn, type SpawnOptionsWithoutStdio } from 'child_process'
 import * as fs from 'fs/promises'
 import * as os from 'os'
 import path from 'path'
 import type { ProbotOctokit } from 'probot'
-import { promisify } from 'util'
 import type {
   IssueDetails,
   PlatformContext
@@ -14,7 +13,47 @@ import {
 } from './utils/error-sanitizer.ts'
 import { logSystemError } from './utils/logger.ts'
 
-const execAsync = promisify(exec)
+const GIT_PATH = process.env.GIT_PATH || '/usr/bin/git'
+
+/**
+ * Executes a git command using spawn and returns a Promise
+ * @param args - Git command arguments
+ * @param options - Spawn options
+ * @returns Promise that resolves when command completes successfully
+ * @throws Error if command fails
+ */
+function executeGitCommand(
+  args: string[],
+  options?: SpawnOptionsWithoutStdio
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const gitProcess = spawn(GIT_PATH, args, options)
+    let stdout = ''
+    let stderr = ''
+    if (gitProcess.stdout) {
+      gitProcess.stdout.on('data', (data) => {
+        stdout += data.toString()
+      })
+    }
+    if (gitProcess.stderr) {
+      gitProcess.stderr.on('data', (data) => {
+        stderr += data.toString()
+      })
+    }
+    gitProcess.on('error', (error) => {
+      reject(createSanitizedError(error))
+    })
+    gitProcess.on('close', (code) => {
+      if (code === 0) {
+        resolve()
+      } else {
+        const output = [stderr, stdout].filter(Boolean).join('\n')
+        const errorMsg = output || `Git command failed with exit code ${code}`
+        reject(new Error(sanitizeGitCommand(errorMsg)))
+      }
+    })
+  })
+}
 
 /**
  * Validates a branch name to prevent command injection attacks
@@ -103,16 +142,20 @@ export async function cloneRepository({
     )
   }
 
-  // Base options for cloning
-  let cloneCommand = `git clone ${authUrl} ${destination}`
-
-  // Add branch option if specified
-  if (branch) {
-    cloneCommand += ` --branch ${branch}`
-  }
-
   try {
-    await execAsync(cloneCommand)
+    const args = [
+      'clone',
+      '--config',
+      'core.hooksPath=/dev/null', // Disable git hooks for security
+      authUrl,
+      destination
+    ]
+    // Add branch option if specified (already validated above)
+    if (branch) {
+      args.push('--branch', branch)
+    }
+    // Clone the repository
+    await executeGitCommand(args, { timeout: 5 * 60 * 1000 })
   } catch (error) {
     // Sanitize the error to remove any tokens before re-throwing
     if (error instanceof Error) {
@@ -160,11 +203,33 @@ export async function prepareRepository(
     token
   })
 
-  // Fetch all branches
-  await execAsync('git fetch --all', { cwd: tempFolder })
+  // Fetch all branches with timeout
+  try {
+    await executeGitCommand(['fetch', '--all'], {
+      cwd: tempFolder,
+      timeout: 5 * 60 * 1000
+    })
+  } catch (error) {
+    const sanitizedError =
+      error instanceof Error ? createSanitizedError(error) : error
+    throw new Error(
+      `Git fetch failed: ${sanitizedError instanceof Error ? sanitizedError.message : String(sanitizedError)}`
+    )
+  }
 
-  // Checkout the branch
-  await execAsync(`git checkout ${branch}`, { cwd: tempFolder })
+  // Checkout the branch with timeout (branch name already validated above)
+  try {
+    await executeGitCommand(['checkout', branch], {
+      cwd: tempFolder,
+      timeout: 2 * 60 * 1000
+    })
+  } catch (error) {
+    const sanitizedError =
+      error instanceof Error ? createSanitizedError(error) : error
+    throw new Error(
+      `Git checkout failed for branch '${branch}': ${sanitizedError instanceof Error ? sanitizedError.message : String(sanitizedError)}`
+    )
+  }
 
   return tempFolder
 }
