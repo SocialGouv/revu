@@ -87,6 +87,26 @@ await octokit.request(
 )
 ```
 
+### Context updates and instance reuse
+
+`attachOctokitRetry()` can be called multiple times on the same Octokit instance to update the contextual metadata used for retry logging and classification (e.g., `repository`, `pr_number`). Internally, the hook stores per-instance state in a WeakMap and the wrapper reads the latest context at request time, so re-attaching updates the effective context without double-wrapping.
+
+- Behavior
+  - Repeated calls update context for the same instance (no double wrapping).
+  - The wrapper is attached only once; subsequent calls refresh context.
+  - If `@octokit/plugin-retry` is detected, our hook will not attach; context updates are tracked but unused while the plugin is active.
+
+- API
+  - `attachOctokitRetry(octokit, ctx?, opts?)`
+    - `ctx`: `{ repository?: string; pr_number?: number }`
+    - `opts?: { force?: boolean }`:
+      - `force` is typically unnecessary since the wrapper reads context dynamically.
+      - Even with `force`, our hook will still skip attaching if `@octokit/plugin-retry` is present to avoid double-wrapping.
+
+- Guidance
+  - Prefer not to share a single Octokit instance across unrelated repositories or long-lived flows. If you must reuse the instance across different PRs or repos, call `attachOctokitRetry` again with the new `ctx` to refresh the context.
+  - Do not mix multiple retry layers (e.g., our hook plus `@octokit/plugin-retry`); our hook intentionally stays inactive when the plugin is present.
+
 ## Fetch and Anthropic retries
 
 Non-Octokit calls are also standardized with p-retry wrappers in `src/utils/retry.ts`:

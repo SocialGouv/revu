@@ -21,30 +21,39 @@ type HasHook = {
   }
 }
 
-// Track instances that already have retry attached
-const attachedInstances = new WeakSet<HasHook>()
+/**
+ * Per-instance state: whether our wrapper is attached and the latest context.
+ * Using WeakMap so we can update ctx for a reused Octokit instance without re-wrapping.
+ */
+const instanceState = new WeakMap<HasHook, { hasWrapper: boolean; ctx?: Ctx }>()
 
 const isTest =
   process.env.NODE_ENV === 'test' || process.env.VITEST_WORKER_ID != null
 
 export function attachOctokitRetry<T extends HasHook>(
   octokit: T,
-  ctx?: Ctx
+  ctx?: Ctx,
+  opts?: { force?: boolean }
 ): T {
-  // Avoid attaching twice
-  if (attachedInstances.has(octokit)) {
-    return octokit
+  // Ensure per-instance state and update context
+  const existing = instanceState.get(octokit)
+  if (existing) {
+    if (ctx) existing.ctx = ctx
+  } else {
+    instanceState.set(octokit, { hasWrapper: false, ctx })
   }
 
   const anyOcto = octokit as any
 
   // If Octokit already has a built-in retry plugin, skip our wrapper to avoid double-wrapping
   if (anyOcto && typeof anyOcto.retry !== 'undefined') {
-    attachedInstances.add(octokit)
     return octokit
   }
 
-  attachedInstances.add(octokit)
+  // If already wrapped and not forcing, do not re-wrap; wrapper reads ctx dynamically.
+  if (instanceState.get(octokit)?.hasWrapper && !opts?.force) {
+    return octokit
+  }
 
   // Wrap the base request pipeline
   anyOcto.hook.wrap('request', async (request: any, options: any) => {
@@ -139,8 +148,8 @@ export function attachOctokitRetry<T extends HasHook>(
     const res = await withRetryOctokit(runner, {
       context: {
         operation,
-        repository: ctx?.repository,
-        pr_number: ctx?.pr_number
+        repository: instanceState.get(octokit)?.ctx?.repository,
+        pr_number: instanceState.get(octokit)?.ctx?.pr_number
       },
       retries,
       minTimeout,
@@ -148,6 +157,10 @@ export function attachOctokitRetry<T extends HasHook>(
     })
     return res
   })
+
+  // Mark wrapper as attached for this instance
+  const s = instanceState.get(octokit)
+  if (s) s.hasWrapper = true
 
   return octokit
 }

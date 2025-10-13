@@ -146,4 +146,18 @@ describe('attachOctokitRetry hook', () => {
 
     expect(ok.callCount).toBe(1)
   })
+
+  it('re-attaching updates context without double-wrapping', async () => {
+    const ok = new FakeOctokit(async () => ({ status: 200 }))
+    // first attach with some ctx
+    attachOctokitRetry(ok, { repository: 'owner1/repo1', pr_number: 1 })
+    const firstWrapper = (ok as any)._wrapper
+    // re-attach with new ctx; should not replace wrapper
+    attachOctokitRetry(ok, { repository: 'owner2/repo2', pr_number: 2 })
+    const secondWrapper = (ok as any)._wrapper
+    expect(secondWrapper).toBe(firstWrapper)
+    // still functions after re-attach
+    const res = await ok.request({ method: 'GET', url: '/ping' })
+    expect(res.status).toBe(200)
+  })
 })
