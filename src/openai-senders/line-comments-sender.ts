@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import { prepareLineCommentsPayload } from '../senders/shared/line-comments-common.ts'
 
 /**
  * Line comments OpenAI sender.
@@ -25,89 +26,18 @@ export async function openaiLineCommentsSender(
   const client = new OpenAI({ apiKey })
 
   const model = process.env.OPENAI_MODEL || 'gpt-5'
-  // Map "thinking" to higher temperature and instructions. Do not request chain-of-thought.
-  const temperature = enableThinking ? 1 : 0
+  // Prepare shared payload parts (tools, messages, temperature)
+  const prepared = prepareLineCommentsPayload('openai', prompt, enableThinking)
 
-  // Shared JSON schema for parity with Anthropic sender
-  const reviewTool = {
-    type: 'function' as const,
-    function: {
-      name: 'provide_code_review',
-      description: 'Provide structured code review with line-specific comments',
-      parameters: {
-        type: 'object',
-        properties: {
-          summary: {
-            type: 'string',
-            description: 'Overall summary of the PR'
-          },
-          comments: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                path: {
-                  type: 'string',
-                  description: 'File path relative to repository root'
-                },
-                line: {
-                  type: 'integer',
-                  description:
-                    'End line number for the comment (or single line if start_line not provided)'
-                },
-                start_line: {
-                  type: 'integer',
-                  description:
-                    'Start line number for multi-line comments (optional). Must be <= line.'
-                },
-                body: {
-                  type: 'string',
-                  description: 'Detailed comment about the issue'
-                },
-                search_replace_blocks: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      search: {
-                        type: 'string',
-                        description:
-                          'Exact code content to find. Must match character-for-character including whitespace, indentation, and line endings.'
-                      },
-                      replace: {
-                        type: 'string',
-                        description:
-                          'New code content to replace the search content with.'
-                      }
-                    },
-                    required: ['search', 'replace']
-                  },
-                  description:
-                    'SEARCH/REPLACE blocks for precise code modifications. Each search block must match existing code exactly.'
-                }
-              },
-              required: ['path', 'line', 'body']
-            }
-          }
-        },
-        required: ['summary']
-      }
-    }
-  }
 
-  // System guidance to keep parity and avoid chain-of-thought leakage
-  const systemInstruction =
-    'You are an expert code reviewer. When appropriate, use the tool `provide_code_review` to return a structured JSON result. Do not include your internal reasoning or chain-of-thought in outputs. If you need to reason, do so silently and only output the structured result.'
+  // System guidance and user prompt via shared builder
 
   const completion = await client.chat.completions.create({
     model,
-    temperature,
+    temperature: prepared.temperature,
     tool_choice: 'auto',
-    tools: [reviewTool],
-    messages: [
-      { role: 'system', content: systemInstruction },
-      { role: 'user', content: prompt }
-    ]
+    tools: prepared.tools,
+    messages: prepared.messages
   })
 
   const choice = completion.choices?.[0]
