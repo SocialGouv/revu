@@ -12,7 +12,6 @@ import {
   isReviewRequestedForBot
 } from './github/reviewer-utils.ts'
 import { createPlatformContextFromGitHub } from './platforms/github/github-adapter.ts'
-import { validateBranchName, validateRepositoryUrl } from './repo-utils.ts'
 import {
   logAppStarted,
   logReviewerAdded,
