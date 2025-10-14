@@ -10,12 +10,12 @@ export async function isUserOrgMember(
   username: string
 ): Promise<boolean> {
   try {
-    const { data } = await octokit.rest.orgs.getMembershipForUser({
+    // 204 = member, 404 = not a member. Requires "Organization members: Read" permission.
+    await octokit.rest.orgs.checkMembershipForUser({
       org,
       username
     })
-    // States: 'active' | 'pending' | 'inactive'
-    return data?.state === 'active'
+    return true
   } catch {
     // Most likely 404 (not member) or insufficient permission
     return false
