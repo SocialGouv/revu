@@ -1,3 +1,10 @@
+# [1.34.0](https://github.com/SocialGouv/revu/compare/v1.33.1...v1.34.0) (2025-10-14)
+
+
+### Features
+
+* **ci:** preprod-env ([#244](https://github.com/SocialGouv/revu/issues/244)) ([20aaca9](https://github.com/SocialGouv/revu/commit/20aaca913a2c0bef88703ca12f50a6080a09abd2))
+
 ## [1.33.1](https://github.com/SocialGouv/revu/compare/v1.33.0...v1.33.1) (2025-10-09)
 
 
