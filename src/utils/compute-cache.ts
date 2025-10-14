@@ -1,4 +1,5 @@
 import * as IORedis from 'ioredis'
+import { createHash } from 'node:crypto'
 import { logSystemWarning } from './logger.ts'
 
 /**
@@ -112,13 +113,20 @@ class RedisComputeCache implements ComputeCache {
   }
 
   async get<T>(key: string): Promise<T | null> {
-    const str = await this.client.get(key)
-    if (str == null) return null
     try {
-      return JSON.parse(str) as T
-    } catch {
-      // fallback when legacy/plain values exist
-      return str as unknown as T
+      const str = await this.client.get(key)
+      if (str == null) return null
+      try {
+        return JSON.parse(str) as T
+      } catch {
+        // fallback when legacy/plain values exist
+        return str as unknown as T
+      }
+    } catch (error) {
+      logSystemWarning(error, {
+        context_msg: 'Compute cache: Redis GET failed - treating as cache miss'
+      })
+      return null
     }
   }
 
@@ -127,13 +135,25 @@ class RedisComputeCache implements ComputeCache {
     value: T,
     ttlSeconds: number = 3600
   ): Promise<void> {
-    const payload = JSON.stringify(value)
-    // EX sets TTL in seconds
-    await this.client.set(key, payload, 'EX', ttlSeconds)
+    try {
+      const payload = JSON.stringify(value)
+      // EX sets TTL in seconds
+      await this.client.set(key, payload, 'EX', ttlSeconds)
+    } catch (error) {
+      logSystemWarning(error, {
+        context_msg: 'Compute cache: Redis SET failed - skipping cache write'
+      })
+    }
   }
 
   async del(key: string): Promise<void> {
-    await this.client.del(key)
+    try {
+      await this.client.del(key)
+    } catch (error) {
+      logSystemWarning(error, {
+        context_msg: 'Compute cache: Redis DEL failed - continuing'
+      })
+    }
   }
 
   // Delete discussion keys for a specific reply using SCAN + MATCH
@@ -146,23 +166,30 @@ class RedisComputeCache implements ComputeCache {
     const { owner, repo, prNumber, replyId } = params
     const pattern = `discuss|*|${owner}/${repo}|pr${prNumber}|*|reply${replyId}|*`
     let cursor = '0'
-    do {
-      const [next, keys] = (await this.client.scan(
-        cursor,
-        'MATCH',
-        pattern,
-        'COUNT',
-        1000
-      )) as unknown as [string, string[]]
-      if (keys && keys.length) {
-        const pipeline = this.client.pipeline()
-        for (const k of keys) {
-          pipeline.del(k)
+    try {
+      do {
+        const [next, keys] = (await this.client.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          1000
+        )) as unknown as [string, string[]]
+        if (keys && keys.length) {
+          const pipeline = this.client.pipeline()
+          for (const k of keys) {
+            pipeline.del(k)
+          }
+          await pipeline.exec()
         }
-        await pipeline.exec()
-      }
-      cursor = next
-    } while (cursor !== '0')
+        cursor = next
+      } while (cursor !== '0')
+    } catch (error) {
+      logSystemWarning(error, {
+        context_msg:
+          'Compute cache: Redis SCAN/DEL failed during cache eviction - continuing'
+      })
+    }
   }
 }
 
@@ -271,38 +298,14 @@ export async function evictDiscussionCacheByReply(params: {
 }
 /**
  * Small helper to stable-hash a string to hex (8 or 16 chars).
- * Not cryptographic; intended for cache keys only.
- * Note: FNV-1a has potential for collisions with similar strings.
- * Consider crypto.createHash('sha256') for collision-sensitive cases.
+ * Uses SHA-256 for significantly lower collision risk vs FNV-1a.
  */
-const FNV_OFFSET_BASIS = 0x811c9dc5
 const DEFAULT_HASH_LENGTH = 8
 
 export function simpleHash(
   input: string,
   length: 8 | 16 = DEFAULT_HASH_LENGTH
 ): string {
-  // Fowler–Noll–Vo hash (FNV-1a) 32-bit
-  let hash = FNV_OFFSET_BASIS
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i)
-    hash =
-      (hash +
-        (hash << 1) +
-        (hash << 4) +
-        (hash << 7) +
-        (hash << 8) +
-        (hash << 24)) >>>
-      0
-  }
-  const hex = ('0000000' + hash.toString(16)).slice(-8)
-  if (length === 16) {
-    // derive a simple 16-char representation by hashing again
-    return hex + ('0000000' + simpleRotate(hash).toString(16)).slice(-8)
-  }
-  return hex
-}
-
-function simpleRotate(x: number): number {
-  return ((x << 13) | (x >>> 19)) >>> 0
+  const full = createHash('sha256').update(input).digest('hex')
+  return full.slice(0, length)
 }
