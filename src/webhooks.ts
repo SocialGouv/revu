@@ -77,13 +77,32 @@ export default async (app: Probot) => {
       return
     }
 
-    const parentBody: string = parent?.data?.body || ''
-    const parentAuthor: string | undefined =
+    // Walk up the thread to the root comment to support nested replies
+    let current = parent
+    let root = parent
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (parent?.data as any)?.user?.login
+      while ((current?.data as any)?.in_reply_to_id) {
+        const next = await context.octokit.rest.pulls.getReviewComment({
+          ...context.repo(),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          comment_id: (current.data as any).in_reply_to_id
+        })
+        current = next
+        root = next
+      }
+    } catch {
+      return
+    }
 
-    if (!parentBody.includes(COMMENT_MARKER_PREFIX)) return
-    if (parentAuthor !== proxyUsername) return
+    const rootBody: string = root?.data?.body || ''
+    const rootAuthor: string | undefined =
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (root?.data as any)?.user?.login
+
+    // Ensure the root of the thread is a Revu comment by our proxy user
+    if (!rootBody.includes(COMMENT_MARKER_PREFIX)) return
+    if (rootAuthor !== proxyUsername) return
 
     // Authorization: only org members (or at least repo collaborators)
     const orgLogin =
@@ -189,8 +208,15 @@ export default async (app: Probot) => {
         prNumber: payload.pull_request.number,
         repositoryUrl,
         branch,
-        parentCommentId: parent.data.id,
-        parentCommentBody: parentBody,
+        // Use true root comment for identification/caching
+        parentCommentId: root.data.id,
+        parentCommentBody: rootBody,
+        rootCommentId: root.data.id,
+        // Scope prompt to the relevant file and hunk if available
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        relevantFilePath: (root.data as any)?.path,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        diffHunk: (root.data as any)?.diff_hunk,
         userReplyCommentId: payload.comment.id,
         userReplyBody: payload.comment.body,
         owner: payload.repository.owner.login,

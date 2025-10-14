@@ -32,7 +32,27 @@ function getRedis(): RedisClient | null {
   }
 }
 
+const MAX_MEMORY_BUCKETS = 10000
 const memoryBuckets = new Map<string, { count: number; expiresAt: number }>()
+function sweepExpiredBuckets(): void {
+  const now = Date.now()
+  for (const [key, rec] of memoryBuckets.entries()) {
+    if (rec.expiresAt <= now) {
+      memoryBuckets.delete(key)
+    }
+  }
+}
+function enforceBucketLimit(): void {
+  if (memoryBuckets.size <= MAX_MEMORY_BUCKETS) return
+  // Remove oldest keys first
+  const over = memoryBuckets.size - MAX_MEMORY_BUCKETS
+  let removed = 0
+  for (const key of memoryBuckets.keys()) {
+    memoryBuckets.delete(key)
+    removed++
+    if (removed >= over) break
+  }
+}
 
 export function getRateLimitConfig(): {
   maxCount: number
@@ -92,9 +112,19 @@ export async function checkAndConsumeRateLimit(params: {
       count: 1,
       expiresAt: now + windowSeconds * 1000
     })
+    // Opportunistic cleanup to prevent unbounded growth
+    if (memoryBuckets.size > MAX_MEMORY_BUCKETS * 1.2) {
+      sweepExpiredBuckets()
+      enforceBucketLimit()
+    }
     return { allowed: 1 <= maxCount, count: 1, limit: maxCount }
   }
   rec.count += 1
   memoryBuckets.set(key, rec)
+  // Opportunistic cleanup to prevent unbounded growth
+  if (memoryBuckets.size > MAX_MEMORY_BUCKETS * 1.2) {
+    sweepExpiredBuckets()
+    enforceBucketLimit()
+  }
   return { allowed: rec.count <= maxCount, count: rec.count, limit: maxCount }
 }

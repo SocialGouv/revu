@@ -28,6 +28,10 @@ export interface DiscussionHandlerParams {
   history?: ThreadMessage[]
   cacheTtlSeconds?: number
   replyVersion?: string
+  // Optional scoping and threading details
+  relevantFilePath?: string
+  diffHunk?: string
+  rootCommentId?: number
 }
 
 /**
@@ -54,7 +58,10 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     repo,
     history = [],
     cacheTtlSeconds = 3600,
-    replyVersion
+    replyVersion,
+    relevantFilePath,
+    diffHunk,
+    rootCommentId
   } = params
 
   // Validate required parameters
@@ -109,7 +116,7 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     owner,
     repo,
     prNumber,
-    rootCommentId: parentCommentId,
+    rootCommentId: rootCommentId ?? parentCommentId,
     lastUserReplyId: userReplyCommentId,
     lastUserReplyBodyHash: bodyHash,
     commitSha: reviewCtx.commitSha,
@@ -141,7 +148,9 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     reviewCtx,
     parentCommentBody,
     userReplyBody: replyForPrompt,
-    history
+    history,
+    relevantFilePath,
+    diffHunk
   })
 
   // Generate assistant reply (concise)
@@ -149,7 +158,7 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
   try {
     reply = await discussionSender(
       prompt,
-      process.env.ANTHROPIC_EXTENDED_CONTEXT === 'true'
+      process.env.ANTHROPIC_THINKING === 'true'
     )
   } catch (error) {
     logSystemError(error, {
@@ -210,8 +219,17 @@ function buildPrompt(input: {
   parentCommentBody: string
   userReplyBody: string
   history: ThreadMessage[]
+  relevantFilePath?: string
+  diffHunk?: string
 }): string {
-  const { reviewCtx, parentCommentBody, userReplyBody, history } = input
+  const {
+    reviewCtx,
+    parentCommentBody,
+    userReplyBody,
+    history,
+    relevantFilePath,
+    diffHunk
+  } = input
 
   const issuesList =
     reviewCtx.relatedIssues.length > 0
@@ -225,21 +243,35 @@ function buildPrompt(input: {
   const MAX_TOTAL_CHARS = 200_000
   let totalChars = 0
 
-  const filesSection = Object.entries(reviewCtx.modifiedFilesContent)
-    .map(([file, content]) => {
-      // Trim extremely large files and cap overall prompt size (LLM cost control)
-      const remainingBudget = Math.max(0, MAX_TOTAL_CHARS - totalChars)
-      const maxForThisFile = Math.min(MAX_CHARS_PER_FILE, remainingBudget)
+  let filesSection: string
+  if (
+    relevantFilePath &&
+    reviewCtx.modifiedFilesContent[relevantFilePath] !== undefined
+  ) {
+    const content = reviewCtx.modifiedFilesContent[relevantFilePath]
+    const body =
+      content.length > MAX_CHARS_PER_FILE
+        ? content.slice(0, MAX_CHARS_PER_FILE) + '\n... (truncated)'
+        : content
+    totalChars += body.length
+    filesSection = `--- File: ${relevantFilePath}\n${body}`
+  } else {
+    filesSection = Object.entries(reviewCtx.modifiedFilesContent)
+      .map(([file, content]) => {
+        // Trim extremely large files and cap overall prompt size (LLM cost control)
+        const remainingBudget = Math.max(0, MAX_TOTAL_CHARS - totalChars)
+        const maxForThisFile = Math.min(MAX_CHARS_PER_FILE, remainingBudget)
 
-      const body =
-        content.length > maxForThisFile
-          ? content.slice(0, maxForThisFile) + '\n... (truncated)'
-          : content
+        const body =
+          content.length > maxForThisFile
+            ? content.slice(0, maxForThisFile) + '\n... (truncated)'
+            : content
 
-      totalChars += body.length
-      return `--- File: ${file}\n${body}`
-    })
-    .join('\n\n')
+        totalChars += body.length
+        return `--- File: ${file}\n${body}`
+      })
+      .join('\n\n')
+  }
 
   const historySection =
     history.length > 0
@@ -269,6 +301,9 @@ function buildPrompt(input: {
     'PR Diff (filtered to reviewable files):',
     reviewCtx.diff || '(empty)',
     '',
+    ...(diffHunk
+      ? (['Relevant Diff Hunk:', diffHunk, ''] as string[])
+      : ([] as string[])),
     'Modified Files Content (possibly truncated):',
     filesSection || '(none)',
     '',
