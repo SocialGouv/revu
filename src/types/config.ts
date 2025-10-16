@@ -11,6 +11,12 @@ export interface RevuAppConfig {
    * Whether to enable Anthropic's extended thinking capabilities
    */
   thinkingEnabled?: boolean
+
+  /**
+   * LLM provider to use for analysis
+   * Defaults to "anthropic"
+   */
+  llmProvider?: 'anthropic' | 'openai'
 }
 
 /**
@@ -18,5 +24,6 @@ export interface RevuAppConfig {
  */
 export const DEFAULT_APP_CONFIG: RevuAppConfig = {
   promptStrategy: 'line-comments',
-  thinkingEnabled: false
+  thinkingEnabled: false,
+  llmProvider: 'anthropic'
 }

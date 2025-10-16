@@ -68,6 +68,43 @@ WEBHOOK_PROXY_URL=https://smee.io/your-url
 
 See [.env.example](.env.example) for an example.
 
+## Choosing a provider (Anthropic or OpenAI)
+
+Revu supports both Anthropic and OpenAI. Select the provider in `config.json`:
+
+```json
+{
+  "promptStrategy": "line-comments",
+  "thinkingEnabled": true,
+  "llmProvider": "openai"
+}
+```
+
+- llmProvider: "anthropic" (default) or "openai"
+
+Environment variables per provider:
+
+- Anthropic (default):
+  - Required: ANTHROPIC_API_KEY
+  - Optional: ANTHROPIC_MODEL (default: claude-sonnet-4-5-20250929)
+  - Optional: ANTHROPIC_EXTENDED_CONTEXT=true to enable 1M context (beta API)
+
+- OpenAI (official endpoint):
+  - Required: OPENAI_API_KEY
+  - Optional: OPENAI_MODEL (default: gpt-5)
+
+Example OpenAI env:
+
+```env
+OPENAI_API_KEY=your_openai_key
+# Optional model override
+OPENAI_MODEL=gpt-5
+```
+
+Notes:
+- The OpenAI integration uses the official `openai` SDK and function/tool calling to enforce the same structured JSON output as Anthropic (summary, comments[], search_replace_blocks[]), keeping parity with existing behavior.
+- `thinkingEnabled` maps to temperature/instructions for OpenAI and to Anthropic's thinking parameters when available.
+
 ## Running Revu
 
 ### Local Development

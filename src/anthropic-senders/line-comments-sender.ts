@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createAnthropicResponseProcessor } from './response-processor/processor.ts'
+import { REVIEW_TOOL_NAME } from '../senders/shared/review-tool-schema.ts'
+import { prepareLineCommentsPayload } from '../senders/shared/line-comments-common.ts'
 
 /**
  * Line comments Anthropic sender.
@@ -21,99 +23,19 @@ export async function lineCommentsSender(
     apiKey: process.env.ANTHROPIC_API_KEY
   })
 
-  // Configure thinking parameters
-  const thinkingConfig = enableThinking
-    ? {
-        thinking: {
-          type: 'enabled' as const,
-          budget_tokens: 16000
-        }
-      }
-    : {}
-
-  // Adjust max_tokens based on thinking configuration
-  const maxTokens = enableThinking ? 20096 : 4096
-
+  // Prepare shared payload parts (tools, messages, temperature, tokens, thinking)
+  const prepared = prepareLineCommentsPayload('anthropic', prompt, enableThinking)
   // Determine if extended context should be used (opt-out: enabled by default)
   const useExtendedContext = process.env.ANTHROPIC_EXTENDED_CONTEXT !== 'false'
 
   // Prepare message parameters
   const messageParams = {
     model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
-    max_tokens: maxTokens,
-    temperature: enableThinking ? 1 : 0, // We are forced to use temperature 1 for thinking
-    ...thinkingConfig,
-    messages: [
-      {
-        role: 'user' as const,
-        content: prompt
-      }
-    ],
-    tools: [
-      {
-        name: 'provide_code_review',
-        description:
-          'Provide structured code review with line-specific comments',
-        input_schema: {
-          type: 'object' as const,
-          properties: {
-            summary: {
-              type: 'string',
-              description: 'Overall summary of the PR'
-            },
-            comments: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  path: {
-                    type: 'string',
-                    description: 'File path relative to repository root'
-                  },
-                  line: {
-                    type: 'integer',
-                    description:
-                      'End line number for the comment (or single line if start_line not provided)'
-                  },
-                  start_line: {
-                    type: 'integer',
-                    description:
-                      'Start line number for multi-line comments (optional). Must be <= line.'
-                  },
-                  body: {
-                    type: 'string',
-                    description: 'Detailed comment about the issue'
-                  },
-                  search_replace_blocks: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        search: {
-                          type: 'string',
-                          description:
-                            'Exact code content to find. Must match character-for-character including whitespace, indentation, and line endings.'
-                        },
-                        replace: {
-                          type: 'string',
-                          description:
-                            'New code content to replace the search content with.'
-                        }
-                      },
-                      required: ['search', 'replace']
-                    },
-                    description:
-                      'SEARCH/REPLACE blocks for precise code modifications. Each search block must match existing code exactly.'
-                  }
-                },
-                required: ['path', 'line', 'body']
-              }
-            }
-          },
-          required: ['summary']
-        }
-      }
-    ],
+    max_tokens: prepared.maxTokens,
+    temperature: prepared.temperature,
+    ...prepared.thinkingConfig,
+    messages: prepared.messages,
+    tools: prepared.tools,
     // Add beta flag only when using extended context
     ...(useExtendedContext ? { betas: ['context-1m-2025-08-07'] } : {})
   }
@@ -133,7 +55,7 @@ export async function lineCommentsSender(
   }
   // Use shared response processor with basic validation
   const processResponse = createAnthropicResponseProcessor({
-    expectedToolName: 'provide_code_review',
+    expectedToolName: REVIEW_TOOL_NAME,
     contextName: 'Inline comment'
   })
   return processResponse(message)
