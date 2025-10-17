@@ -1260,12 +1260,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:22.18.0":
-  version: 22.18.0
-  resolution: "@types/node@npm:22.18.0"
+"@types/node@npm:22.18.11":
+  version: 22.18.11
+  resolution: "@types/node@npm:22.18.11"
   dependencies:
     undici-types: "npm:~6.21.0"
-  checksum: 10c0/02cce4493eee8408e66e76fcad164f33c0600ed0854ad08e5519a76a06402da5b589b278cf71bc975c9e014f2668bdf758bc3be7fed63bdbfd0900495372797c
+  checksum: 10c0/3802f598608638e13ca350fbe2db0db5dde9a0b6704295fa1b6cec6defe24f9baf6a891eee6eaecd016bcd5ea18edecdaf71679d87079fe468913701adb61387
   languageName: node
   linkType: hard
 
@@ -4245,7 +4245,7 @@ __metadata:
     "@probot/get-private-key": "npm:^2.1.1"
     "@types/express": "npm:^5.0.3"
     "@types/js-yaml": "npm:^4.0.9"
-    "@types/node": "npm:22.18.0"
+    "@types/node": "npm:22.18.11"
     "@typescript-eslint/eslint-plugin": "npm:^8.40.0"
     "@typescript-eslint/parser": "npm:^8.40.0"
     "@vitest/coverage-v8": "npm:^3.0.5"
