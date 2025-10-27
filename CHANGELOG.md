@@ -1,3 +1,10 @@
+## [1.34.2](https://github.com/SocialGouv/revu/compare/v1.34.1...v1.34.2) (2025-10-27)
+
+
+### Bug Fixes
+
+* **preprod:** pat ([2483bb0](https://github.com/SocialGouv/revu/commit/2483bb094dec3cdd670451e754e7f700fcbaf238))
+
 ## [1.34.1](https://github.com/SocialGouv/revu/compare/v1.34.0...v1.34.1) (2025-10-16)
 
 
