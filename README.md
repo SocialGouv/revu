@@ -101,10 +101,6 @@ OPENAI_API_KEY=your_openai_key
 OPENAI_MODEL=gpt-5
 ```
 
-Notes:
-- The OpenAI integration uses the official `openai` SDK and function/tool calling to enforce the same structured JSON output as Anthropic (summary, comments[], search_replace_blocks[]), keeping parity with existing behavior.
-- `thinkingEnabled` maps to temperature/instructions for OpenAI and to Anthropic's thinking parameters when available.
-
 ## Running Revu
 
 ### Local Development
@@ -143,8 +139,8 @@ thinkingEnabled: true
 
 # Custom coding guidelines
 codingGuidelines:
-  - "Use descriptive variable names"
-  - "Add comments for complex logic"
+  - 'Use descriptive variable names'
+  - 'Add comments for complex logic'
 
 # PR validation rules
 validation:
@@ -154,9 +150,9 @@ validation:
 # Branch filtering
 branches:
   patterns:
-    - "!**"
-    - "main"
-    - "release/*"
+    - '!**'
+    - 'main'
+    - 'release/*'
 ```
 
 ## Contributing
