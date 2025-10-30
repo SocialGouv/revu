@@ -34,8 +34,6 @@ The hook wraps the base Octokit request pipeline:
   - `'default' | 'read' | 'write' | 'delete' | 'none'`
   - `'none'` bypasses retries for that call
 
-In tests, backoff timing is set to zero to avoid timeouts.
-
 ### Attaching the hook
 
 The hook is attached in Probot flows to the context’s Octokit instance, and in utilities that create their own Octokit instances:
