@@ -19,7 +19,8 @@ export const REVIEW_PARAMETERS_SCHEMA = {
   properties: {
     summary: {
       type: 'string' as const,
-      description: 'Overall summary of the PR'
+      description:
+        'Overall summary of the PR. Supports GitHub-flavored Markdown (headings, lists, tables, code fences).'
     },
     comments: {
       type: 'array' as const,
@@ -42,7 +43,8 @@ export const REVIEW_PARAMETERS_SCHEMA = {
           },
           body: {
             type: 'string' as const,
-            description: 'Detailed comment about the issue'
+            description:
+              'Detailed comment about the issue. Supports GitHub-flavored Markdown (headings, lists, tables, code fences, suggestion blocks).'
           },
           search_replace_blocks: {
             type: 'array' as const,
