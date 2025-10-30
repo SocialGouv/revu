@@ -59,7 +59,8 @@ export async function lineCommentsSender(
           properties: {
             summary: {
               type: 'string',
-              description: 'Overall summary of the PR'
+              description:
+                'Overall summary of the PR. Supports GitHub-flavored Markdown (headings, lists, tables, code fences).'
             },
             comments: {
               type: 'array',
@@ -82,7 +83,8 @@ export async function lineCommentsSender(
                   },
                   body: {
                     type: 'string',
-                    description: 'Detailed comment about the issue'
+                    description:
+                      'Detailed comment about the issue. Supports GitHub-flavored Markdown (headings, lists, tables, code fences, suggestion blocks).'
                   },
                   search_replace_blocks: {
                     type: 'array',
