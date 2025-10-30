@@ -214,9 +214,9 @@ export default async (app: Probot) => {
         rootCommentId: root.data.id,
         // Scope prompt to the relevant file and hunk if available
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        relevantFilePath: (root.data as any)?.path,
+        relevantFilePath: root.data?.path,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        diffHunk: (root.data as any)?.diff_hunk,
+        diffHunk: root.data?.diff_hunk,
         userReplyCommentId: payload.comment.id,
         userReplyBody: payload.comment.body,
         owner: payload.repository.owner.login,
