@@ -5,7 +5,6 @@ import { extractMarkerIdFromComment } from './comment-utils.ts'
 import {
   COMMENT_MARKER_PREFIX,
   SUMMARY_MARKER,
-  isGitHubApiError,
   type Comment,
   type CommentExistenceResult
 } from './types.ts'
@@ -77,15 +76,20 @@ export async function checkCommentExistence(
   commentId: number
 ): Promise<CommentExistenceResult> {
   try {
+    const repo = context.repo()
     await context.octokit.rest.pulls.getReviewComment({
-      ...context.repo(),
+      ...repo,
       comment_id: commentId
     })
     return { exists: true }
   } catch (error) {
-    if (isGitHubApiError(error) && error.status === 404) {
+    // Check for 404 status from error or wrapped error
+    const err = error as any
+    const status = err?.status ?? err?.response?.status ?? err?.statusCode
+    if (status === 404) {
       return { exists: false, reason: 'not_found' }
     }
+
     return { exists: false, reason: 'error', error }
   }
 }
