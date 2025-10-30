@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { openaiLineCommentsSender } from '../../src/senders/providers/openai/line-comments-sender.ts'
 
 // Mock the OpenAI SDK
 const createMock = vi.fn()
@@ -15,21 +16,12 @@ vi.mock('openai', () => {
 })
 
 describe('openaiLineCommentsSender', () => {
-  let openaiLineCommentsSender: (
-    prompt: string,
-    enableThinking?: boolean
-  ) => Promise<string>
-
   beforeEach(async () => {
     vi.resetModules()
     createMock.mockReset()
     // Ensure env is set for tests
     process.env.OPENAI_API_KEY = 'test-openai-key'
     delete process.env.OPENAI_MODEL
-
-    // Import after mocks & env set
-    const mod = await import('../../src/openai-senders/line-comments-sender.ts')
-    openaiLineCommentsSender = mod.openaiLineCommentsSender
   })
 
   afterEach(() => {
@@ -104,7 +96,8 @@ describe('openaiLineCommentsSender', () => {
       choices: [
         {
           message: {
-            content: 'Please see:\n```json\n' + JSON.stringify(jsonInBlock) + '\n```'
+            content:
+              'Please see:\n```json\n' + JSON.stringify(jsonInBlock) + '\n```'
           }
         }
       ]

@@ -1,5 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk'
-import { logSystemError, logSystemWarning } from '../../utils/logger.ts'
+import { logSystemError, logSystemWarning } from '../../../../utils/logger.ts'
 import {
   createJsonCodeBlockExtractor,
   createJsonTextExtractor,

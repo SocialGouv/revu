@@ -1,12 +1,12 @@
 import * as dotenv from 'dotenv'
-import { getSender } from './anthropic-senders/index.ts'
+import { getSender } from './senders/index.ts'
 import type { PlatformContext } from './core/models/platform-types.ts'
 import { populateTemplate } from './populate-template.ts'
 
 // Load environment variables
 dotenv.config()
 
-interface SendToAnthropicOptions {
+interface SendToLLMOptions {
   repositoryUrl: string
   branch: string
   strategyName?: string
@@ -30,12 +30,12 @@ interface SendToAnthropicOptions {
  * @throws {Error} If API communication fails or response is unexpected
  * @requires ANTHROPIC_API_KEY environment variable to be set
  */
-export async function sendToAnthropic({
+export async function sendToLLM({
   repositoryUrl,
   branch,
   strategyName,
   context
-}: SendToAnthropicOptions) {
+}: SendToLLMOptions) {
   // Get the populated template
   const prompt = await populateTemplate({
     repositoryUrl,

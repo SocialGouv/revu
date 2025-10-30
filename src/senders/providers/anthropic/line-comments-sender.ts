@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { createAnthropicResponseProcessor } from './response-processor/processor.ts'
-import { REVIEW_TOOL_NAME } from '../senders/shared/review-tool-schema.ts'
-import { prepareLineCommentsPayload } from '../senders/shared/line-comments-common.ts'
+import { REVIEW_TOOL_NAME } from '../../shared/review-tool-schema.ts'
+import { prepareLineCommentsPayload } from '../../shared/line-comments-common.ts'
 
 /**
  * Line comments Anthropic sender.
@@ -14,7 +14,7 @@ import { prepareLineCommentsPayload } from '../senders/shared/line-comments-comm
  * @param enableThinking - Optional flag to enable extended thinking capabilities
  * @returns A stringified JSON response containing structured review comments
  */
-export async function lineCommentsSender(
+export async function anthropicLineCommentsSender(
   prompt: string,
   enableThinking: boolean = false
 ): Promise<string> {
@@ -24,7 +24,11 @@ export async function lineCommentsSender(
   })
 
   // Prepare shared payload parts (tools, messages, temperature, tokens, thinking)
-  const prepared = prepareLineCommentsPayload('anthropic', prompt, enableThinking)
+  const prepared = prepareLineCommentsPayload(
+    'anthropic',
+    prompt,
+    enableThinking
+  )
   // Determine if extended context should be used (opt-out: enabled by default)
   const useExtendedContext = process.env.ANTHROPIC_EXTENDED_CONTEXT !== 'false'
 

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { lineCommentsSender } from '../../src/anthropic-senders/line-comments-sender.ts'
+import { anthropicLineCommentsSender } from '../../src/senders/providers/anthropic/line-comments-sender.ts'
 
 // Mock the Anthropic SDK
 vi.mock('@anthropic-ai/sdk', () => {
@@ -113,7 +113,7 @@ const mockMixedResponse = (
   target.mockResolvedValue({ content })
 }
 
-describe('lineCommentsSender', () => {
+describe('anthropicLineCommentsSender', () => {
   let mockAnthropic: {
     messages: {
       create: ReturnType<typeof vi.fn>
@@ -156,7 +156,7 @@ describe('lineCommentsSender', () => {
 
     mockToolUseResponse(mockAnthropic, expectedResponse)
 
-    const result = await lineCommentsSender('test prompt')
+    const result = await anthropicLineCommentsSender('test prompt')
     expect(result).toBe(JSON.stringify(expectedResponse))
   })
 
@@ -165,7 +165,7 @@ describe('lineCommentsSender', () => {
 
     mockToolUseResponse(mockAnthropic, expectedResponse)
 
-    const result = await lineCommentsSender('test prompt')
+    const result = await anthropicLineCommentsSender('test prompt')
     expect(result).toBe(JSON.stringify(expectedResponse))
   })
 
@@ -184,7 +184,7 @@ This is the code review result.`
 
     mockTextResponse(mockAnthropic, textResponse)
 
-    const result = await lineCommentsSender('test prompt')
+    const result = await anthropicLineCommentsSender('test prompt')
     expect(result).toBe(JSON.stringify(expectedJson, null, 2))
   })
 
@@ -196,7 +196,7 @@ This is the code review result.`
     const jsonResponse = JSON.stringify(expectedJson)
     mockTextResponse(mockAnthropic, jsonResponse)
 
-    const result = await lineCommentsSender('test prompt')
+    const result = await anthropicLineCommentsSender('test prompt')
     expect(result).toBe(jsonResponse)
   })
 
@@ -215,7 +215,7 @@ Some text after that should be ignored`
 
     mockTextResponse(mockAnthropic, textWithJson)
 
-    const result = await lineCommentsSender('test prompt')
+    const result = await anthropicLineCommentsSender('test prompt')
     expect(result).toBe(JSON.stringify(expectedJson))
   })
 
@@ -224,7 +224,7 @@ Some text after that should be ignored`
 
     mockTextResponse(mockAnthropic, plainTextResponse)
 
-    const result = await lineCommentsSender('test prompt')
+    const result = await anthropicLineCommentsSender('test prompt')
     expect(result).toBe(plainTextResponse)
   })
 
@@ -237,7 +237,7 @@ Some text after that should be ignored`
       }
     ])
 
-    await expect(lineCommentsSender('test prompt')).rejects.toThrow(
+    await expect(anthropicLineCommentsSender('test prompt')).rejects.toThrow(
       'Unexpected tool name: unexpected_tool'
     )
   })
@@ -245,7 +245,7 @@ Some text after that should be ignored`
   it('should throw error when no content is found', async () => {
     mockMixedResponse(mockAnthropic, [])
 
-    await expect(lineCommentsSender('test prompt')).rejects.toThrow(
+    await expect(anthropicLineCommentsSender('test prompt')).rejects.toThrow(
       'Unexpected response format from Anthropic inline comment - no content found'
     )
   })
@@ -270,7 +270,7 @@ This should fallback to the entire text since JSON is invalid.`
 
     mockTextResponse(mockAnthropic, invalidJsonInCodeBlock)
 
-    const result = await lineCommentsSender('test prompt')
+    const result = await anthropicLineCommentsSender('test prompt')
 
     // Should return the invalid JSON string (not the whole text)
     // The validation happens later in lineCommentsHandler
@@ -283,7 +283,7 @@ This should fallback to the entire text since JSON is invalid.`
 
     mockTextResponse(mockAnthropic, invalidJsonText)
 
-    const result = await lineCommentsSender('test prompt')
+    const result = await anthropicLineCommentsSender('test prompt')
 
     // Should return the invalid JSON string as-is
     // The validation/parsing happens in lineCommentsHandler
@@ -295,7 +295,7 @@ This should fallback to the entire text since JSON is invalid.`
 
     mockTextResponse(mockAnthropic, malformedJson)
 
-    const result = await lineCommentsSender('test prompt')
+    const result = await anthropicLineCommentsSender('test prompt')
 
     // Should return the malformed JSON as-is
     expect(result).toBe(malformedJson)
@@ -318,7 +318,7 @@ More text after.`
 
     mockTextResponse(mockAnthropic, textWithValidJsonInCodeBlock)
 
-    const result = await lineCommentsSender('test prompt')
+    const result = await anthropicLineCommentsSender('test prompt')
 
     // Should return the valid JSON from the code block, not the malformed JSON-like text
     expect(result).toBe(JSON.stringify(validJson, null, 2))
@@ -336,7 +336,7 @@ More text after.`
         createToolUseContent(expectedResponse)
       ])
 
-      const result = await lineCommentsSender('test prompt', true)
+      const result = await anthropicLineCommentsSender('test prompt', true)
 
       // Should extract only the tool_use result, ignoring thinking blocks
       expect(result).toBe(JSON.stringify(expectedResponse))
@@ -360,7 +360,7 @@ More text after.`
 
       mockToolUseResponse(mockAnthropic, expectedResponse)
 
-      const result = await lineCommentsSender('test prompt', false)
+      const result = await anthropicLineCommentsSender('test prompt', false)
 
       expect(result).toBe(JSON.stringify(expectedResponse))
 
@@ -381,7 +381,7 @@ More text after.`
 
       mockToolUseResponse(mockAnthropic, expectedResponse)
 
-      const result = await lineCommentsSender('test prompt')
+      const result = await anthropicLineCommentsSender('test prompt')
 
       expect(result).toBe(JSON.stringify(expectedResponse))
 
@@ -401,7 +401,7 @@ More text after.`
 
       mockToolUseResponse(mockAnthropic, expectedResponse)
 
-      const result = await lineCommentsSender('test prompt')
+      const result = await anthropicLineCommentsSender('test prompt')
 
       expect(result).toBe(JSON.stringify(expectedResponse))
 
@@ -423,7 +423,7 @@ More text after.`
 
       mockToolUseResponse(mockAnthropic, expectedResponse)
 
-      const result = await lineCommentsSender('test prompt')
+      const result = await anthropicLineCommentsSender('test prompt')
 
       expect(result).toBe(JSON.stringify(expectedResponse))
 
@@ -448,7 +448,7 @@ More text after.`
 
       mockToolUseResponse(mockAnthropic, expectedResponse, false)
 
-      const result = await lineCommentsSender('test prompt')
+      const result = await anthropicLineCommentsSender('test prompt')
 
       expect(result).toBe(JSON.stringify(expectedResponse))
 
@@ -474,7 +474,7 @@ More text after.`
         createToolUseContent(expectedResponse)
       ])
 
-      const result = await lineCommentsSender('test prompt', true)
+      const result = await anthropicLineCommentsSender('test prompt', true)
 
       expect(result).toBe(JSON.stringify(expectedResponse))
 
@@ -507,7 +507,7 @@ More text after.`
         false
       )
 
-      const result = await lineCommentsSender('test prompt', true)
+      const result = await anthropicLineCommentsSender('test prompt', true)
 
       expect(result).toBe(JSON.stringify(expectedResponse))
 

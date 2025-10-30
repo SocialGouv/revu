@@ -1,5 +1,5 @@
 import OpenAI from 'openai'
-import { prepareLineCommentsPayload } from '../senders/shared/line-comments-common.ts'
+import { prepareLineCommentsPayload } from '../../shared/line-comments-common.ts'
 
 /**
  * Line comments OpenAI sender.
@@ -28,7 +28,6 @@ export async function openaiLineCommentsSender(
   const model = process.env.OPENAI_MODEL || 'gpt-5'
   // Prepare shared payload parts (tools, messages, temperature)
   const prepared = prepareLineCommentsPayload('openai', prompt, enableThinking)
-
 
   // System guidance and user prompt via shared builder
 

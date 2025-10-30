@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { sendToAnthropic } from '../src/send-to-anthropic.ts'
+import { sendToLLM as sendToAnthropic } from '../src/send-to-llm.ts'
 
 // Mock the Anthropic SDK
 vi.mock('@anthropic-ai/sdk', () => {
