@@ -135,7 +135,7 @@ describe('openaiLineCommentsSender', () => {
     })
 
     await expect(openaiLineCommentsSender('test prompt')).rejects.toThrow(
-      /OpenAI tool call returned invalid JSON/
+      'OpenAI tool call returned invalid JSON'
     )
   })
 
@@ -151,7 +151,7 @@ describe('openaiLineCommentsSender', () => {
     })
 
     await expect(openaiLineCommentsSender('test prompt')).rejects.toThrow(
-      /Unexpected response format from OpenAI inline comment/
+      'Unexpected response format from OpenAI inline comment'
     )
   })
 })
