@@ -1,7 +1,8 @@
 import pRetry, { AbortError, type Options as PRetryOptions } from 'p-retry'
 import { logSystemWarning } from './logger.ts'
 
-const isTest = process.env.NODE_ENV === 'test'
+const isTest =
+  process.env.NODE_ENV === 'test' || process.env.VITEST_WORKER_ID != null
 
 type RetryLogContext = {
   operation: string
