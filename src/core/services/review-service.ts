@@ -1,7 +1,7 @@
 import { errorCommentHandler } from '../../comment-handlers/error-comment-handler.ts'
 import { lineCommentsHandler } from '../../comment-handlers/line-comments-handler.ts'
 import { getValidationConfig } from '../../config-handler.ts'
-import { sendToAnthropic } from '../../send-to-anthropic.ts'
+import { sendToLLM } from '../../send-to-llm.ts'
 import {
   logReviewFailed,
   logReviewStarted,
@@ -183,7 +183,7 @@ const performAnalysis = async (
   console.log('   (This may take 30-60 seconds...)')
 
   const startTime = Date.now()
-  const analysis = await sendToAnthropic({
+  const analysis = await sendToLLM({
     repositoryUrl,
     branch,
     strategyName,
