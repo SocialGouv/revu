@@ -1,3 +1,10 @@
+# [1.35.0](https://github.com/SocialGouv/revu/compare/v1.34.3...v1.35.0) (2025-10-30)
+
+
+### Features
+
+* **gpt5:** first draft ([#242](https://github.com/SocialGouv/revu/issues/242)) ([048701e](https://github.com/SocialGouv/revu/commit/048701ec8339139f6abcd19107b3de8752d0b153)), closes [#241](https://github.com/SocialGouv/revu/issues/241)
+
 ## [1.34.3](https://github.com/SocialGouv/revu/compare/v1.34.2...v1.34.3) (2025-10-30)
 
 
