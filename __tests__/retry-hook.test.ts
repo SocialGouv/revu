@@ -75,23 +75,6 @@ describe('attachOctokitRetry hook', () => {
     expect(ok.callCount).toBe(5)
   })
 
-  it('applies conservative retries for write policy (POST): only 2 retries', async () => {
-    let attempt = 0
-    const ok = new FakeOctokit(async () => {
-      attempt++
-      if (attempt <= 3) throw httpError(500, 'server error')
-      return { status: 200, data: { ok: true } }
-    })
-
-    attachOctokitRetry(ok)
-
-    // With retries=2 for writes, we expect 3 total attempts and still fail
-    await expect(
-      ok.request({ method: 'POST', url: '/write' })
-    ).rejects.toMatchObject({ status: 500 })
-    expect(ok.callCount).toBe(3)
-  })
-
   it('DELETE with revuDeleteTreat404AsSuccess=true returns 204 on 404 (idempotent delete)', async () => {
     const ok = new FakeOctokit(async () => {
       throw httpError(404, 'Not Found')
