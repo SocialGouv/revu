@@ -119,47 +119,40 @@ export async function withRetry<T>(
           const abortErr: any = new AbortError(errorToMessage(err))
           // Preserve original useful fields for downstream error handling (e.g., Octokit)
           // Always attach an HTTP status if we can derive it
-          const status = getStatus(err as any)
-          if (status !== undefined) (abortErr as any).status = status
+          const status = getStatus(err)
+          if (status !== undefined) abortErr.status = status
 
-          const orig: any = err as any
+          const orig: any = err
           if (orig && typeof orig === 'object') {
             // Only copy response and headers for API error compatibility
-            if (orig.response !== undefined)
-              (abortErr as any).response = orig.response
-            if (orig.headers !== undefined)
-              (abortErr as any).headers = orig.headers
+            if (orig.response !== undefined) abortErr.response = orig.response
+            if (orig.headers !== undefined) abortErr.headers = orig.headers
           }
 
           // Attach original error as cause for debugging
-          ;(abortErr as any).cause = err
+          abortErr.cause = err
           throw abortErr
         }
         if (!(err instanceof Error)) {
           const wrap: any = new Error(errorToMessage(err))
           // Always attach derived HTTP status if available
-          const status = getStatus(err as any)
+          const status = getStatus(err)
           if (status !== undefined) wrap.status = status
           try {
-            const orig: any = err as any
+            const orig: any = err
             if (orig) {
-              if (orig.response !== undefined)
-                (wrap as any).response = orig.response
-              if (orig.headers !== undefined)
-                (wrap as any).headers = orig.headers
-              if ((orig as any).code !== undefined)
-                (wrap as any).code = (orig as any).code
+              if (orig.response !== undefined) wrap.response = orig.response
+              if (orig.headers !== undefined) wrap.headers = orig.headers
+              if (orig.code !== undefined) wrap.code = orig.code
               const origCtorName = orig?.constructor?.name
-              if ((orig as any).name)
-                (wrap as any).originalName = (orig as any).name
-              if (origCtorName)
-                (wrap as any).originalConstructorName = origCtorName
-              if ((orig as any).stack && !(wrap as any).stack) {
-                ;(wrap as any).stack = (orig as any).stack
+              if (orig.name) wrap.originalName = orig.name
+              if (origCtorName) wrap.originalConstructorName = origCtorName
+              if (orig.stack && !wrap.stack) {
+                wrap.stack = orig.stack
               }
             }
-            ;(wrap as any).cause = err
-            ;(wrap as any).originalError = err
+            wrap.cause = err
+            wrap.originalError = err
           } catch {
             /* noop */
           }
@@ -173,8 +166,8 @@ export async function withRetry<T>(
       ...retryOpts,
       onFailedAttempt: (err) => {
         if (isTest) return
-        const attemptNumber = (err as any)?.attemptNumber ?? 0
-        const retriesLeft = (err as any)?.retriesLeft ?? 0
+        const attemptNumber = err?.attemptNumber ?? 0
+        const retriesLeft = err?.retriesLeft ?? 0
         const msg = (err as any)?.message ?? String(err)
         try {
           logSystemWarning(
@@ -248,7 +241,7 @@ export async function withRetryFetch(
   return withRetry(
     async () => {
       // Use global fetch (Node 18+)
-      const res: Response = await (globalThis as any).fetch(input, init)
+      const res: Response = await globalThis.fetch(input, init)
       if (res.status === 429 || res.status >= 500) {
         const e: any = new Error(`HTTP ${res.status}`)
         e.status = res.status
