@@ -82,11 +82,11 @@ export default async (app: Probot) => {
     let root = parent
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      while ((current?.data as any)?.in_reply_to_id) {
+      while (current?.data?.in_reply_to_id) {
         const next = await context.octokit.rest.pulls.getReviewComment({
           ...context.repo(),
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          comment_id: (current.data as any).in_reply_to_id
+          comment_id: current.data.in_reply_to_id
         })
         current = next
         root = next
