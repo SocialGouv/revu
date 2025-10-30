@@ -1,3 +1,10 @@
+## [1.34.3](https://github.com/SocialGouv/revu/compare/v1.34.2...v1.34.3) (2025-10-30)
+
+
+### Bug Fixes
+
+* improve comments formatting ([#229](https://github.com/SocialGouv/revu/issues/229)) ([54335ef](https://github.com/SocialGouv/revu/commit/54335efb09b10dfb01696e95c3e1c3991f10f5a0)), closes [#114](https://github.com/SocialGouv/revu/issues/114)
+
 ## [1.34.2](https://github.com/SocialGouv/revu/compare/v1.34.1...v1.34.2) (2025-10-27)
 
 
