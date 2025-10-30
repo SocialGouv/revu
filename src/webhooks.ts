@@ -98,7 +98,7 @@ export default async (app: Probot) => {
     const rootBody: string = root?.data?.body || ''
     const rootAuthor: string | undefined =
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (root?.data as any)?.user?.login
+      root?.data?.user?.login
 
     // Ensure the root of the thread is a Revu comment by our proxy user
     if (!rootBody.includes(COMMENT_MARKER_PREFIX)) return
