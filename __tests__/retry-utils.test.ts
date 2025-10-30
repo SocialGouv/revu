@@ -5,7 +5,7 @@ import {
   withRetry
 } from '../src/utils/retry.ts'
 
-function makeRes(
+function makeResponse(
   status: number,
   headers?: Record<string, string>,
   statusText?: string
@@ -31,8 +31,8 @@ describe('withRetryFetch', () => {
   it('retries on 5xx and succeeds', async () => {
     ;(globalThis as any).fetch = async () => {
       calls++
-      if (calls <= 2) return makeRes(500)
-      return makeRes(200)
+      if (calls <= 2) return makeResponse(500)
+      return makeResponse(200)
     }
 
     const res = await withRetryFetch('https://example.com', undefined, {
@@ -47,7 +47,7 @@ describe('withRetryFetch', () => {
   it('aborts immediately on 4xx (AbortError) without retry', async () => {
     ;(globalThis as any).fetch = async () => {
       calls++
-      return makeRes(404, {}, 'Not Found')
+      return makeResponse(404, {}, 'Not Found')
     }
 
     await expect(
@@ -63,8 +63,8 @@ describe('withRetryFetch', () => {
   it('retries on 429 Too Many Requests', async () => {
     ;(globalThis as any).fetch = async () => {
       calls++
-      if (calls <= 2) return makeRes(429, { 'retry-after': '1' })
-      return makeRes(200)
+      if (calls <= 2) return makeResponse(429, { 'retry-after': '1' })
+      return makeResponse(200)
     }
 
     const res = await withRetryFetch('https://example.com', undefined, {
@@ -80,7 +80,7 @@ describe('withRetryFetch', () => {
     ;(globalThis as any).fetch = async () => {
       calls++
       if (calls <= 1) throw new Error('network down')
-      return makeRes(200)
+      return makeResponse(200)
     }
 
     const res = await withRetryFetch('https://example.com', undefined, {
