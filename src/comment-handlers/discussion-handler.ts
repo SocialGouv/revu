@@ -1,6 +1,7 @@
 import type { PlatformContext } from '../core/models/platform-types.ts'
 import { buildReviewContext } from '../prompt-strategies/build-review-context.ts'
-import { discussionSender } from '../anthropic-senders/discussion-sender.ts'
+import { buildDiscussionPromptSegments } from '../prompt-strategies/build-discussion-prompt-segments.ts'
+import { getDiscussionSender } from '../senders/index.ts'
 import {
   buildDiscussionCacheKey,
   getComputeCache,
@@ -144,7 +145,7 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
       ? userReplyBody.slice(0, MAX_REPLY_PROMPT_CHARS)
       : userReplyBody
 
-  const prompt = buildPrompt({
+  const segments = buildDiscussionPromptSegments({
     reviewCtx,
     parentCommentBody,
     userReplyBody: replyForPrompt,
@@ -156,10 +157,8 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
   // Generate assistant reply (concise)
   let reply: string
   try {
-    reply = await discussionSender(
-      prompt,
-      process.env.ANTHROPIC_THINKING === 'true'
-    )
+    const sender = await getDiscussionSender()
+    reply = await sender(segments)
   } catch (error) {
     logSystemError(error, {
       pr_number: prNumber,
@@ -204,129 +203,4 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
   await cache.set(cacheKey, reply, cacheTtlSeconds)
 
   return reply
-}
-
-function buildPrompt(input: {
-  reviewCtx: {
-    prTitle?: string
-    prBody?: string
-    diff: string
-    modifiedFilesContent: Record<string, string>
-    codingGuidelines: string
-    relatedIssues: Array<{ number: number; title: string }>
-    commitSha: string
-  }
-  parentCommentBody: string
-  userReplyBody: string
-  history: ThreadMessage[]
-  relevantFilePath?: string
-  diffHunk?: string
-}): string {
-  const {
-    reviewCtx,
-    parentCommentBody,
-    userReplyBody,
-    history,
-    relevantFilePath,
-    diffHunk
-  } = input
-
-  const issuesList =
-    reviewCtx.relatedIssues.length > 0
-      ? reviewCtx.relatedIssues
-          .map((i) => `- #${i.number} ${i.title}`)
-          .join('\n')
-      : 'None'
-
-  const MAX_CHARS_PER_FILE =
-    Number(process.env.MAX_FILE_CONTENT_CHARS) || 50_000
-  const MAX_TOTAL_CHARS = 200_000
-  let totalChars = 0
-
-  let filesSection: string
-  if (
-    relevantFilePath &&
-    reviewCtx.modifiedFilesContent[relevantFilePath] !== undefined
-  ) {
-    const content = reviewCtx.modifiedFilesContent[relevantFilePath]
-    const body =
-      content.length > MAX_CHARS_PER_FILE
-        ? content.slice(0, MAX_CHARS_PER_FILE) + '\n... (truncated)'
-        : content
-    totalChars += body.length
-    filesSection = `--- File: ${relevantFilePath}\n${body}`
-  } else {
-    filesSection = Object.entries(reviewCtx.modifiedFilesContent)
-      .map(([file, content]) => {
-        // Trim extremely large files and cap overall prompt size (LLM cost control)
-        const remainingBudget = Math.max(0, MAX_TOTAL_CHARS - totalChars)
-        const maxForThisFile = Math.min(MAX_CHARS_PER_FILE, remainingBudget)
-
-        const body =
-          content.length > maxForThisFile
-            ? content.slice(0, maxForThisFile) + '\n... (truncated)'
-            : content
-
-        totalChars += body.length
-        return `--- File: ${file}\n${body}`
-      })
-      .join('\n\n')
-  }
-
-  const historySection =
-    history.length > 0
-      ? history.map((h) => `- ${h.author}: ${sanitize(h.body)}`).join('\n')
-      : 'None'
-
-  const prBodyIncluded =
-    reviewCtx.prBody && reviewCtx.prBody.trim().length > 0
-      ? reviewCtx.prBody
-      : '(empty)'
-
-  return [
-    'You are continuing a code review discussion.',
-    'Respond concisely (at most ~5 sentences).',
-    'If proposing a concrete fix, include exactly one GitHub suggestion block using triple-backticks with `suggestion`.',
-    'If clarification is needed, ask at most one targeted question.',
-    '',
-    `PR Title: ${reviewCtx.prTitle || '(no title)'}`,
-    `PR Body: ${prBodyIncluded}`,
-    '',
-    'Coding Guidelines:',
-    reviewCtx.codingGuidelines || '(none)',
-    '',
-    'Related Issues:',
-    issuesList,
-    '',
-    'PR Diff (filtered to reviewable files):',
-    reviewCtx.diff || '(empty)',
-    '',
-    ...(diffHunk
-      ? (['Relevant Diff Hunk:', diffHunk, ''] as string[])
-      : ([] as string[])),
-    'Modified Files Content (possibly truncated):',
-    filesSection || '(none)',
-    '',
-    'Original Revu Comment (root of thread):',
-    sanitize(parentCommentBody),
-    '',
-    'User Reply (latest message):',
-    sanitize(userReplyBody),
-    '',
-    'Thread History (older to newer):',
-    historySection
-  ].join('\n')
-}
-
-function sanitize(text: string): string {
-  // Basic sanitation to avoid breaking prompt formatting
-  const cleaned = (text || '').replace(/\r/g, '')
-
-  // Limit input length to prevent excessively large prompts
-  const MAX_INPUT_LENGTH = 10000
-  if (cleaned.length > MAX_INPUT_LENGTH) {
-    return cleaned.slice(0, MAX_INPUT_LENGTH) + '\n... (truncated)'
-  }
-
-  return cleaned
 }

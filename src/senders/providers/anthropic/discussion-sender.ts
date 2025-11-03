@@ -8,8 +8,13 @@ import Anthropic from '@anthropic-ai/sdk'
  * @param enableThinking - Optional flag to enable extended thinking capabilities
  * @returns Assistant reply text
  */
+import type {
+  DiscussionPromptSegments,
+  TextPart
+} from '../../../prompt-strategies/build-discussion-prompt-segments.ts'
+
 export async function discussionSender(
-  prompt: string,
+  promptOrSegments: string | DiscussionPromptSegments,
   enableThinking: boolean = false
 ): Promise<string> {
   const anthropic = new Anthropic({
@@ -28,6 +33,42 @@ export async function discussionSender(
   const maxTokens = enableThinking ? 4096 : 1024
   const useExtendedContext = process.env.ANTHROPIC_EXTENDED_CONTEXT !== 'false'
 
+  // Build content blocks: if string, single text block; if segments, stitch stable+dynamic
+  const isSegments = Array.isArray((promptOrSegments as any)?.stableParts)
+  const enablePromptCache =
+    (process.env.ENABLE_PROMPT_CACHE || 'true') !== 'false'
+  const ttlSeconds = (() => {
+    const v = Number(process.env.PROMPT_CACHE_TTL)
+    return Number.isFinite(v) && v > 0 ? v : 172_800
+  })()
+
+  const contentBlocks: Array<any> = isSegments
+    ? [
+        // Stable parts: optionally add provider cache hints (best-effort)
+        ...(
+          (promptOrSegments as DiscussionPromptSegments)
+            .stableParts as TextPart[]
+        ).map((p) =>
+          enablePromptCache
+            ? ({
+                type: 'text' as const,
+                text: p.text,
+                // Anthropic prompt-caching hint (SDK may not type it yet)
+                cache_control: { type: 'ephemeral', ttl: ttlSeconds } as any
+              } as any)
+            : ({ type: 'text' as const, text: p.text } as any)
+        ),
+        // Dynamic parts: never cache
+        ...(
+          (promptOrSegments as DiscussionPromptSegments)
+            .dynamicParts as TextPart[]
+        ).map((p) => ({
+          type: 'text' as const,
+          text: p.text
+        }))
+      ]
+    : [{ type: 'text' as const, text: String(promptOrSegments) }]
+
   const messageParams = {
     model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
     max_tokens: maxTokens,
@@ -37,7 +78,7 @@ export async function discussionSender(
     messages: [
       {
         role: 'user' as const,
-        content: prompt
+        content: contentBlocks
       }
     ],
     ...(useExtendedContext ? { betas: ['context-1m-2025-08-07'] } : {})

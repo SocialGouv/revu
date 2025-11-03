@@ -3792,9 +3792,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openai@npm:^6.3.0":
-  version: 6.3.0
-  resolution: "openai@npm:6.3.0"
+"openai@npm:^6.7.0":
+  version: 6.7.0
+  resolution: "openai@npm:6.7.0"
   peerDependencies:
     ws: ^8.18.0
     zod: ^3.25 || ^4.0
@@ -3805,7 +3805,7 @@ __metadata:
       optional: true
   bin:
     openai: bin/cli
-  checksum: 10c0/192304069a75b9b0d71ee6e1b719544ec31f6f64cd750e1837cff9cc00187c023c80dd2c6d3049627b3b74721dd0a463a8fed230443003e4ab72c705c0d540dc
+  checksum: 10c0/dbee766f28308235fdc370a325f50ab4de2d869a832f78fbb7cb81ede0518b55c6e6ab70cd0fe9cdc7a3fd948ef56a8d8f23d0a86fef21ac7ed97e35ef547c92
   languageName: node
   linkType: hard
 
@@ -4366,7 +4366,7 @@ __metadata:
     js-yaml: "npm:^4.1.0"
     knip: "npm:^5.61.2"
     lint-staged: "npm:^16.1.6"
-    openai: "npm:^6.3.0"
+    openai: "npm:^6.7.0"
     p-retry: "npm:^7.0.0"
     picomatch: "npm:^4.0.3"
     prettier: "npm:^3.5.1"

@@ -81,11 +81,10 @@ export default async (app: Probot) => {
     let current = parent
     let root = parent
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       while (current?.data?.in_reply_to_id) {
         const next = await context.octokit.rest.pulls.getReviewComment({
           ...context.repo(),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
           comment_id: current.data.in_reply_to_id
         })
         current = next
@@ -96,9 +95,7 @@ export default async (app: Probot) => {
     }
 
     const rootBody: string = root?.data?.body || ''
-    const rootAuthor: string | undefined =
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      root?.data?.user?.login
+    const rootAuthor: string | undefined = root?.data?.user?.login
 
     // Ensure the root of the thread is a Revu comment by our proxy user
     if (!rootBody.includes(COMMENT_MARKER_PREFIX)) return
@@ -213,9 +210,9 @@ export default async (app: Probot) => {
         parentCommentBody: rootBody,
         rootCommentId: root.data.id,
         // Scope prompt to the relevant file and hunk if available
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         relevantFilePath: root.data?.path,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         diffHunk: root.data?.diff_hunk,
         userReplyCommentId: payload.comment.id,
         userReplyBody: payload.comment.body,
