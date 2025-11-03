@@ -96,8 +96,8 @@ export async function checkAndConsumeRateLimit(params: {
   const client = getRedis()
   if (client) {
     // Redis fast path with INCR + EXPIRE on first increment
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const count = (await client.incr(key)) as any as number
+
+    const count = (await client.incr(key)) as number
     if (count === 1) {
       await client.expire(key, windowSeconds)
     }
