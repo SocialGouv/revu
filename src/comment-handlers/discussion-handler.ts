@@ -128,15 +128,15 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
   })
 
   // Try cache
-  const cached = await cache.get<string>(cacheKey)
-  if (cached) {
+  const cachedBody = await cache.get<string>(cacheKey)
+  if (cachedBody) {
     // Post cached reply
     await platformContext.client.replyToReviewComment(
       prNumber,
       userReplyCommentId,
-      cached
+      cachedBody
     )
-    return cached
+    return cachedBody
   }
 
   // Build concise discussion prompt. Re-include the same context as review.
