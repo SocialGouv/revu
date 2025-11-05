@@ -12,7 +12,6 @@ import {
   isReviewRequestedForBot
 } from './github/reviewer-utils.ts'
 import { createPlatformContextFromGitHub } from './platforms/github/github-adapter.ts'
-import { validateBranchName, validateRepositoryUrl } from './repo-utils.ts'
 import {
   logAppStarted,
   logReviewerAdded,
@@ -20,6 +19,7 @@ import {
   logSystemWarning,
   logWebhookReceived
 } from './utils/logger.ts'
+import { attachOctokitRetry } from './github/retry-hook.ts'
 
 // Load environment variables
 config()
@@ -43,6 +43,12 @@ export default async (app: Probot) => {
     }
     const pr = payload.pull_request
     const repo = context.repo()
+
+    // Ensure all Probot Octokit requests are retried via centralized hook
+    attachOctokitRetry(context.octokit, {
+      repository: `${repo.owner}/${repo.repo}`,
+      pr_number: pr.number
+    })
 
     // Check if PR is created by a bot
     if (isPRCreatedByBot(pr.user)) {
@@ -167,6 +173,9 @@ export default async (app: Probot) => {
     const pr = payload.pull_request
     const repo = context.repo()
     const repository = `${repo.owner}/${repo.repo}`
+
+    // Ensure all Probot Octokit requests are retried via centralized hook
+    attachOctokitRetry(context.octokit, { repository, pr_number: pr.number })
 
     // Get an installation token for authentication with private repositories
     const installationId = payload.installation.id

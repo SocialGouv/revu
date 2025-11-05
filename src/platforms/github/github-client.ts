@@ -9,6 +9,7 @@ import type {
 import { parseDiff } from '../../core/services/diff-parser.ts'
 import { cloneRepository } from '../../repo-utils.ts'
 import { logSystemError } from '../../utils/logger.ts'
+import { attachOctokitRetry } from '../../github/retry-hook.ts'
 
 /**
  * Creates a GitHub-specific implementation of PlatformClient
@@ -179,7 +180,9 @@ export const createGitHubClient = (
   // Create proxy client for operations that need different auth
   const createProxyClient = () => {
     const proxyToken = process.env.PROXY_REVIEWER_TOKEN
-    return proxyToken ? new Octokit({ auth: proxyToken }) : null
+    if (!proxyToken) return null
+    const client = new Octokit({ auth: proxyToken })
+    return attachOctokitRetry(client, { repository: `${owner}/${repo}` })
   }
 
   return {

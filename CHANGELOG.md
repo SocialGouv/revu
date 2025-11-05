@@ -1,16 +1,14 @@
 # [1.35.0](https://github.com/SocialGouv/revu/compare/v1.34.3...v1.35.0) (2025-10-30)
 
-
 ### Features
 
-* **gpt5:** first draft ([#242](https://github.com/SocialGouv/revu/issues/242)) ([048701e](https://github.com/SocialGouv/revu/commit/048701ec8339139f6abcd19107b3de8752d0b153)), closes [#241](https://github.com/SocialGouv/revu/issues/241)
+- **gpt5:** first draft ([#242](https://github.com/SocialGouv/revu/issues/242)) ([048701e](https://github.com/SocialGouv/revu/commit/048701ec8339139f6abcd19107b3de8752d0b153)), closes [#241](https://github.com/SocialGouv/revu/issues/241)
 
 ## [1.34.3](https://github.com/SocialGouv/revu/compare/v1.34.2...v1.34.3) (2025-10-30)
 
-
 ### Bug Fixes
 
-* improve comments formatting ([#229](https://github.com/SocialGouv/revu/issues/229)) ([54335ef](https://github.com/SocialGouv/revu/commit/54335efb09b10dfb01696e95c3e1c3991f10f5a0)), closes [#114](https://github.com/SocialGouv/revu/issues/114)
+- improve comments formatting ([#229](https://github.com/SocialGouv/revu/issues/229)) ([54335ef](https://github.com/SocialGouv/revu/commit/54335efb09b10dfb01696e95c3e1c3991f10f5a0)), closes [#114](https://github.com/SocialGouv/revu/issues/114)
 
 ## [1.34.2](https://github.com/SocialGouv/revu/compare/v1.34.1...v1.34.2) (2025-10-27)
 
