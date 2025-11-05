@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createAnthropicResponseProcessor } from './response-processor/processor.ts'
 import { REVIEW_TOOL_NAME } from '../../shared/review-tool-schema.ts'
 import { prepareLineCommentsPayload } from '../../shared/line-comments-common.ts'
+import { withRetryAnthropic } from '../../../utils/retry.ts'
 
 /**
  * Line comments Anthropic sender.
@@ -48,9 +49,17 @@ export async function anthropicLineCommentsSender(
   // Use beta API for extended context, standard API otherwise
   let message
   try {
-    message = useExtendedContext
-      ? await anthropic.beta.messages.create(messageParams)
-      : await anthropic.messages.create(messageParams)
+    if (useExtendedContext) {
+      message = await withRetryAnthropic(
+        () => anthropic.beta.messages.create(messageParams),
+        { context: { operation: 'anthropic.beta.messages.create' } }
+      )
+    } else {
+      message = await withRetryAnthropic(
+        () => anthropic.messages.create(messageParams),
+        { context: { operation: 'anthropic.messages.create' } }
+      )
+    }
   } catch (error) {
     const apiType = useExtendedContext ? 'beta (extended context)' : 'standard'
     throw new Error(
