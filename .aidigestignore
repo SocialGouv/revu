@@ -1,13 +1,100 @@
-coverage
-node_modules
-*.svg
-*.png
-seeds.sql
-CHANGELOG.md
-__tests__
+# Focus on code and docs; ignore tooling, tests, CI, changelog, binaries, generated artifacts
 
-# Ignore all hidden files
+# Node/Yarn artifacts
+node_modules/
+.yarn/
+.yarnrc.yml
+yarn.lock
+.pnp.*
+npm-debug.log*
+pnpm-lock.yaml
+package-lock.json
+
+# Build output / caches
+dist/
+build/
+coverage/
+.cache/
+.out/
+tmp/
+temp/
+*.tsbuildinfo
+
+# Testing
+__tests__/
+*.spec.ts
+*.test.ts
+vitest.config.ts
+
+# CI/CD and VCS
+.github/
+.gitlab/
+.gitlab-ci.yml
+.circleci/
+.forgejo/
+.husky/
+.gitattributes
+.git/
+
+# Docker (keep .dockerignore for context)
+Dockerfile
+Dockerfile*
+docker-compose*.yml
+docker-compose*.yaml
+
+# Lint / format / editor / repo tooling
+.eslintrc*
+eslint.config.*
+.prettier*
+.prettierrc
+.editorconfig
+.stylelintrc*
+commitlint.*
+.commitlintrc.*
+.revu.yml
+.revuignore
+renovate.json
+tsconfig*.json
+
+# Env and secrets
+.env
+.env.*
+*.env
+*.env.*
+seeds.sql
+
+# Changelog
+CHANGELOG.md
+
+# Binaries and large assets (outside docs)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.pdf
+*.zip
+*.gz
+*.tar
+*.tgz
+*.mp4
+*.mp3
+*.mov
+*.webm
+
+# Generic noise
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Ignore all hidden files by default...
 .*
-# Except these specific files
-!.gitignore
-!.dockerignore
+
+# Ensure code and docs are included
+!docs/**
+!src/**
+!types/**
+!templates/**

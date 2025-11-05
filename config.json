@@ -1,4 +1,5 @@
 {
-    "promptStrategy": "line-comments",
-    "thinkingEnabled": true
+  "promptStrategy": "line-comments",
+  "thinkingEnabled": true,
+  "llmProvider": "openai"
 }

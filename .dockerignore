@@ -24,6 +24,7 @@ vitest.config.ts
 .DS_Store
 .eslintrc.json
 .prettierrc.json
+codebase.md
 
 # Repository folder (will be created in container)
 repos

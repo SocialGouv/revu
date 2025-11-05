@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { sendToAnthropic } from '../src/send-to-anthropic.ts'
+import { sendToLLM as sendToAnthropic } from '../src/send-to-llm.ts'
 
 // Mock the Anthropic SDK
 vi.mock('@anthropic-ai/sdk', () => {
@@ -24,6 +24,15 @@ vi.mock('@anthropic-ai/sdk', () => {
 // Mock the template population
 vi.mock('../src/populate-template.ts', () => ({
   populateTemplate: vi.fn().mockResolvedValue('Mocked template content')
+}))
+
+// Force provider to Anthropic for this test
+vi.mock('../src/core/utils/config-loader.ts', () => ({
+  getAppConfig: vi.fn().mockResolvedValue({
+    promptStrategy: 'line-comments',
+    thinkingEnabled: false,
+    llmProvider: 'anthropic'
+  })
 }))
 
 describe('sendToAnthropic', () => {
