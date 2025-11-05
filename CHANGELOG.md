@@ -1,3 +1,10 @@
+## [1.35.1](https://github.com/SocialGouv/revu/compare/v1.35.0...v1.35.1) (2025-11-05)
+
+
+### Bug Fixes
+
+* retry api calls ([#231](https://github.com/SocialGouv/revu/issues/231)) ([aa3ee95](https://github.com/SocialGouv/revu/commit/aa3ee95e6728791895825315585833fa5253cccf)), closes [#217](https://github.com/SocialGouv/revu/issues/217)
+
 # [1.35.0](https://github.com/SocialGouv/revu/compare/v1.34.3...v1.35.0) (2025-10-30)
 
 ### Features
