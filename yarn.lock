@@ -3210,6 +3210,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"js-yaml@npm:^4.1.1":
+  version: 4.1.1
+  resolution: "js-yaml@npm:4.1.1"
+  dependencies:
+    argparse: "npm:^2.0.1"
+  bin:
+    js-yaml: bin/js-yaml.js
+  checksum: 10c0/561c7d7088c40a9bb53cc75becbfb1df6ae49b34b5e6e5a81744b14ae8667ec564ad2527709d1a6e7d5e5fa6d483aa0f373a50ad98d42fde368ec4a190d4fae7
+  languageName: node
+  linkType: hard
+
 "json-buffer@npm:3.0.1":
   version: 3.0.1
   resolution: "json-buffer@npm:3.0.1"
@@ -4294,7 +4305,7 @@ __metadata:
     handlebars: "npm:^4.7.8"
     husky: "npm:^9.1.7"
     ignore: "npm:^7.0.5"
-    js-yaml: "npm:^4.1.0"
+    js-yaml: "npm:^4.1.1"
     knip: "npm:^5.61.2"
     lint-staged: "npm:^16.1.6"
     openai: "npm:^6.3.0"
