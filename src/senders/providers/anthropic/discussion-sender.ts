@@ -12,6 +12,8 @@ import type {
   DiscussionPromptSegments,
   TextPart
 } from '../../../prompt-strategies/build-discussion-prompt-segments.ts'
+import { computeSegmentsPrefixHash } from '../../../utils/prompt-prefix.ts'
+import { logSystemWarning } from '../../../utils/logger.ts'
 
 export async function discussionSender(
   promptOrSegments: string | DiscussionPromptSegments,
@@ -42,6 +44,16 @@ export async function discussionSender(
     return Number.isFinite(v) && v > 0 ? v : 172_800
   })()
 
+  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
+
+  let prefixHash: string | undefined
+  if (isSegments) {
+    prefixHash = computeSegmentsPrefixHash(
+      promptOrSegments as DiscussionPromptSegments,
+      model
+    )
+  }
+
   const contentBlocks: Array<any> = isSegments
     ? [
         // Stable parts: optionally add provider cache hints (best-effort)
@@ -70,7 +82,7 @@ export async function discussionSender(
     : [{ type: 'text' as const, text: String(promptOrSegments) }]
 
   const messageParams = {
-    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
+    model,
     max_tokens: maxTokens,
     // For deterministic replies in threaded discussions, always use temperature 0
     temperature: 0,
@@ -88,6 +100,18 @@ export async function discussionSender(
     const message = useExtendedContext
       ? await anthropic.beta.messages.create(messageParams)
       : await anthropic.messages.create(messageParams)
+
+    const usage = (message as any)?.usage ?? {}
+    if (process.env.PROMPT_CACHE_DEBUG === 'true' && isSegments && prefixHash) {
+      const metrics = {
+        prefix_hash: prefixHash,
+        cache_creation_input_tokens: usage.cache_creation_input_tokens,
+        cache_read_input_tokens: usage.cache_read_input_tokens
+      }
+      logSystemWarning('Anthropic discussion cache usage', {
+        context_msg: JSON.stringify(metrics)
+      })
+    }
 
     // Extract first text block
     const content = (message as any)?.content

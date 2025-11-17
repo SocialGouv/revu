@@ -3,6 +3,8 @@ import { createAnthropicResponseProcessor } from './response-processor/processor
 import { REVIEW_TOOL_NAME } from '../../shared/review-tool-schema.ts'
 import { prepareLineCommentsPayload } from '../../shared/line-comments-common.ts'
 import { withRetryAnthropic } from '../../../utils/retry.ts'
+import { computePromptHash } from '../../../utils/prompt-prefix.ts'
+import { logSystemWarning } from '../../../utils/logger.ts'
 
 /**
  * Line comments Anthropic sender.
@@ -33,9 +35,12 @@ export async function anthropicLineCommentsSender(
   // Determine if extended context should be used (opt-out: enabled by default)
   const useExtendedContext = process.env.ANTHROPIC_EXTENDED_CONTEXT !== 'false'
 
+  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
+  const promptHash = computePromptHash(prompt, model)
+
   // Prepare message parameters
   const messageParams = {
-    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
+    model,
     max_tokens: prepared.maxTokens,
     temperature: prepared.temperature,
     ...prepared.thinkingConfig,
@@ -59,6 +64,18 @@ export async function anthropicLineCommentsSender(
         () => anthropic.messages.create(messageParams),
         { context: { operation: 'anthropic.messages.create' } }
       )
+    }
+
+    if (process.env.PROMPT_CACHE_DEBUG === 'true') {
+      const usage = (message as any)?.usage ?? {}
+      const metrics = {
+        prompt_hash: promptHash,
+        cache_creation_input_tokens: usage.cache_creation_input_tokens,
+        cache_read_input_tokens: usage.cache_read_input_tokens
+      }
+      logSystemWarning('Anthropic line-comments cache usage', {
+        context_msg: JSON.stringify(metrics)
+      })
     }
   } catch (error) {
     const apiType = useExtendedContext ? 'beta (extended context)' : 'standard'

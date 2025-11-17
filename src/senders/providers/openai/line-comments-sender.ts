@@ -1,5 +1,7 @@
 import OpenAI from 'openai'
 import { prepareLineCommentsPayload } from '../../shared/line-comments-common.ts'
+import { computePromptHash } from '../../../utils/prompt-prefix.ts'
+import { logSystemWarning } from '../../../utils/logger.ts'
 
 /**
  * Line comments OpenAI sender.
@@ -29,6 +31,8 @@ export async function openaiLineCommentsSender(
   // Prepare shared payload parts (tools, messages, temperature)
   const prepared = prepareLineCommentsPayload('openai', prompt, enableThinking)
 
+  const promptHash = computePromptHash(prompt, model)
+
   // System guidance and user prompt via shared builder
 
   const completion = await client.chat.completions.create({
@@ -38,6 +42,19 @@ export async function openaiLineCommentsSender(
     tools: prepared.tools,
     messages: prepared.messages
   })
+
+  if (process.env.PROMPT_CACHE_DEBUG === 'true') {
+    const usage = (completion as any)?.usage ?? {}
+    const metrics = {
+      prompt_hash: promptHash,
+      prompt_tokens: usage.prompt_tokens,
+      completion_tokens: usage.completion_tokens,
+      total_tokens: usage.total_tokens
+    }
+    logSystemWarning('OpenAI line-comments cache context', {
+      context_msg: JSON.stringify(metrics)
+    })
+  }
 
   const choice = completion.choices?.[0]
   if (!choice) {
