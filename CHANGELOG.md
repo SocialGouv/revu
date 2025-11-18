@@ -1,3 +1,10 @@
+## [1.35.2](https://github.com/SocialGouv/revu/compare/v1.35.1...v1.35.2) (2025-11-18)
+
+
+### Bug Fixes
+
+* **config:** parity between config and env (+ env LLM_PROVIDER) ([#250](https://github.com/SocialGouv/revu/issues/250)) ([82e77e1](https://github.com/SocialGouv/revu/commit/82e77e1e32d70e58043d320973fae02453be76e3))
+
 ## [1.35.1](https://github.com/SocialGouv/revu/compare/v1.35.0...v1.35.1) (2025-11-05)
 
 
