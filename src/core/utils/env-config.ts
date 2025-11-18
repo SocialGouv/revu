@@ -28,12 +28,12 @@ export function applyEnvOverrides<T extends Record<string, any>>(
 
     const hasExplicit =
       Object.prototype.hasOwnProperty.call(fileConfig, key) &&
-      (fileConfig as any)[key] != null
+      fileConfig[key] != null
     if (hasExplicit) continue
 
-    let value: any
+    let value: T[keyof T]
     try {
-      value = parse ? parse(envRaw) : (envRaw as any)
+      value = parse ? parse(envRaw) : (envRaw as T[keyof T])
     } catch {
       onInvalid?.(envRaw)
       continue
@@ -44,7 +44,7 @@ export function applyEnvOverrides<T extends Record<string, any>>(
       continue
     }
 
-    ;(merged as any)[key] = value
+    merged[key] = value
   }
 
   return merged
