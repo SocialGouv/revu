@@ -1,3 +1,10 @@
+## [1.35.3](https://github.com/SocialGouv/revu/compare/v1.35.2...v1.35.3) (2025-11-18)
+
+
+### Bug Fixes
+
+* provide openai key and switch preprod to gpt5 ([#251](https://github.com/SocialGouv/revu/issues/251)) ([3303db5](https://github.com/SocialGouv/revu/commit/3303db580b742dd0b6b183b1c57276131f17ac80))
+
 ## [1.35.2](https://github.com/SocialGouv/revu/compare/v1.35.1...v1.35.2) (2025-11-18)
 
 
