@@ -27,7 +27,13 @@ export async function openaiLineCommentsSender(
 
   const model = process.env.OPENAI_MODEL || 'gpt-5'
   // Prepare shared payload parts (tools, messages, temperature)
-  const prepared = prepareLineCommentsPayload('openai', prompt, enableThinking)
+  // Pass model to enable model-specific parameter handling (e.g., GPT-5 requires temperature=1)
+  const prepared = prepareLineCommentsPayload(
+    'openai',
+    prompt,
+    enableThinking,
+    model
+  )
 
   // System guidance and user prompt via shared builder
 

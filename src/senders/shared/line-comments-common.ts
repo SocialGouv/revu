@@ -63,10 +63,57 @@ export function buildOpenAIMessages(prompt: string) {
 }
 
 /**
- * Map thinkingEnabled to a temperature value for OpenAI.
+ * Model-specific parameter overrides.
+ * Allows forcing specific parameter values for models that have constraints.
  */
-export function getOpenAITemperature(enableThinking: boolean) {
-  return enableThinking ? 1 : 0
+interface ModelParameterOverrides {
+  temperature?: number
+  // Future: add other parameters like max_tokens, top_p, etc.
+}
+
+/**
+ * Registry of model-specific parameter overrides.
+ *
+ * Add any model (OpenAI, Anthropic, etc.) that requires parameter overrides.
+ */
+const MODEL_PARAMETER_OVERRIDES: Record<string, ModelParameterOverrides> = {
+  'gpt-5': {
+    temperature: 1 // GPT-5 only supports temperature=1
+  }
+  // Add other models with parameter constraints as needed
+  // Example: 'claude-opus-4': { temperature: 0.5 }
+}
+
+/**
+ * Get temperature value for a model, respecting model-specific overrides.
+ *
+ * @param model - The model name (e.g., 'gpt-5', 'claude-sonnet-4')
+ * @param preferredTemperature - The desired temperature value
+ * @returns Temperature value, using override if one exists for the model
+ */
+export function getTemperatureWithOverrides(
+  model: string,
+  preferredTemperature: number
+): number {
+  const overrides = MODEL_PARAMETER_OVERRIDES[model]
+  if (overrides?.temperature !== undefined) {
+    return overrides.temperature
+  }
+  return preferredTemperature
+}
+
+/**
+ * Map thinkingEnabled to a temperature value for OpenAI, respecting model-specific overrides.
+ * @param model - The OpenAI model being used
+ * @param enableThinking - Whether thinking mode is enabled
+ * @returns Temperature value that is compatible with the specified model
+ */
+export function getOpenAITemperature(
+  model: string,
+  enableThinking: boolean
+): number {
+  const preferredTemp = enableThinking ? 1 : 0
+  return getTemperatureWithOverrides(model, preferredTemp)
 }
 
 /**
@@ -76,7 +123,8 @@ export function getOpenAITemperature(enableThinking: boolean) {
 export function prepareLineCommentsPayload(
   provider: 'openai',
   prompt: string,
-  enableThinking: boolean
+  enableThinking: boolean,
+  model: string
 ): {
   tools: ReturnType<typeof buildOpenAIToolSpec>[]
   messages: ReturnType<typeof buildOpenAIMessages>
@@ -85,7 +133,8 @@ export function prepareLineCommentsPayload(
 export function prepareLineCommentsPayload(
   provider: 'anthropic',
   prompt: string,
-  enableThinking: boolean
+  enableThinking: boolean,
+  model: string
 ): {
   tools: ReturnType<typeof buildAnthropicToolSpec>[]
   messages: { role: 'user'; content: string }[]
@@ -97,7 +146,8 @@ export function prepareLineCommentsPayload(
 export function prepareLineCommentsPayload(
   provider: 'anthropic' | 'openai',
   prompt: string,
-  enableThinking: boolean
+  enableThinking: boolean,
+  model: string
 ) {
   if (provider === 'anthropic') {
     const { thinkingConfig, maxTokens, temperature } =
@@ -105,7 +155,7 @@ export function prepareLineCommentsPayload(
     return {
       tools: [buildAnthropicToolSpec()],
       messages: [{ role: 'user' as const, content: prompt }],
-      temperature,
+      temperature: getTemperatureWithOverrides(model, temperature),
       maxTokens,
       thinkingConfig
     }
@@ -115,6 +165,6 @@ export function prepareLineCommentsPayload(
   return {
     tools: [buildOpenAIToolSpec()],
     messages: buildOpenAIMessages(prompt),
-    temperature: getOpenAITemperature(enableThinking)
+    temperature: getOpenAITemperature(model, enableThinking)
   }
 }
