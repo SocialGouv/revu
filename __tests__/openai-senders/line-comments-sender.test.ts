@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { openaiLineCommentsSender } from '../../src/senders/providers/openai/line-comments-sender.ts'
+import { REVIEW_TOOL_NAME } from '../../src/senders/shared/review-tool-schema.ts'
 
 // Mock the OpenAI SDK
 const createMock = vi.fn()
@@ -39,7 +40,7 @@ describe('openaiLineCommentsSender', () => {
               {
                 type: 'function',
                 function: {
-                  name: 'provide_code_review',
+                  name: REVIEW_TOOL_NAME,
                   arguments: JSON.stringify(expected)
                 }
               }
@@ -58,7 +59,7 @@ describe('openaiLineCommentsSender', () => {
         tools: expect.any(Array),
         tool_choice: {
           type: 'function',
-          function: { name: 'provide_code_review' }
+          function: { name: REVIEW_TOOL_NAME }
         }
       })
     )
@@ -75,7 +76,7 @@ describe('openaiLineCommentsSender', () => {
               {
                 type: 'function',
                 function: {
-                  name: 'provide_code_review',
+                  name: REVIEW_TOOL_NAME,
                   arguments: JSON.stringify(expected)
                 }
               }
@@ -106,7 +107,7 @@ describe('openaiLineCommentsSender', () => {
     })
 
     await expect(openaiLineCommentsSender('test prompt')).rejects.toThrow(
-      'did not call required tool'
+      `OpenAI did not call required tool ${REVIEW_TOOL_NAME} in inline comment response`
     )
   })
 
@@ -127,7 +128,7 @@ describe('openaiLineCommentsSender', () => {
               {
                 type: 'function',
                 function: {
-                  name: 'provide_code_review',
+                  name: REVIEW_TOOL_NAME,
                   arguments: '{ invalid json'
                 }
               }

@@ -54,19 +54,34 @@ export async function openaiLineCommentsSender(
     throw new Error('OpenAI API returned no choices')
   }
 
-  const toolCalls = choice.message?.tool_calls
-  if (!toolCalls || toolCalls.length === 0) {
+  const toolCallsRaw = choice.message?.tool_calls as unknown[] | undefined
+  if (!toolCallsRaw || toolCallsRaw.length === 0) {
     throw new Error(
       `OpenAI did not call required tool ${REVIEW_TOOL_NAME} in inline comment response`
     )
   }
 
-  const first = toolCalls[0] as any
+  // Find the specific tool call for our review tool by name, in case
+  // the model returns multiple tool calls in one response.
+  const matchingCall = toolCallsRaw.find(
+    (call): call is ToolCallWithFunction => {
+      if (!isToolCallWithFunction(call)) {
+        return false
+      }
+      return call.function.name === REVIEW_TOOL_NAME
+    }
+  )
+
+  if (!matchingCall) {
+    throw new Error(
+      `OpenAI did not call required tool ${REVIEW_TOOL_NAME} in inline comment response`
+    )
+  }
 
   // Support both standard function tool calls and any custom tool call types
   // that may not declare the "function" property in the type definition.
   // We guard at runtime and cast to avoid TS union issues.
-  const fn = first.function
+  const fn = matchingCall.function
   if (!fn || typeof fn.arguments !== 'string') {
     throw new Error(
       `OpenAI tool call ${REVIEW_TOOL_NAME} is missing function arguments`
@@ -90,4 +105,35 @@ export async function openaiLineCommentsSender(
   }
 
   return args
+}
+
+/**
+ * Minimal runtime-validated view of a tool call with a function
+ * and string arguments, used instead of `any` for safer narrowing.
+ */
+interface ToolCallFunctionShape {
+  name: string
+  arguments: string
+}
+
+interface ToolCallWithFunction {
+  function: ToolCallFunctionShape
+}
+
+function isToolCallWithFunction(call: unknown): call is ToolCallWithFunction {
+  if (!call || typeof call !== 'object' || !('function' in call)) {
+    return false
+  }
+
+  const fn = (call as { function?: unknown }).function
+  if (!fn || typeof fn !== 'object') {
+    return false
+  }
+
+  const { name, arguments: args } = fn as {
+    name?: unknown
+    arguments?: unknown
+  }
+
+  return typeof name === 'string' && typeof args === 'string'
 }
