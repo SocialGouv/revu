@@ -1,3 +1,10 @@
+## [1.36.1](https://github.com/SocialGouv/revu/compare/v1.36.0...v1.36.1) (2025-11-19)
+
+
+### Bug Fixes
+
+* openai tools usage ([#254](https://github.com/SocialGouv/revu/issues/254)) ([422e895](https://github.com/SocialGouv/revu/commit/422e8957fb84a73cb66129871cfaa5f6fa2738cc))
+
 # [1.36.0](https://github.com/SocialGouv/revu/compare/v1.35.3...v1.36.0) (2025-11-19)
 
 
