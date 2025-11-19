@@ -1,3 +1,10 @@
+# [1.36.0](https://github.com/SocialGouv/revu/compare/v1.35.3...v1.36.0) (2025-11-19)
+
+
+### Features
+
+* Handle parameters exceptions per model ([70e366b](https://github.com/SocialGouv/revu/commit/70e366b3f434f5eb9609b087982f06211cd06f00))
+
 ## [1.35.3](https://github.com/SocialGouv/revu/compare/v1.35.2...v1.35.3) (2025-11-18)
 
 
