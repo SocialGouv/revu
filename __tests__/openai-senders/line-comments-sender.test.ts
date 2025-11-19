@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { openaiLineCommentsSender } from '../../src/senders/providers/openai/line-comments-sender.ts'
+import { REVIEW_TOOL_NAME } from '../../src/senders/shared/review-tool-schema.ts'
 
 // Mock the OpenAI SDK
 const createMock = vi.fn()
@@ -39,7 +40,7 @@ describe('openaiLineCommentsSender', () => {
               {
                 type: 'function',
                 function: {
-                  name: 'provide_code_review',
+                  name: REVIEW_TOOL_NAME,
                   arguments: JSON.stringify(expected)
                 }
               }
@@ -51,11 +52,15 @@ describe('openaiLineCommentsSender', () => {
 
     const result = await openaiLineCommentsSender('test prompt')
     expect(result).toEqual(JSON.stringify(expected) || expect.any(String))
-    // Ensure SDK called with default model
+    // Ensure SDK called with default model and forced tool choice
     expect(createMock).toHaveBeenCalledWith(
       expect.objectContaining({
         model: 'gpt-5',
-        tools: expect.any(Array)
+        tools: expect.any(Array),
+        tool_choice: {
+          type: 'function',
+          function: { name: REVIEW_TOOL_NAME }
+        }
       })
     )
   })
@@ -71,7 +76,7 @@ describe('openaiLineCommentsSender', () => {
               {
                 type: 'function',
                 function: {
-                  name: 'provide_code_review',
+                  name: REVIEW_TOOL_NAME,
                   arguments: JSON.stringify(expected)
                 }
               }
@@ -90,21 +95,20 @@ describe('openaiLineCommentsSender', () => {
     )
   })
 
-  it('falls back to parsing JSON in message content when no tool calls present', async () => {
-    const jsonInBlock = { summary: 'fallback path', comments: [] }
+  it('throws when no tool calls are present', async () => {
     createMock.mockResolvedValue({
       choices: [
         {
           message: {
-            content:
-              'Please see:\n```json\n' + JSON.stringify(jsonInBlock) + '\n```'
+            content: 'Please see some review notes without tool calls'
           }
         }
       ]
     })
 
-    const result = await openaiLineCommentsSender('test prompt')
-    expect(JSON.parse(result)).toEqual(jsonInBlock)
+    await expect(openaiLineCommentsSender('test prompt')).rejects.toThrow(
+      `OpenAI did not call required tool ${REVIEW_TOOL_NAME} in inline comment response`
+    )
   })
 
   it('throws when no choices returned', async () => {
@@ -124,7 +128,7 @@ describe('openaiLineCommentsSender', () => {
               {
                 type: 'function',
                 function: {
-                  name: 'provide_code_review',
+                  name: REVIEW_TOOL_NAME,
                   arguments: '{ invalid json'
                 }
               }
@@ -136,22 +140,6 @@ describe('openaiLineCommentsSender', () => {
 
     await expect(openaiLineCommentsSender('test prompt')).rejects.toThrow(
       'OpenAI tool call returned invalid JSON'
-    )
-  })
-
-  it('throws when no tool calls and no JSON content found', async () => {
-    createMock.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: 'some plain text with no json'
-          }
-        }
-      ]
-    })
-
-    await expect(openaiLineCommentsSender('test prompt')).rejects.toThrow(
-      'Unexpected response format from OpenAI inline comment'
     )
   })
 
