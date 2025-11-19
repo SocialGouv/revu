@@ -1,3 +1,10 @@
+## [1.36.2](https://github.com/SocialGouv/revu/compare/v1.36.1...v1.36.2) (2025-11-19)
+
+
+### Bug Fixes
+
+* up yarn.lock ([7eecf02](https://github.com/SocialGouv/revu/commit/7eecf0235dbcd3db53c0d4be44da707b7ced234b))
+
 ## [1.36.1](https://github.com/SocialGouv/revu/compare/v1.36.0...v1.36.1) (2025-11-19)
 
 
