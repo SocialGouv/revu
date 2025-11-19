@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import { REVIEW_TOOL_NAME } from '../../shared/review-tool-schema.ts'
 import { prepareLineCommentsPayload } from '../../shared/line-comments-common.ts'
 
 /**
@@ -40,8 +41,11 @@ export async function openaiLineCommentsSender(
   const completion = await client.chat.completions.create({
     model,
     temperature: prepared.temperature,
-    tool_choice: 'auto',
     tools: prepared.tools,
+    tool_choice: {
+      type: 'function',
+      function: { name: REVIEW_TOOL_NAME }
+    },
     messages: prepared.messages
   })
 
@@ -50,63 +54,40 @@ export async function openaiLineCommentsSender(
     throw new Error('OpenAI API returned no choices')
   }
 
-  // Prefer function/tool call result for strict structure
   const toolCalls = choice.message?.tool_calls
-  if (toolCalls && toolCalls.length > 0) {
-    const first = toolCalls[0] as unknown
-    // Support both standard function tool calls and any custom tool call types
-    // that may not declare the "function" property in the type definition.
-    // We guard at runtime and cast to avoid TS union issues.
-    if (first && typeof (first as any).function?.arguments === 'string') {
-      const args = (first as any).function.arguments
-      if (!args) {
-        throw new Error('OpenAI tool call is missing arguments')
-      }
-      // Validate JSON is parseable; return as string to match Anthropic sender contract
-      try {
-        JSON.parse(args)
-      } catch (e) {
-        throw new Error(
-          `OpenAI tool call returned invalid JSON: ${e instanceof Error ? e.message : String(e)}`
-        )
-      }
-      return args
-    }
+  if (!toolCalls || toolCalls.length === 0) {
+    throw new Error(
+      `OpenAI did not call required tool ${REVIEW_TOOL_NAME} in inline comment response`
+    )
   }
 
-  // Fallback: attempt to parse JSON from assistant message content
-  const content = choice.message?.content ?? ''
-  const parsed = tryExtractJson(content)
-  if (parsed) {
-    return JSON.stringify(parsed)
+  const first = toolCalls[0] as any
+
+  // Support both standard function tool calls and any custom tool call types
+  // that may not declare the "function" property in the type definition.
+  // We guard at runtime and cast to avoid TS union issues.
+  const fn = first.function
+  if (!fn || typeof fn.arguments !== 'string') {
+    throw new Error(
+      `OpenAI tool call ${REVIEW_TOOL_NAME} is missing function arguments`
+    )
   }
 
-  throw new Error(
-    'Unexpected response format from OpenAI inline comment - no tool calls or JSON content found'
-  )
-}
-
-function tryExtractJson(text: string): unknown | null {
-  // Try fenced JSON code block ```json ... ```
-  const block = /```json\s*([\s\S]*?)```/i.exec(text)
-  if (block?.[1]) {
-    const candidate = block[1].trim()
-    try {
-      return JSON.parse(candidate)
-    } catch {
-      // continue
-    }
+  const args = fn.arguments
+  if (!args) {
+    throw new Error('OpenAI tool call is missing arguments')
   }
 
-  // Try to parse entire content as JSON
-  const trimmed = text.trim()
-  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-    try {
-      return JSON.parse(trimmed)
-    } catch {
-      // continue
-    }
+  // Validate JSON is parseable; return as string to match Anthropic sender contract
+  try {
+    JSON.parse(args)
+  } catch (e) {
+    throw new Error(
+      `OpenAI tool call returned invalid JSON: ${
+        e instanceof Error ? e.message : String(e)
+      }`
+    )
   }
 
-  return null
+  return args
 }
