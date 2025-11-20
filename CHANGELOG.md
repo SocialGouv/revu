@@ -1,3 +1,10 @@
+## [1.37.10](https://github.com/SocialGouv/revu/compare/v1.37.9...v1.37.10) (2025-11-20)
+
+
+### Bug Fixes
+
+* **openai:** migrate to responses ([963c8d4](https://github.com/SocialGouv/revu/commit/963c8d4313442f214e2723567d4104eb299e07ef))
+
 ## [1.37.9](https://github.com/SocialGouv/revu/compare/v1.37.8...v1.37.9) (2025-11-20)
 
 
