@@ -1,3 +1,10 @@
+# [1.37.0](https://github.com/SocialGouv/revu/compare/v1.36.2...v1.37.0) (2025-11-20)
+
+
+### Features
+
+* pr conversations ([#236](https://github.com/SocialGouv/revu/issues/236)) ([1402fd1](https://github.com/SocialGouv/revu/commit/1402fd120a07b58a509e02a1fe9adc201fa6ecd7)), closes [#136](https://github.com/SocialGouv/revu/issues/136)
+
 ## [1.36.2](https://github.com/SocialGouv/revu/compare/v1.36.1...v1.36.2) (2025-11-19)
 
 
