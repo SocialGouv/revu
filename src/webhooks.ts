@@ -68,6 +68,8 @@ export default async (app: Probot) => {
     // Ensure reply is to a Revu comment by our proxy user
     const proxyUsername = getProxyReviewerUsername()
     if (!proxyUsername) return
+    // Avoid responding to bot's own replies to prevent infinite loops
+    if (payload.sender.login === proxyUsername) return
 
     let parent
     try {
