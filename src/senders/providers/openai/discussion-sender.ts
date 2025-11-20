@@ -5,7 +5,8 @@ import type {
 } from '../../../prompt-strategies/build-discussion-prompt-segments.ts'
 import { computeSegmentsPrefixHash } from '../../../utils/prompt-prefix.ts'
 import { logSystemWarning } from '../../../utils/logger.ts'
-const MAX_OPENAI_PROMPT_CHARS = Number(process.env.MAX_OPENAI_PROMPT_CHARS) || 120_000
+const MAX_OPENAI_PROMPT_CHARS =
+  Number(process.env.MAX_OPENAI_PROMPT_CHARS) || 120_000
 
 export async function discussionSender(
   promptOrSegments: string | DiscussionPromptSegments,
@@ -42,12 +43,14 @@ export async function discussionSender(
     )
   }
 
+  const maxCompletionTokens = enableThinking ? 2048 : 1024
+
   const completion = await client.chat.completions.create({
     model,
     messages: [{ role: 'user', content }],
-    temperature: 0,
-    max_tokens: enableThinking ? 2048 : 1024
-  })
+    // gpt-5 and similar models use max_completion_tokens and may reject temperature
+    max_completion_tokens: maxCompletionTokens
+  } as any)
 
   if (process.env.PROMPT_CACHE_DEBUG === 'true' && hasSegments && prefixHash) {
     const usage = (completion as any)?.usage ?? {}
