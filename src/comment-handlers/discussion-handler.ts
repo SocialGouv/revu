@@ -167,7 +167,8 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
 
   let acquired = false
   if (hasLockSupport) {
-    acquired = await cacheAny.tryAcquireLock(lockKey, 30)
+    const lockTtl = Number(process.env.DISCUSSION_LOCK_TTL_SECONDS || 240)
+    acquired = await cacheAny.tryAcquireLock(lockKey, lockTtl)
   }
 
   // If another worker holds the lock, wait briefly for it to populate the cache
