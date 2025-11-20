@@ -128,9 +128,23 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
       const currentAfter = (await platformContext.client.getReviewComment(
         userReplyCommentId
       )) as ReviewCommentSnapshot
+      if (currentAfter == null) {
+        logSystemWarning(
+          'Review comment lookup failed during cached stale check; treating as transient error',
+          {
+            pr_number: prNumber,
+            repository: `${owner}/${repo}`,
+            context_msg:
+              'getReviewComment returned null while validating cached discussion reply'
+          }
+        )
+        throw new Error(
+          'Transient: failed to fetch review comment for stale check (cached)'
+        )
+      }
       if (
-        currentAfter?.body !== userReplyBody ||
-        (replyVersion && currentAfter?.updated_at !== replyVersion)
+        currentAfter.body !== userReplyBody ||
+        (replyVersion && currentAfter.updated_at !== replyVersion)
       ) {
         logSystemWarning(
           'Stale reply detected before returning cached discussion reply - discarding result',
@@ -181,17 +195,31 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
           const currentAfter = (await platformContext.client.getReviewComment(
             userReplyCommentId
           )) as ReviewCommentSnapshot
-          if (
-            currentAfter?.body !== userReplyBody ||
-            (replyVersion && currentAfter?.updated_at !== replyVersion)
-          ) {
+          if (currentAfter == null) {
             logSystemWarning(
-              'Stale reply detected before returning cached discussion reply - discarding result',
+              'Review comment lookup failed while waiting for lock holder; treating as transient error',
               {
                 pr_number: prNumber,
                 repository: `${owner}/${repo}`,
                 context_msg:
-                  'User edited reply during processing; not returning potentially stale cached response'
+                  'getReviewComment returned null while validating cached discussion reply during lock wait'
+              }
+            )
+            throw new Error(
+              'Transient: failed to fetch review comment for stale check (lock-wait cached)'
+            )
+          }
+          if (
+            currentAfter.body !== userReplyBody ||
+            (replyVersion && currentAfter.updated_at !== replyVersion)
+          ) {
+            logSystemWarning(
+              'Stale reply detected before posting cached discussion reply - discarding result',
+              {
+                pr_number: prNumber,
+                repository: `${owner}/${repo}`,
+                context_msg:
+                  'User edited reply during processing; not posting potentially stale cached response'
               }
             )
             return 'stale_skipped'
@@ -266,9 +294,23 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     const currentAfter = (await platformContext.client.getReviewComment(
       userReplyCommentId
     )) as ReviewCommentSnapshot
+    if (currentAfter == null) {
+      logSystemWarning(
+        'Review comment lookup failed before posting discussion reply; treating as transient error',
+        {
+          pr_number: prNumber,
+          repository: `${owner}/${repo}`,
+          context_msg:
+            'getReviewComment returned null while performing post-generation stale check'
+        }
+      )
+      throw new Error(
+        'Transient: failed to fetch review comment for stale check (post-generation)'
+      )
+    }
     if (
-      currentAfter?.body !== userReplyBody ||
-      (replyVersion && currentAfter?.updated_at !== replyVersion)
+      currentAfter.body !== userReplyBody ||
+      (replyVersion && currentAfter.updated_at !== replyVersion)
     ) {
       logSystemWarning(
         'Stale reply detected after generation - discarding result',
