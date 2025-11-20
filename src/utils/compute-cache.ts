@@ -300,7 +300,7 @@ export async function evictDiscussionCacheByReply(params: {
  * Small helper to stable-hash a string to hex (8 or 16 chars).
  * Uses SHA-256 for significantly lower collision risk vs FNV-1a.
  */
-const DEFAULT_HASH_LENGTH = 8
+const DEFAULT_HASH_LENGTH = 16
 
 export function simpleHash(
   input: string,
