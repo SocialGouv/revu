@@ -169,11 +169,12 @@ export function buildDiscussionPromptSegments(input: {
   return { stableParts, dynamicParts }
 }
 
+const MAX_SANITIZED_INPUT_CHARS = 4000 // Keep in sync with MAX_REPLY_PROMPT_CHARS in discussion-handler.ts
+
 function sanitize(text: string): string {
   const cleaned = (text || '').replace(/\r/g, '')
-  const MAX_INPUT_LENGTH = 10000
-  if (cleaned.length > MAX_INPUT_LENGTH) {
-    return cleaned.slice(0, MAX_INPUT_LENGTH) + '\n... (truncated)'
+  if (cleaned.length > MAX_SANITIZED_INPUT_CHARS) {
+    return cleaned.slice(0, MAX_SANITIZED_INPUT_CHARS) + '\n... (truncated)'
   }
   return cleaned
 }
