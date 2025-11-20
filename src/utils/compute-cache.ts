@@ -12,6 +12,11 @@ export interface ComputeCache {
   get<T>(key: string): Promise<T | null>
   set<T>(key: string, value: T, ttlSeconds?: number): Promise<void>
   del(key: string): Promise<void>
+
+  // Optional best-effort distributed lock primitives. Implemented for Redis-backed
+  // caches and in-memory fallback; other implementations may omit them.
+  tryAcquireLock?(key: string, ttlSeconds?: number): Promise<boolean>
+  releaseLock?(key: string): Promise<void>
 }
 
 type Entry = {
@@ -22,6 +27,7 @@ type Entry = {
 class InMemoryComputeCache implements ComputeCache {
   private store = new Map<string, Entry>()
   private readonly maxSize: number
+  private locks = new Map<string, number>() // key -> expiresAt (ms)
 
   constructor(maxSize: number = 10000) {
     this.maxSize = maxSize
@@ -74,6 +80,20 @@ class InMemoryComputeCache implements ComputeCache {
 
   async del(key: string): Promise<void> {
     this.store.delete(key)
+  }
+
+  async tryAcquireLock(key: string, ttlSeconds: number = 30): Promise<boolean> {
+    const now = Date.now()
+    const existing = this.locks.get(key)
+    if (existing && existing > now) {
+      return false
+    }
+    this.locks.set(key, now + ttlSeconds * 1000)
+    return true
+  }
+
+  async releaseLock(key: string): Promise<void> {
+    this.locks.delete(key)
   }
 
   // Internal utility to delete by predicate (used for discussion cache invalidation)
@@ -196,6 +216,29 @@ class RedisComputeCache implements ComputeCache {
       logSystemWarning(error, {
         context_msg:
           'Compute cache: Redis SCAN/DEL failed during cache eviction - continuing'
+      })
+    }
+  }
+
+  async tryAcquireLock(key: string, ttlSeconds: number = 30): Promise<boolean> {
+    try {
+      const res = await this.client.set(key, '1', 'NX', 'EX', ttlSeconds)
+      return res === 'OK'
+    } catch (error) {
+      logSystemWarning(error, {
+        context_msg:
+          'Compute cache: Redis lock SETNX failed - treating as no-lock'
+      })
+      return false
+    }
+  }
+
+  async releaseLock(key: string): Promise<void> {
+    try {
+      await this.client.del(key)
+    } catch (error) {
+      logSystemWarning(error, {
+        context_msg: 'Compute cache: Redis lock DEL failed - continuing'
       })
     }
   }

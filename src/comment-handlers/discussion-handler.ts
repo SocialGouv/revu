@@ -154,6 +154,78 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     }
   }
 
+  // Optional best-effort distributed lock to avoid duplicate generation
+  const lockKey = `discuss|lock|${cacheKey}`
+  const cacheAny = cache as unknown as {
+    tryAcquireLock?: (key: string, ttlSeconds?: number) => Promise<boolean>
+    releaseLock?: (key: string) => Promise<void>
+  }
+  const hasLockSupport =
+    typeof cacheAny.tryAcquireLock === 'function' &&
+    typeof cacheAny.releaseLock === 'function'
+
+  let acquired = false
+  if (hasLockSupport) {
+    acquired = await cacheAny.tryAcquireLock(lockKey, 30)
+  }
+
+  // If another worker holds the lock, wait briefly for it to populate the cache
+  if (hasLockSupport && !acquired) {
+    for (let i = 0; i < 3; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      const body = await cache.get<string>(cacheKey)
+      if (body) {
+        try {
+          const currentAfter = (await platformContext.client.getReviewComment(
+            userReplyCommentId
+          )) as ReviewCommentSnapshot
+          if (
+            currentAfter?.body !== userReplyBody ||
+            (replyVersion && currentAfter?.updated_at !== replyVersion)
+          ) {
+            logSystemWarning(
+              'Stale reply detected before posting cached discussion reply - discarding result',
+              {
+                pr_number: prNumber,
+                repository: `${owner}/${repo}`,
+                context_msg:
+                  'User edited reply during processing; not posting potentially stale cached response'
+              }
+            )
+            return 'stale_skipped'
+          }
+
+          await platformContext.client.replyToReviewComment(
+            prNumber,
+            userReplyCommentId,
+            body
+          )
+        } catch (error) {
+          logSystemError(error, {
+            pr_number: prNumber,
+            repository: `${owner}/${repo}`,
+            context_msg:
+              'Failed to post cached discussion reply after waiting for lock holder'
+          })
+          throw error
+        }
+
+        return body
+      }
+    }
+
+    logSystemWarning(
+      'Discussion reply generation skipped because another worker holds the lock',
+      {
+        pr_number: prNumber,
+        repository: `${owner}/${repo}`,
+        context_msg:
+          'Avoiding duplicate discussion replies under concurrency; no cached body available after waiting'
+      }
+    )
+    return 'lock_skipped'
+  }
+
   // Build concise discussion prompt. Re-include the same context as review.
   const replyForPrompt =
     replyLen > MAX_REPLY_PROMPT_CHARS
@@ -175,6 +247,9 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     const sender = await getDiscussionSender()
     reply = await sender(segments)
   } catch (error) {
+    if (acquired && hasLockSupport) {
+      await cacheAny.releaseLock!(lockKey).catch(() => {})
+    }
     logSystemError(error, {
       pr_number: prNumber,
       repository: `${owner}/${repo}`,
@@ -219,6 +294,10 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
       context_msg: 'Failed to post discussion reply'
     })
     throw error
+  } finally {
+    if (acquired && hasLockSupport) {
+      await cacheAny.releaseLock!(lockKey).catch(() => {})
+    }
   }
 
   return reply
