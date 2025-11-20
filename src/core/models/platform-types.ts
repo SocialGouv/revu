@@ -84,6 +84,7 @@ export interface PlatformClient {
   getReviewComment: (commentId: number) => Promise<{
     id: number
     body: string
+    updated_at?: string
   } | null>
   deleteReviewComment: (commentId: number) => Promise<void>
 

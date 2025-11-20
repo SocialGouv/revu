@@ -385,7 +385,8 @@ export const createGitHubClient = (
         })
         return {
           id: data.id,
-          body: data.body
+          body: data.body,
+          updated_at: data.updated_at
         }
       } catch (error) {
         logSystemError(error, {
