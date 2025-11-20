@@ -5,6 +5,7 @@ import type {
 } from '../../../prompt-strategies/build-discussion-prompt-segments.ts'
 import { computeSegmentsPrefixHash } from '../../../utils/prompt-prefix.ts'
 import { logSystemWarning } from '../../../utils/logger.ts'
+const MAX_OPENAI_PROMPT_CHARS = Number(process.env.MAX_OPENAI_PROMPT_CHARS) || 120_000
 
 export async function discussionSender(
   promptOrSegments: string | DiscussionPromptSegments,
