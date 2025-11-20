@@ -58,15 +58,8 @@ function isExploitableDiscussionReply(
   const trimmed = reply.trim()
   if (!trimmed) return false
 
-  // Require a minimum length so we avoid trivial or one-word replies
-  if (trimmed.length < 40) return false
-
-  // Avoid replies that simply echo the user message
   const normalize = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase()
   if (normalize(trimmed) === normalize(userReplyBody)) return false
-
-  // Heuristic: require at least one period to hint at a full sentence
-  if (!trimmed.includes('.')) return false
 
   return true
 }
@@ -357,7 +350,9 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
           pr_number: prNumber,
           repository: `${owner}/${repo}`,
           context_msg:
-            'Discussion LLM reply was too short, uninformative, or echoed the user; posting generic fallback instead.'
+            'Discussion LLM reply was too short, uninformative, or echoed the user; posting generic fallback instead.',
+          llm_reply_preview: trimmedReply.slice(0, 300),
+          llm_reply_length: trimmedReply.length
         }
       )
 

@@ -45,13 +45,15 @@ describe('handleDiscussionReply', () => {
     process.env = originalEnv
   })
 
-  it('uses fallback reply when LLM returns non-exploitable/whitespace-only reply', async () => {
+  it('uses fallback reply when LLM returns an exact echo of the user message', async () => {
     const client = createMockClient()
+
+    const userReplyBody = 'user reply'
 
     // Mock getReviewComment to return matching body/version so we pass stale checks
     ;(client.getReviewComment as unknown as Mock).mockResolvedValue({
       id: 123,
-      body: 'user reply',
+      body: userReplyBody,
       updated_at: 'v1'
     })
 
@@ -68,8 +70,8 @@ describe('handleDiscussionReply', () => {
     })
     const buildDiscussionPromptSegmentsMock = vi.fn().mockReturnValue({} as any)
 
-    // Simulate a useless reply (whitespace + very short content)
-    const senderMock = vi.fn().mockResolvedValue('   ok')
+    // Simulate an unusable reply: exact echo of the user reply body
+    const senderMock = vi.fn().mockResolvedValue(userReplyBody)
 
     vi.doMock('../../src/prompt-strategies/build-review-context.ts', () => ({
       buildReviewContext: buildReviewContextMock
@@ -97,7 +99,7 @@ describe('handleDiscussionReply', () => {
       parentCommentId: 111,
       parentCommentBody: 'Parent comment',
       userReplyCommentId: 222,
-      userReplyBody: 'user reply',
+      userReplyBody,
       owner: 'SocialGouv',
       repo: 'revu',
       history: [],
@@ -105,8 +107,8 @@ describe('handleDiscussionReply', () => {
       replyVersion: 'v1'
     })
 
-    // Should not use the raw useless reply
-    expect(result).not.toBe('   ok')
+    // Should not use the raw echo reply
+    expect(result).not.toBe(userReplyBody)
 
     // Should post a generic fallback reply instead
     expect(client.replyToReviewComment).toHaveBeenCalledTimes(1)
