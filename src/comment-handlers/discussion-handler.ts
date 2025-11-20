@@ -35,6 +35,12 @@ export interface DiscussionHandlerParams {
   rootCommentId?: number
 }
 
+type ReviewCommentSnapshot = {
+  id: number
+  body: string
+  updated_at?: string
+}
+
 /**
  * Handles a discussion reply:
  * - Rebuilds the same review context (diff, files, guidelines, issues)
@@ -86,25 +92,6 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     platformContext
   )
 
-  // Early stale-guard: if the reply has changed since webhook reception, skip
-  try {
-    const currentBefore =
-      await platformContext.client.getReviewComment(userReplyCommentId)
-    if (currentBefore?.body && currentBefore.body !== userReplyBody) {
-      logSystemWarning(
-        'Stale reply detected before processing - skipping discussion generation',
-        {
-          pr_number: prNumber,
-          repository: `${owner}/${repo}`,
-          context_msg: 'User edited reply before processing started'
-        }
-      )
-      return 'stale_skipped'
-    }
-  } catch {
-    // Ignore guard failure and proceed
-  }
-
   // Cache key built from stable inputs
   const cache = getComputeCache()
   const replyLen = userReplyBody.length
@@ -130,12 +117,42 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
   // Try cache
   const cachedBody = await cache.get<string>(cacheKey)
   if (cachedBody) {
-    // Post cached reply
-    await platformContext.client.replyToReviewComment(
-      prNumber,
-      userReplyCommentId,
-      cachedBody
-    )
+    // Before posting cached reply, ensure the user reply has not changed
+    try {
+      const currentAfter = (await platformContext.client.getReviewComment(
+        userReplyCommentId
+      )) as ReviewCommentSnapshot
+      if (
+        currentAfter?.body !== userReplyBody ||
+        (replyVersion && currentAfter?.updated_at !== replyVersion)
+      ) {
+        logSystemWarning(
+          'Stale reply detected before posting cached discussion reply - discarding result',
+          {
+            pr_number: prNumber,
+            repository: `${owner}/${repo}`,
+            context_msg:
+              'User edited reply during processing; not posting potentially stale cached response'
+          }
+        )
+        return 'stale_skipped'
+      }
+
+      await platformContext.client.replyToReviewComment(
+        prNumber,
+        userReplyCommentId,
+        cachedBody
+      )
+    } catch (error) {
+      logSystemError(error, {
+        pr_number: prNumber,
+        repository: `${owner}/${repo}`,
+        context_msg:
+          'Failed to post cached discussion reply or validate stale state'
+      })
+      throw error
+    }
+
     return cachedBody
   }
 
@@ -170,16 +187,20 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
 
   // Post threaded reply under the user's comment (with stale-guard)
   try {
-    const current =
-      await platformContext.client.getReviewComment(userReplyCommentId)
-    if (current?.body && current.body !== userReplyBody) {
+    const currentAfter = (await platformContext.client.getReviewComment(
+      userReplyCommentId
+    )) as ReviewCommentSnapshot
+    if (
+      currentAfter?.body !== userReplyBody ||
+      (replyVersion && currentAfter?.updated_at !== replyVersion)
+    ) {
       logSystemWarning(
-        'Stale reply detected before posting - skipping discussion reply',
+        'Stale reply detected after generation - discarding result',
         {
           pr_number: prNumber,
           repository: `${owner}/${repo}`,
           context_msg:
-            'User edited reply during processing; not posting potentially stale response'
+            'User edited reply during processing; not posting or caching potentially stale response'
         }
       )
       return 'stale_skipped'
@@ -190,6 +211,9 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
       userReplyCommentId,
       reply
     )
+
+    // Store in cache only after confirming the reply is not stale
+    await cache.set(cacheKey, reply, cacheTtlSeconds)
   } catch (error) {
     logSystemError(error, {
       pr_number: prNumber,
@@ -198,9 +222,6 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     })
     throw error
   }
-
-  // Store in cache
-  await cache.set(cacheKey, reply, cacheTtlSeconds)
 
   return reply
 }
