@@ -26,6 +26,8 @@ import { isUserAllowedForRepo } from './github/membership.ts'
 import { evictDiscussionCacheByReply } from './utils/compute-cache.ts'
 import { checkAndConsumeRateLimit } from './utils/rate-limit.ts'
 
+const MAX_THREAD_DEPTH = 50
+
 // Load environment variables
 config()
 
@@ -80,11 +82,24 @@ export default async (app: Probot) => {
     // Walk up the thread to the root comment to support nested replies
     let current = parent
     let root = parent
+    let depth = 0
     try {
       while (current?.data?.in_reply_to_id) {
+        depth += 1
+        if (depth > MAX_THREAD_DEPTH) {
+          logSystemWarning(
+            'Max thread depth exceeded while walking review comment thread',
+            {
+              repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+              pr_number: payload.pull_request.number,
+              context_msg: `Capped thread traversal at depth ${depth}`
+            }
+          )
+          break
+        }
+
         const next = await context.octokit.rest.pulls.getReviewComment({
           ...context.repo(),
-
           comment_id: current.data.in_reply_to_id
         })
         current = next
