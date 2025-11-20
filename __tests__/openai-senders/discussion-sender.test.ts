@@ -51,12 +51,15 @@ describe('openai discussionSender', () => {
         }
       ]
     })
-    expect(callArgs.max_output_tokens).toBe(512)
-    expect(callArgs).not.toHaveProperty('max_tokens')
-    expect(callArgs).not.toHaveProperty('temperature')
+    expect(callArgs.max_output_tokens).toBe(1024)
+    expect(callArgs.reasoning).toMatchObject({ effort: 'low' })
+    expect(callArgs.text).toMatchObject({
+      format: { type: 'text' },
+      verbosity: 'low'
+    })
   })
 
-  it('increases max_output_tokens when thinking is enabled', async () => {
+  it('increases max_output_tokens and reasoning effort when thinking is enabled', async () => {
     createMock.mockResolvedValue({
       output_text: 'Thinking reply',
       usage: {
@@ -73,9 +76,8 @@ describe('openai discussionSender', () => {
 
     const callArgs = createMock.mock.calls[0][0]
     expect(callArgs.model).toBe('gpt-5')
-    expect(callArgs.max_output_tokens).toBe(1024)
-    expect(callArgs).not.toHaveProperty('max_tokens')
-    expect(callArgs).not.toHaveProperty('temperature')
+    expect(callArgs.max_output_tokens).toBe(2048)
+    expect(callArgs.reasoning).toMatchObject({ effort: 'medium' })
   })
 
   it('uses OPENAI_MODEL env var when provided', async () => {
@@ -92,11 +94,12 @@ describe('openai discussionSender', () => {
 
     const callArgs = createMock.mock.calls[0][0]
     expect(callArgs.model).toBe('gpt-5')
-    expect(callArgs.max_output_tokens).toBe(512)
+    expect(callArgs.max_output_tokens).toBe(1024)
   })
 
-  it('returns empty string when the model returns empty content', async () => {
+  it('returns empty string when the model returns empty content and no retry condition', async () => {
     createMock.mockResolvedValue({
+      status: 'completed',
       output_text: ''
     })
 
@@ -124,5 +127,29 @@ describe('openai discussionSender', () => {
 
     expect(result).toBe('Part 1. Part 2.')
     expect(createMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('retries once when the first response is reasoning-only and max_output_tokens is reached', async () => {
+    createMock
+      .mockResolvedValueOnce({
+        status: 'incomplete',
+        incomplete_details: { reason: 'max_output_tokens' },
+        output_text: ''
+      })
+      .mockResolvedValueOnce({
+        output_text: 'Follow-up reply'
+      })
+
+    const result = await discussionSender('needs followup', false)
+
+    expect(result).toBe('Follow-up reply')
+    expect(createMock).toHaveBeenCalledTimes(2)
+
+    const firstCall = createMock.mock.calls[0][0]
+    const secondCall = createMock.mock.calls[1][0]
+
+    expect(firstCall.max_output_tokens).toBe(1024)
+    expect(secondCall.max_output_tokens).toBe(256)
+    expect(secondCall.reasoning).toMatchObject({ effort: 'low' })
   })
 })

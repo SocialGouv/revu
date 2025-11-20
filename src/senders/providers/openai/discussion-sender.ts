@@ -16,9 +16,9 @@ export async function discussionSender(
 
   const hasSegments = Array.isArray((promptOrSegments as any)?.stableParts)
   const model = process.env.OPENAI_MODEL || 'gpt-5'
-  // For discussions, keep completions relatively short to discourage
-  // spending everything on hidden reasoning without emitting text.
-  const maxCompletionTokens = enableThinking ? 1024 : 512
+  // For discussions, allow enough budget for both reasoning and answer,
+  // but keep reasoning effort lower when thinking is disabled.
+  const maxOutputTokens = enableThinking ? 2048 : 1024
 
   function extractText(value: unknown): string {
     if (typeof value === 'string') return value
@@ -77,74 +77,118 @@ export async function discussionSender(
     )
   }
 
-  const response = await client.responses.create({
-    model,
-    // Preserve prior "messages"-style semantics by sending an array
-    // that the Responses API accepts as input when migrating from Chat.
-    input: [{ role: 'user', content }],
-    max_output_tokens: maxCompletionTokens
-  } as any)
-
-  // Prefer the SDK helper when available, but fall back to the raw
-  // output structure to keep this robust to SDK/version differences.
-  const rawFromHelper = (response as any).output_text
-  const raw = rawFromHelper ?? (response as any).output ?? ''
-
-  const text = normalizeContent(raw)
-  const trimmed = text.trim()
-
-  if (process.env.DISCUSSION_LLM_DEBUG === 'true') {
-    const preview = text.slice(0, 300)
-    const length = text.length
-
-    let rawDump: string | undefined
-    try {
-      rawDump = JSON.stringify(raw)
-    } catch {
-      rawDump = '[unserializable]'
+  async function callOnce(
+    inputContent: string,
+    options?: {
+      maxTokens?: number
+      reasoningEffort?: 'low' | 'medium' | 'high'
     }
-    if (rawDump && rawDump.length > 800) {
-      rawDump = rawDump.slice(0, 800) + '... (truncated)'
-    }
-
-    let responseDump: string | undefined
-    try {
-      responseDump = JSON.stringify(response)
-    } catch {
-      responseDump = '[unserializable]'
-    }
-    if (responseDump && responseDump.length > 1200) {
-      responseDump =
-        responseDump.slice(0, 1200) + '... (truncated full response)'
-    }
-
-    logSystemWarning('OpenAI discussion raw reply', {
-      context_msg: 'Raw OpenAI discussion completion',
-      repository: process.env.GITHUB_REPOSITORY,
-      pr_number: undefined,
-      provider: 'openai',
+  ) {
+    const response = await client.responses.create({
       model,
-      raw_reply_preview: preview,
-      raw_reply_length: length,
-      raw_type: typeof raw,
-      raw_is_array: Array.isArray(raw),
-      raw_dump: rawDump,
-      completion_dump: responseDump
-    })
-  }
+      input: [{ role: 'user', content: inputContent }],
+      max_output_tokens: options?.maxTokens ?? maxOutputTokens,
+      reasoning: {
+        effort: options?.reasoningEffort ?? (enableThinking ? 'medium' : 'low')
+      },
+      text: {
+        format: { type: 'text' },
+        verbosity: 'low'
+      }
+    } as any)
 
-  if (process.env.PROMPT_CACHE_DEBUG === 'true' && hasSegments && prefixHash) {
-    const usage = (response as any)?.usage ?? {}
-    const metrics = {
-      prefix_hash: prefixHash,
-      prompt_tokens: usage.prompt_tokens,
-      completion_tokens: usage.completion_tokens,
-      total_tokens: usage.total_tokens
+    const rawFromHelper = (response as any).output_text
+    const raw = rawFromHelper ?? (response as any).output ?? ''
+    const text = normalizeContent(raw)
+    const trimmed = text.trim()
+
+    if (process.env.DISCUSSION_LLM_DEBUG === 'true') {
+      const preview = text.slice(0, 300)
+      const length = text.length
+
+      let rawDump: string | undefined
+      try {
+        rawDump = JSON.stringify(raw)
+      } catch {
+        rawDump = '[unserializable]'
+      }
+      if (rawDump && rawDump.length > 800) {
+        rawDump = rawDump.slice(0, 800) + '... (truncated)'
+      }
+
+      let responseDump: string | undefined
+      try {
+        responseDump = JSON.stringify(response)
+      } catch {
+        responseDump = '[unserializable]'
+      }
+      if (responseDump && responseDump.length > 1200) {
+        responseDump =
+          responseDump.slice(0, 1200) + '... (truncated full response)'
+      }
+
+      logSystemWarning('OpenAI discussion raw reply', {
+        context_msg: 'Raw OpenAI discussion completion',
+        repository: process.env.GITHUB_REPOSITORY,
+        pr_number: undefined,
+        provider: 'openai',
+        model,
+        raw_reply_preview: preview,
+        raw_reply_length: length,
+        raw_type: typeof raw,
+        raw_is_array: Array.isArray(raw),
+        raw_dump: rawDump,
+        completion_dump: responseDump
+      })
     }
-    logSystemWarning('OpenAI discussion cache context', {
-      context_msg: JSON.stringify(metrics)
-    })
+
+    if (
+      process.env.PROMPT_CACHE_DEBUG === 'true' &&
+      hasSegments &&
+      prefixHash
+    ) {
+      const usage = (response as any)?.usage ?? {}
+      const metrics = {
+        prefix_hash: prefixHash,
+        prompt_tokens: usage.prompt_tokens,
+        completion_tokens: usage.completion_tokens,
+        total_tokens: usage.total_tokens
+      }
+      logSystemWarning('OpenAI discussion cache context', {
+        context_msg: JSON.stringify(metrics)
+      })
+    }
+
+    return { text, trimmed, response }
   }
 
-  return trimmed
+  // First attempt
+  const first = await callOnce(content)
+  if (first.trimmed.length > 0) {
+    return first.trimmed
+  }
+
+  // If we exhausted the budget on hidden reasoning (no visible text),
+  // try a smaller, focused follow-up with low reasoning effort.
+  const status = (first.response as any).status
+  const incompleteReason = (first.response as any).incomplete_details?.reason
+
+  if (status === 'incomplete' && incompleteReason === 'max_output_tokens') {
+    const followupContent =
+      content +
+      '\n\nAssistant note: In one or two short sentences, directly answer the latest user reply. Do NOT leave this blank, and do not spend time on extended reasoning.'
+
+    const followup = await callOnce(followupContent, {
+      maxTokens: 256,
+      reasoningEffort: 'low'
+    })
+
+    if (followup.trimmed.length > 0) {
+      return followup.trimmed
+    }
+  }
+
+  // Still no usable text; let the discussion handler decide whether to
+  // fall back to a generic message based on the empty reply.
+  return ''
 }
