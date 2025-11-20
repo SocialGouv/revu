@@ -1,4 +1,4 @@
-import * as IORedis from 'ioredis'
+import Redis from 'ioredis'
 import { logSystemWarning } from './logger.ts'
 
 type RedisClient = // eslint-disable-next-line @typescript-eslint/no-explicit-any
