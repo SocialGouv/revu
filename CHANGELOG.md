@@ -1,3 +1,15 @@
+## [1.37.7](https://github.com/SocialGouv/revu/compare/v1.37.6...v1.37.7) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** wip ([2903ab3](https://github.com/SocialGouv/revu/commit/2903ab35e04ef410375770bf738f1f95a739fadb))
+
+
+### Reverts
+
+* Revert "chore(cleanup): remove DISCUSSION_LLM_DEBUG" ([6a1e09e](https://github.com/SocialGouv/revu/commit/6a1e09e4b54a7f31e702b8e379b02710258278eb))
+
 ## [1.37.6](https://github.com/SocialGouv/revu/compare/v1.37.5...v1.37.6) (2025-11-20)
 
 
