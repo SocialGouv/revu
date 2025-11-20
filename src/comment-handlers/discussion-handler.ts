@@ -101,9 +101,11 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
       : userReplyBody
   const bodyHash = simpleHash(truncatedForHash, 16)
   const provider = process.env.LLM_PROVIDER || 'anthropic'
-  const modelForKey = provider === 'openai' ? (process.env.OPENAI_MODEL || 'gpt-4o-mini') : (process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929')
+  const modelForKey =
+    provider === 'openai'
+      ? process.env.OPENAI_MODEL || 'gpt-5'
+      : process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
   const cacheKey = buildDiscussionCacheKey({
-
     owner,
     repo,
     prNumber,
@@ -147,8 +149,7 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
       logSystemError(error, {
         pr_number: prNumber,
         repository: `${owner}/${repo}`,
-        context_msg:
-          'Failed to validate cached discussion reply state'
+        context_msg: 'Failed to validate cached discussion reply state'
       })
       throw error
     }
