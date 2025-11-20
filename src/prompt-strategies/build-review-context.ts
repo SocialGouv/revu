@@ -55,8 +55,7 @@ export async function buildReviewContext(
       modifiedFilesContent: prepared.modifiedFilesContent,
       codingGuidelines,
       relatedIssues,
-      commitSha: prepared.commitSha,
-      repoPath: prepared.repoPath
+      commitSha: prepared.commitSha
     }
   } finally {
     if (repoPath) {
