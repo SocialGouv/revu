@@ -215,32 +215,19 @@ export function getComputeCache(): ComputeCache {
       const redisCache = new RedisComputeCache(url)
       singleton = redisCache
 
-      // Validate connection on startup (best-effort, async)
+      // Validate connection on startup (best-effort, async). This is advisory only
+      // and does not change the selected backend to avoid inconsistent cache usage.
       redisCache.get('__health_check__').catch((err) => {
         const message = err instanceof Error ? err.message : String(err)
 
-        if (required) {
-          // In required mode, fail fast so operators notice misconfiguration
-          throw new Error(`Redis connection required but failed: ${message}`)
-        }
-
         console.error(
-          'Redis connection validation failed, using in-memory fallback',
+          'Redis connection validation failed; continuing with Redis but treating cache as best-effort',
           err
         )
 
-        // Attempt to close the Redis client and switch to in-memory cache
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const anyClient = (redisCache as any).client
-          if (anyClient && typeof anyClient.quit === 'function') {
-            anyClient.quit().catch(() => {})
-          }
-        } catch {
-          // Ignore errors during shutdown
-        }
-
-        singleton = new InMemoryComputeCache()
+        logSystemWarning(err, {
+          context_msg: `Compute cache: Redis health check failed (best-effort) - ${message}`
+        })
       })
       return singleton
     } catch (error) {
