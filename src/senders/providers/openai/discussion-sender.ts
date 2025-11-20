@@ -13,7 +13,7 @@ export async function discussionSender(
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
   const hasSegments = Array.isArray((promptOrSegments as any)?.stableParts)
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini'
+  const model = process.env.OPENAI_MODEL || 'gpt-5'
 
   let prefixHash: string | undefined
   // Normalize to a single user message string (deterministic join)
