@@ -88,11 +88,17 @@ export function buildDiscussionPromptSegments(input: {
   stableParts.push({ type: 'text', text: 'Related Issues:' })
   stableParts.push({ type: 'text', text: issuesList })
 
+  const MAX_DIFF_CHARS = input.maxTotalChars ?? DEFAULT_MAX_TOTAL_CHARS
+  const diffBody =
+    reviewCtx.diff && reviewCtx.diff.length > MAX_DIFF_CHARS
+      ? reviewCtx.diff.slice(0, MAX_DIFF_CHARS) + '\n... (truncated)'
+      : reviewCtx.diff || '(empty)'
+
   stableParts.push({
     type: 'text',
     text: 'PR Diff (filtered to reviewable files):'
   })
-  stableParts.push({ type: 'text', text: reviewCtx.diff || '(empty)' })
+  stableParts.push({ type: 'text', text: diffBody })
 
   if (diffHunk) {
     stableParts.push({ type: 'text', text: 'Relevant Diff Hunk:' })
