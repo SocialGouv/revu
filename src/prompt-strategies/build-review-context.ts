@@ -11,7 +11,6 @@ export interface ReviewContextData {
   codingGuidelines: string
   relatedIssues: Array<{ number: number; title: string }>
   commitSha: string
-  repoPath: string
 }
 
 /**
