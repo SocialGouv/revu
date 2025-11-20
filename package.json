@@ -1,6 +1,6 @@
 {
   "name": "revu",
-  "version": "1.35.1",
+  "version": "1.36.2",
   "description": "Automated PR reviews using Claude Sonnet API",
   "private": true,
   "type": "module",
@@ -30,8 +30,8 @@
     "handlebars": "^4.7.8",
     "ignore": "^7.0.5",
     "ioredis": "^5.8.1",
-    "js-yaml": "^4.1.0",
     "openai": "^6.7.0",
+    "js-yaml": "^4.1.1",
     "p-retry": "^7.0.0",
     "picomatch": "^4.0.3",
     "probot": "^14.0.0",

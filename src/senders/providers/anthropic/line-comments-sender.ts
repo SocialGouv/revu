@@ -26,11 +26,15 @@ export async function anthropicLineCommentsSender(
     apiKey: process.env.ANTHROPIC_API_KEY
   })
 
+  // Get model to enable model-specific parameter handling
+  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
+
   // Prepare shared payload parts (tools, messages, temperature, tokens, thinking)
   const prepared = prepareLineCommentsPayload(
     'anthropic',
     prompt,
-    enableThinking
+    enableThinking,
+    model
   )
   // Determine if extended context should be used (opt-out: enabled by default)
   const useExtendedContext = process.env.ANTHROPIC_EXTENDED_CONTEXT !== 'false'

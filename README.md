@@ -80,7 +80,9 @@ See [.env.example](.env.example) for an example.
 
 ## Choosing a provider (Anthropic or OpenAI)
 
-Revu supports both Anthropic and OpenAI. Select the provider in `config.json`:
+Revu supports both Anthropic and OpenAI. You can select the provider either via `config.json` or an environment variable.
+
+### Option 1: `config.json`
 
 ```json
 {
@@ -91,6 +93,21 @@ Revu supports both Anthropic and OpenAI. Select the provider in `config.json`:
 ```
 
 - llmProvider: "anthropic" (default) or "openai"
+
+### Option 2: Environment variable
+
+You can also set the default provider via the `LLM_PROVIDER` env var:
+
+```env
+# Allowed values: anthropic | openai
+LLM_PROVIDER=openai
+```
+
+Precedence rules:
+
+1. If `config.json` sets `llmProvider`, it takes precedence over the environment.
+2. Otherwise, `LLM_PROVIDER` (when valid) overrides the built-in default.
+3. If neither is set, Revu defaults to `anthropic`.
 
 Environment variables per provider:
 

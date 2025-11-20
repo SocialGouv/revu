@@ -1,3 +1,38 @@
+## [1.36.2](https://github.com/SocialGouv/revu/compare/v1.36.1...v1.36.2) (2025-11-19)
+
+
+### Bug Fixes
+
+* up yarn.lock ([7eecf02](https://github.com/SocialGouv/revu/commit/7eecf0235dbcd3db53c0d4be44da707b7ced234b))
+
+## [1.36.1](https://github.com/SocialGouv/revu/compare/v1.36.0...v1.36.1) (2025-11-19)
+
+
+### Bug Fixes
+
+* openai tools usage ([#254](https://github.com/SocialGouv/revu/issues/254)) ([422e895](https://github.com/SocialGouv/revu/commit/422e8957fb84a73cb66129871cfaa5f6fa2738cc))
+
+# [1.36.0](https://github.com/SocialGouv/revu/compare/v1.35.3...v1.36.0) (2025-11-19)
+
+
+### Features
+
+* Handle parameters exceptions per model ([70e366b](https://github.com/SocialGouv/revu/commit/70e366b3f434f5eb9609b087982f06211cd06f00))
+
+## [1.35.3](https://github.com/SocialGouv/revu/compare/v1.35.2...v1.35.3) (2025-11-18)
+
+
+### Bug Fixes
+
+* provide openai key and switch preprod to gpt5 ([#251](https://github.com/SocialGouv/revu/issues/251)) ([3303db5](https://github.com/SocialGouv/revu/commit/3303db580b742dd0b6b183b1c57276131f17ac80))
+
+## [1.35.2](https://github.com/SocialGouv/revu/compare/v1.35.1...v1.35.2) (2025-11-18)
+
+
+### Bug Fixes
+
+* **config:** parity between config and env (+ env LLM_PROVIDER) ([#250](https://github.com/SocialGouv/revu/issues/250)) ([82e77e1](https://github.com/SocialGouv/revu/commit/82e77e1e32d70e58043d320973fae02453be76e3))
+
 ## [1.35.1](https://github.com/SocialGouv/revu/compare/v1.35.0...v1.35.1) (2025-11-05)
 
 
