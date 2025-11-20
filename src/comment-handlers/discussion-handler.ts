@@ -186,28 +186,22 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
             (replyVersion && currentAfter?.updated_at !== replyVersion)
           ) {
             logSystemWarning(
-              'Stale reply detected before posting cached discussion reply - discarding result',
+              'Stale reply detected before returning cached discussion reply - discarding result',
               {
                 pr_number: prNumber,
                 repository: `${owner}/${repo}`,
                 context_msg:
-                  'User edited reply during processing; not posting potentially stale cached response'
+                  'User edited reply during processing; not returning potentially stale cached response'
               }
             )
             return 'stale_skipped'
           }
-
-          await platformContext.client.replyToReviewComment(
-            prNumber,
-            userReplyCommentId,
-            body
-          )
         } catch (error) {
           logSystemError(error, {
             pr_number: prNumber,
             repository: `${owner}/${repo}`,
             context_msg:
-              'Failed to post cached discussion reply after waiting for lock holder'
+              'Failed to validate cached discussion reply state while waiting for lock holder'
           })
           throw error
         }
