@@ -1,3 +1,10 @@
+## [1.37.1](https://github.com/SocialGouv/revu/compare/v1.37.0...v1.37.1) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** openai parameters ([162b8e6](https://github.com/SocialGouv/revu/commit/162b8e65b8f5e10bccc5659375e50f74fb4762b7))
+
 # [1.37.0](https://github.com/SocialGouv/revu/compare/v1.36.2...v1.37.0) (2025-11-20)
 
 
