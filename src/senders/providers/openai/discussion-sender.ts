@@ -17,7 +17,7 @@ export async function discussionSender(
 
   let prefixHash: string | undefined
   // Normalize to a single user message string (deterministic join)
-  const content = hasSegments
+  const rawContent = hasSegments
     ? [
         ...(
           (promptOrSegments as DiscussionPromptSegments)
@@ -29,6 +29,10 @@ export async function discussionSender(
         ).map((p) => p.text)
       ].join('\n')
     : String(promptOrSegments)
+  const content =
+    rawContent.length > MAX_OPENAI_PROMPT_CHARS
+      ? `${rawContent.slice(0, MAX_OPENAI_PROMPT_CHARS)}\n... (truncated)`
+      : rawContent
 
   if (hasSegments) {
     prefixHash = computeSegmentsPrefixHash(
