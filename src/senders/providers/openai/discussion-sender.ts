@@ -71,6 +71,20 @@ export async function discussionSender(
   const text = normalizeContent(raw)
   const trimmed = text.trim()
 
+  if (process.env.DISCUSSION_LLM_DEBUG === 'true') {
+    const preview = text.slice(0, 300)
+    const length = text.length
+    logSystemWarning('OpenAI discussion raw reply', {
+      context_msg: 'Raw OpenAI discussion completion',
+      repository: process.env.GITHUB_REPOSITORY,
+      pr_number: undefined,
+      provider: 'openai',
+      model,
+      raw_reply_preview: preview,
+      raw_reply_length: length
+    })
+  }
+
   if (process.env.PROMPT_CACHE_DEBUG === 'true' && hasSegments && prefixHash) {
     const usage = (completion as any)?.usage ?? {}
     const metrics = {
