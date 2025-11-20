@@ -77,13 +77,19 @@ export async function discussionSender(
     )
   }
 
-  const completion = await client.chat.completions.create({
+  const response = await client.responses.create({
     model,
-    messages: [{ role: 'user', content }],
-    max_completion_tokens: maxCompletionTokens
+    // Preserve prior "messages"-style semantics by sending an array
+    // that the Responses API accepts as input when migrating from Chat.
+    input: [{ role: 'user', content }],
+    max_output_tokens: maxCompletionTokens
   } as any)
 
-  const raw = completion.choices?.[0]?.message?.content
+  // Prefer the SDK helper when available, but fall back to the raw
+  // output structure to keep this robust to SDK/version differences.
+  const rawFromHelper = (response as any).output_text
+  const raw = rawFromHelper ?? (response as any).output ?? ''
+
   const text = normalizeContent(raw)
   const trimmed = text.trim()
 
@@ -101,15 +107,15 @@ export async function discussionSender(
       rawDump = rawDump.slice(0, 800) + '... (truncated)'
     }
 
-    let completionDump: string | undefined
+    let responseDump: string | undefined
     try {
-      completionDump = JSON.stringify(completion)
+      responseDump = JSON.stringify(response)
     } catch {
-      completionDump = '[unserializable]'
+      responseDump = '[unserializable]'
     }
-    if (completionDump && completionDump.length > 1200) {
-      completionDump =
-        completionDump.slice(0, 1200) + '... (truncated full completion)'
+    if (responseDump && responseDump.length > 1200) {
+      responseDump =
+        responseDump.slice(0, 1200) + '... (truncated full response)'
     }
 
     logSystemWarning('OpenAI discussion raw reply', {
@@ -123,12 +129,12 @@ export async function discussionSender(
       raw_type: typeof raw,
       raw_is_array: Array.isArray(raw),
       raw_dump: rawDump,
-      completion_dump: completionDump
+      completion_dump: responseDump
     })
   }
 
   if (process.env.PROMPT_CACHE_DEBUG === 'true' && hasSegments && prefixHash) {
-    const usage = (completion as any)?.usage ?? {}
+    const usage = (response as any)?.usage ?? {}
     const metrics = {
       prefix_hash: prefixHash,
       prompt_tokens: usage.prompt_tokens,

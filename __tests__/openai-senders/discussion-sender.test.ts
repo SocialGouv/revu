@@ -6,10 +6,8 @@ const createMock = vi.fn()
 
 vi.mock('openai', () => {
   class MockOpenAI {
-    chat = {
-      completions: {
-        create: createMock
-      }
+    responses = {
+      create: createMock
     }
   }
   return { default: MockOpenAI }
@@ -28,15 +26,9 @@ describe('openai discussionSender', () => {
     delete process.env.OPENAI_MODEL
   })
 
-  it('uses max_completion_tokens for gpt-5 by default (thinking disabled)', async () => {
+  it('uses max_output_tokens for gpt-5 by default (thinking disabled)', async () => {
     createMock.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: 'Test reply'
-          }
-        }
-      ],
+      output_text: 'Test reply',
       usage: {
         prompt_tokens: 10,
         completion_tokens: 5,
@@ -52,27 +44,21 @@ describe('openai discussionSender', () => {
     const callArgs = createMock.mock.calls[0][0]
     expect(callArgs).toMatchObject({
       model: 'gpt-5',
-      messages: [
+      input: [
         {
           role: 'user',
           content: expect.any(String)
         }
       ]
     })
-    expect(callArgs.max_completion_tokens).toBe(512)
+    expect(callArgs.max_output_tokens).toBe(512)
     expect(callArgs).not.toHaveProperty('max_tokens')
     expect(callArgs).not.toHaveProperty('temperature')
   })
 
-  it('increases max_completion_tokens when thinking is enabled', async () => {
+  it('increases max_output_tokens when thinking is enabled', async () => {
     createMock.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: 'Thinking reply'
-          }
-        }
-      ],
+      output_text: 'Thinking reply',
       usage: {
         prompt_tokens: 20,
         completion_tokens: 10,
@@ -87,7 +73,7 @@ describe('openai discussionSender', () => {
 
     const callArgs = createMock.mock.calls[0][0]
     expect(callArgs.model).toBe('gpt-5')
-    expect(callArgs.max_completion_tokens).toBe(1024)
+    expect(callArgs.max_output_tokens).toBe(1024)
     expect(callArgs).not.toHaveProperty('max_tokens')
     expect(callArgs).not.toHaveProperty('temperature')
   })
@@ -96,13 +82,7 @@ describe('openai discussionSender', () => {
     process.env.OPENAI_MODEL = 'gpt-5'
 
     createMock.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: 'Env model reply'
-          }
-        }
-      ]
+      output_text: 'Env model reply'
     })
 
     const result = await discussionSender('another prompt', false)
@@ -112,18 +92,12 @@ describe('openai discussionSender', () => {
 
     const callArgs = createMock.mock.calls[0][0]
     expect(callArgs.model).toBe('gpt-5')
-    expect(callArgs.max_completion_tokens).toBe(512)
+    expect(callArgs.max_output_tokens).toBe(512)
   })
 
   it('returns empty string when the model returns empty content', async () => {
     createMock.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: ''
-          }
-        }
-      ]
+      output_text: ''
     })
 
     const result = await discussionSender('empty', false)
@@ -132,16 +106,16 @@ describe('openai discussionSender', () => {
     expect(createMock).toHaveBeenCalledTimes(1)
   })
 
-  it('handles array-style content by concatenating text parts', async () => {
+  it('handles array-style content by concatenating text parts (fallback path)', async () => {
+    // Simulate a response without output_text, but with a structured output array
     createMock.mockResolvedValue({
-      choices: [
+      output: [
         {
-          message: {
-            content: [
-              { type: 'output_text', text: 'Part 1. ' },
-              { type: 'output_text', text: 'Part 2.' }
-            ]
-          }
+          type: 'message',
+          content: [
+            { type: 'output_text', text: 'Part 1. ' },
+            { type: 'output_text', text: 'Part 2.' }
+          ]
         }
       ]
     })
