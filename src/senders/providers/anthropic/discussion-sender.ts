@@ -101,6 +101,31 @@ export async function discussionSender(
       ? await anthropic.beta.messages.create(messageParams)
       : await anthropic.messages.create(messageParams)
 
+    if (process.env.DISCUSSION_LLM_DEBUG === 'true') {
+      const content = (message as any)?.content
+      let textPreview = ''
+      let textLength = 0
+      if (Array.isArray(content)) {
+        const textBlock = content.find((c: any) => c?.type === 'text')
+        if (textBlock?.text && typeof textBlock.text === 'string') {
+          textPreview = textBlock.text.slice(0, 300)
+          textLength = textBlock.text.length
+        }
+      } else if (typeof (message as any)?.content === 'string') {
+        textPreview = String((message as any).content).slice(0, 300)
+        textLength = String((message as any).content).length
+      }
+
+      logSystemWarning('Anthropic discussion raw reply', {
+        context_msg: 'Raw Anthropic discussion completion',
+        repository: process.env.GITHUB_REPOSITORY,
+        provider: 'anthropic',
+        model,
+        raw_reply_preview: textPreview,
+        raw_reply_length: textLength
+      })
+    }
+
     const usage = (message as any)?.usage ?? {}
     if (process.env.PROMPT_CACHE_DEBUG === 'true' && isSegments && prefixHash) {
       const metrics = {

@@ -52,6 +52,21 @@ export async function discussionSender(
     max_completion_tokens: maxCompletionTokens
   } as any)
 
+  if (process.env.DISCUSSION_LLM_DEBUG === 'true') {
+    const raw = completion.choices?.[0]?.message?.content
+    const preview = typeof raw === 'string' ? raw.slice(0, 300) : ''
+    const length = typeof raw === 'string' ? raw.length : 0
+    logSystemWarning('OpenAI discussion raw reply', {
+      context_msg: 'Raw OpenAI discussion completion',
+      repository: process.env.GITHUB_REPOSITORY,
+      pr_number: undefined,
+      provider: 'openai',
+      model,
+      raw_reply_preview: preview,
+      raw_reply_length: length
+    })
+  }
+
   if (process.env.PROMPT_CACHE_DEBUG === 'true' && hasSegments && prefixHash) {
     const usage = (completion as any)?.usage ?? {}
     const metrics = {
