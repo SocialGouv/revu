@@ -108,7 +108,15 @@ class RedisComputeCache implements ComputeCache {
     this.client = new (IORedis as any)(url, {
       ...(tls ? ({ tls } as any) : {}),
       db,
-      password
+      password,
+      maxRetriesPerRequest: 3,
+      enableReadyCheck: true,
+      lazyConnect: false,
+      connectTimeout: 10000,
+      retryStrategy: (times: number) => {
+        if (times > 3) return null
+        return Math.min(times * 200, 2000)
+      }
     })
   }
 
@@ -200,18 +208,54 @@ export function getComputeCache(): ComputeCache {
   if (singleton) return singleton
 
   const url = process.env.REDIS_URL
+  const required = (process.env.REDIS_REQUIRED || '').toLowerCase() === 'true'
+
   if (url) {
     try {
-      singleton = new RedisComputeCache(url)
+      const redisCache = new RedisComputeCache(url)
+      singleton = redisCache
+
+      // Validate connection on startup (best-effort, async)
+      redisCache.get('__health_check__').catch((err) => {
+        const message = err instanceof Error ? err.message : String(err)
+
+        if (required) {
+          // In required mode, fail fast so operators notice misconfiguration
+          throw new Error(`Redis connection required but failed: ${message}`)
+        }
+
+        console.error(
+          'Redis connection validation failed, using in-memory fallback',
+          err
+        )
+
+        // Attempt to close the Redis client and switch to in-memory cache
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const anyClient = (redisCache as any).client
+          if (anyClient && typeof anyClient.quit === 'function') {
+            anyClient.quit().catch(() => {})
+          }
+        } catch {
+          // Ignore errors during shutdown
+        }
+
+        singleton = new InMemoryComputeCache()
+      })
       return singleton
     } catch (error) {
+      if (required) {
+        // Fail fast in production-style environments when Redis is mandatory
+        throw error
+      }
+
       // Fail open to in-memory if Redis cannot be initialized
       logSystemWarning(error, {
         context_msg:
           'REDIS_URL is set but Redis initialization failed - falling back to in-memory cache (degraded mode)'
       })
-      // Additional operator-visible log
 
+      // Additional operator-visible log
       console.warn(
         'RedisComputeCache initialization failed, falling back to in-memory cache:',
         error instanceof Error ? error.message : String(error)
