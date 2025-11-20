@@ -100,6 +100,17 @@ export async function discussionSender(
       rawDump = rawDump.slice(0, 800) + '... (truncated)'
     }
 
+    let completionDump: string | undefined
+    try {
+      completionDump = JSON.stringify(completion)
+    } catch {
+      completionDump = '[unserializable]'
+    }
+    if (completionDump && completionDump.length > 1200) {
+      completionDump =
+        completionDump.slice(0, 1200) + '... (truncated full completion)'
+    }
+
     logSystemWarning('OpenAI discussion raw reply', {
       context_msg: 'Raw OpenAI discussion completion',
       repository: process.env.GITHUB_REPOSITORY,
@@ -110,7 +121,8 @@ export async function discussionSender(
       raw_reply_length: length,
       raw_type: typeof raw,
       raw_is_array: Array.isArray(raw),
-      raw_dump: rawDump
+      raw_dump: rawDump,
+      completion_dump: completionDump
     })
   }
 
