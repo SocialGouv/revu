@@ -100,7 +100,10 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
       ? userReplyBody.slice(0, MAX_REPLY_HASH_CHARS)
       : userReplyBody
   const bodyHash = simpleHash(truncatedForHash, 16)
+  const provider = process.env.LLM_PROVIDER || 'anthropic'
+  const modelForKey = provider === 'openai' ? (process.env.OPENAI_MODEL || 'gpt-4o-mini') : (process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929')
   const cacheKey = buildDiscussionCacheKey({
+
     owner,
     repo,
     prNumber,
@@ -108,7 +111,7 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     lastUserReplyId: userReplyCommentId,
     lastUserReplyBodyHash: bodyHash,
     commitSha: reviewCtx.commitSha,
-    model: process.env.ANTHROPIC_MODEL,
+    model: `${provider}:${modelForKey}`,
     strategyVersion: 'v1',
     lastUserReplyLen: replyLen,
     replyVersion
