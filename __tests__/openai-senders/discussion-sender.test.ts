@@ -114,4 +114,58 @@ describe('openai discussionSender', () => {
     expect(callArgs.model).toBe('gpt-5')
     expect(callArgs.max_completion_tokens).toBe(1024)
   })
+
+  it('retries once when the first reply is empty and returns the second reply', async () => {
+    createMock
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: ''
+            }
+          }
+        ]
+      })
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: 'Second attempt reply'
+            }
+          }
+        ]
+      })
+
+    const result = await discussionSender('needs retry', false)
+
+    expect(result).toBe('Second attempt reply')
+    expect(createMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('returns empty string when both attempts produce empty replies', async () => {
+    createMock
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: ''
+            }
+          }
+        ]
+      })
+      .mockResolvedValueOnce({
+        choices: [
+          {
+            message: {
+              content: ''
+            }
+          }
+        ]
+      })
+
+    const result = await discussionSender('still empty', false)
+
+    expect(result).toBe('')
+    expect(createMock).toHaveBeenCalledTimes(2)
+  })
 })
