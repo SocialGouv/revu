@@ -172,8 +172,8 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
 
   // If another worker holds the lock, wait briefly for it to populate the cache
   if (hasLockSupport && !acquired) {
-    for (let i = 0; i < 3; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 300))
+    for (let i = 0; i < 5; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 400))
       const body = await cache.get<string>(cacheKey)
       if (body) {
         try {
@@ -215,16 +215,23 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
       }
     }
 
-    logSystemWarning(
-      'Discussion reply generation skipped because another worker holds the lock',
-      {
-        pr_number: prNumber,
-        repository: `${owner}/${repo}`,
-        context_msg:
-          'Avoiding duplicate discussion replies under concurrency; no cached body available after waiting'
-      }
-    )
-    return 'lock_skipped'
+    // No cached body appeared; attempt to take over the lock. If successful,
+    // fall through into the normal generation path as the new lock holder.
+    const reacquired = await cacheAny.tryAcquireLock?.(lockKey, 30)
+    if (reacquired) {
+      acquired = true
+    } else {
+      logSystemWarning(
+        'Discussion reply generation skipped because another worker still holds the lock after extended wait',
+        {
+          pr_number: prNumber,
+          repository: `${owner}/${repo}`,
+          context_msg:
+            'Avoiding duplicate discussion replies under concurrency; no cached body available after waiting and lock could not be reacquired'
+        }
+      )
+      return 'lock_skipped'
+    }
   }
 
   // Build concise discussion prompt. Re-include the same context as review.
