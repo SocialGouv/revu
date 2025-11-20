@@ -117,7 +117,8 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
   // Try cache
   const cachedBody = await cache.get<string>(cacheKey)
   if (cachedBody) {
-    // Before posting cached reply, ensure the user reply has not changed
+    // Idempotency: cached entries are only written after a successful post.
+    // To avoid duplicate replies on webhook redelivery, do not post again.
     try {
       const currentAfter = (await platformContext.client.getReviewComment(
         userReplyCommentId
@@ -127,33 +128,27 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
         (replyVersion && currentAfter?.updated_at !== replyVersion)
       ) {
         logSystemWarning(
-          'Stale reply detected before posting cached discussion reply - discarding result',
+          'Stale reply detected before returning cached discussion reply - discarding result',
           {
             pr_number: prNumber,
             repository: `${owner}/${repo}`,
             context_msg:
-              'User edited reply during processing; not posting potentially stale cached response'
+              'User edited reply during processing; not returning potentially stale cached response'
           }
         )
         return 'stale_skipped'
       }
-
-      await platformContext.client.replyToReviewComment(
-        prNumber,
-        userReplyCommentId,
-        cachedBody
-      )
+      // Return cached response without re-posting
+      return cachedBody
     } catch (error) {
       logSystemError(error, {
         pr_number: prNumber,
         repository: `${owner}/${repo}`,
         context_msg:
-          'Failed to post cached discussion reply or validate stale state'
+          'Failed to validate cached discussion reply state'
       })
       throw error
     }
-
-    return cachedBody
   }
 
   // Build concise discussion prompt. Re-include the same context as review.
