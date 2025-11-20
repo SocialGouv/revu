@@ -18,19 +18,34 @@ export async function discussionSender(
   const model = process.env.OPENAI_MODEL || 'gpt-5'
   const maxCompletionTokens = enableThinking ? 2048 : 1024
 
-  function normalizeContent(raw: unknown): string {
-    if (typeof raw === 'string') return raw
-    if (Array.isArray(raw)) {
-      return raw
-        .map((part: any) => {
-          if (typeof part === 'string') return part
-          if (part && typeof part.text === 'string') return part.text
-          if (part && typeof part.content === 'string') return part.content
-          return ''
-        })
+  function extractText(value: unknown): string {
+    if (typeof value === 'string') return value
+    if (Array.isArray(value)) {
+      return value.map((v) => extractText(v)).join('')
+    }
+    if (value && typeof value === 'object') {
+      const obj = value as Record<string, unknown>
+
+      // Prefer common text-bearing fields
+      if (obj.text !== undefined) {
+        const t = extractText(obj.text)
+        if (t) return t
+      }
+      if (obj.content !== undefined) {
+        const c = extractText(obj.content)
+        if (c) return c
+      }
+
+      // Fallback: scan all values
+      return Object.values(obj)
+        .map((v) => extractText(v))
         .join('')
     }
     return ''
+  }
+
+  function normalizeContent(raw: unknown): string {
+    return extractText(raw)
   }
 
   let prefixHash: string | undefined
@@ -74,6 +89,17 @@ export async function discussionSender(
   if (process.env.DISCUSSION_LLM_DEBUG === 'true') {
     const preview = text.slice(0, 300)
     const length = text.length
+
+    let rawDump: string | undefined
+    try {
+      rawDump = JSON.stringify(raw)
+    } catch {
+      rawDump = '[unserializable]'
+    }
+    if (rawDump && rawDump.length > 800) {
+      rawDump = rawDump.slice(0, 800) + '... (truncated)'
+    }
+
     logSystemWarning('OpenAI discussion raw reply', {
       context_msg: 'Raw OpenAI discussion completion',
       repository: process.env.GITHUB_REPOSITORY,
@@ -81,7 +107,10 @@ export async function discussionSender(
       provider: 'openai',
       model,
       raw_reply_preview: preview,
-      raw_reply_length: length
+      raw_reply_length: length,
+      raw_type: typeof raw,
+      raw_is_array: Array.isArray(raw),
+      raw_dump: rawDump
     })
   }
 
