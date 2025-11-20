@@ -39,7 +39,6 @@ export async function anthropicLineCommentsSender(
   // Determine if extended context should be used (opt-out: enabled by default)
   const useExtendedContext = process.env.ANTHROPIC_EXTENDED_CONTEXT !== 'false'
 
-  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
   const promptHash = computePromptHash(prompt, model)
 
   // Prepare message parameters
