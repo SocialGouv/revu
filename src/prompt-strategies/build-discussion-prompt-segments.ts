@@ -62,27 +62,23 @@ export function buildDiscussionPromptSegments(input: {
   })
   stableParts.push({
     type: 'text',
-    text: 'Respond concisely (at most ~5 sentences).'
+    text: 'Respond concisely, ideally within a few sentences.'
   })
   stableParts.push({
     type: 'text',
-    text: 'If proposing a concrete fix, include exactly one GitHub suggestion block using triple-backticks with `suggestion`.'
+    text: 'If you see a concrete code issue and it is helpful, you may include a GitHub suggestion block using ```suggestion``` syntax, but this is optional.'
   })
   stableParts.push({
     type: 'text',
-    text: 'If clarification is needed, ask at most one targeted question.'
+    text: 'If you genuinely need more information, you may ask a short clarification question.'
   })
   stableParts.push({
     type: 'text',
-    text: 'Your reply MUST directly move the discussion forward. Do not reply with only acknowledgements, only questions, or by restating the user message.'
+    text: "Focus on moving the discussion forward: answer the user's point, propose an improvement, or ask a brief clarification. Avoid replying with only acknowledgements, only restating the question, or only emojis."
   })
   stableParts.push({
     type: 'text',
-    text: 'Reply format (plain markdown): 1) One or two sentences that directly answer the latest user reply. 2) Optionally, one short clarification question OR one concrete suggestion block (not both).'
-  })
-  stableParts.push({
-    type: 'text',
-    text: 'You must always produce at least one full sentence of explanation; do NOT respond with an empty message, only code, only JSON, or only emojis.'
+    text: 'Always include at least one short natural-language sentence in your reply. If something is unclear or out of scope, briefly say that and what information would help.'
   })
 
   stableParts.push({

@@ -59,7 +59,7 @@ describe('openai discussionSender', () => {
         }
       ]
     })
-    expect(callArgs.max_completion_tokens).toBe(1024)
+    expect(callArgs.max_completion_tokens).toBe(512)
     expect(callArgs).not.toHaveProperty('max_tokens')
     expect(callArgs).not.toHaveProperty('temperature')
   })
@@ -87,7 +87,7 @@ describe('openai discussionSender', () => {
 
     const callArgs = createMock.mock.calls[0][0]
     expect(callArgs.model).toBe('gpt-5')
-    expect(callArgs.max_completion_tokens).toBe(2048)
+    expect(callArgs.max_completion_tokens).toBe(1024)
     expect(callArgs).not.toHaveProperty('max_tokens')
     expect(callArgs).not.toHaveProperty('temperature')
   })
@@ -112,7 +112,7 @@ describe('openai discussionSender', () => {
 
     const callArgs = createMock.mock.calls[0][0]
     expect(callArgs.model).toBe('gpt-5')
-    expect(callArgs.max_completion_tokens).toBe(1024)
+    expect(callArgs.max_completion_tokens).toBe(512)
   })
 
   it('returns empty string when the model returns empty content', async () => {

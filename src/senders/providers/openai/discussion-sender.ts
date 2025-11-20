@@ -16,7 +16,9 @@ export async function discussionSender(
 
   const hasSegments = Array.isArray((promptOrSegments as any)?.stableParts)
   const model = process.env.OPENAI_MODEL || 'gpt-5'
-  const maxCompletionTokens = enableThinking ? 2048 : 1024
+  // For discussions, keep completions relatively short to discourage
+  // spending everything on hidden reasoning without emitting text.
+  const maxCompletionTokens = enableThinking ? 1024 : 512
 
   function extractText(value: unknown): string {
     if (typeof value === 'string') return value
@@ -78,7 +80,6 @@ export async function discussionSender(
   const completion = await client.chat.completions.create({
     model,
     messages: [{ role: 'user', content }],
-    // gpt-5 and similar models use max_completion_tokens and may reject temperature
     max_completion_tokens: maxCompletionTokens
   } as any)
 
