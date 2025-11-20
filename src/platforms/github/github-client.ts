@@ -325,6 +325,25 @@ export const createGitHubClient = (
       })
     },
 
+    replyToReviewComment: async (
+      prNumber: number,
+      parentCommentId: number,
+      body: string
+    ): Promise<void> => {
+      const proxyClient = createProxyClient()
+      if (!proxyClient) {
+        throw new Error('PROXY_REVIEWER_TOKEN not configured')
+      }
+
+      await proxyClient.rest.pulls.createReplyForReviewComment({
+        owner,
+        repo,
+        pull_number: prNumber,
+        comment_id: parentCommentId,
+        body
+      })
+    },
+
     // PR operations
     getPullRequest: async (prNumber: number) => {
       const { data } = await octokit.rest.pulls.get({
@@ -366,7 +385,8 @@ export const createGitHubClient = (
         })
         return {
           id: data.id,
-          body: data.body
+          body: data.body,
+          updated_at: data.updated_at
         }
       } catch (error) {
         logSystemError(error, {

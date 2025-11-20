@@ -20,6 +20,13 @@ import {
   logWebhookReceived
 } from './utils/logger.ts'
 import { attachOctokitRetry } from './github/retry-hook.ts'
+import { COMMENT_MARKER_PREFIX } from './comment-handlers/types.ts'
+import { handleDiscussionReply } from './comment-handlers/discussion-handler.ts'
+import { isUserAllowedForRepo } from './github/membership.ts'
+import { evictDiscussionCacheByReply } from './utils/compute-cache.ts'
+import { checkAndConsumeRateLimit } from './utils/rate-limit.ts'
+
+const MAX_THREAD_DEPTH = 50
 
 // Load environment variables
 config()
@@ -30,6 +37,245 @@ export default async (app: Probot) => {
   // Log all GitHub webhook events for monitoring and debugging
   app.onAny(async (context) => {
     logWebhookReceived(context.name, context.payload)
+  })
+
+  // Listen for replies to Revu comments to start a discussion
+  app.on(['pull_request_review_comment.created'], async (context) => {
+    const payload = context.payload as {
+      action: string
+      comment: { id: number; in_reply_to_id?: number | null; body: string }
+      pull_request: {
+        number: number
+        head: { ref: string }
+        title: string
+        body: string | null
+      }
+      repository: {
+        name: string
+        owner: { login: string; type?: string }
+      }
+      sender: { login: string; type: string }
+      organization?: { login: string }
+      installation: { id: number }
+    }
+
+    // Only handle replies to existing comments
+    if (!payload.comment?.in_reply_to_id) return
+
+    // Only react to human users
+    if ((payload.sender?.type || '').toLowerCase() !== 'user') return
+
+    // Ensure reply is to a Revu comment by our proxy user
+    const proxyUsername = getProxyReviewerUsername()
+    if (!proxyUsername) return
+    // Avoid responding to bot's own replies to prevent infinite loops
+    if (payload.sender.login === proxyUsername) return
+
+    let parent
+    try {
+      parent = await context.octokit.rest.pulls.getReviewComment({
+        ...context.repo(),
+        comment_id: payload.comment.in_reply_to_id
+      })
+    } catch {
+      return
+    }
+
+    // Walk up the thread to the root comment to support nested replies
+    let current = parent
+    let root = parent
+    let depth = 0
+    try {
+      while (current?.data?.in_reply_to_id) {
+        depth += 1
+        if (depth > MAX_THREAD_DEPTH) {
+          logSystemWarning(
+            'Max thread depth exceeded while walking review comment thread',
+            {
+              repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+              pr_number: payload.pull_request.number,
+              context_msg: `Capped thread traversal at depth ${depth}`
+            }
+          )
+          break
+        }
+
+        const next = await context.octokit.rest.pulls.getReviewComment({
+          ...context.repo(),
+          comment_id: current.data.in_reply_to_id
+        })
+        current = next
+        root = next
+      }
+    } catch {
+      return
+    }
+
+    const rootBody: string = root?.data?.body || ''
+    const rootAuthor: string | undefined = root?.data?.user?.login
+
+    // Ensure the root of the thread is a Revu comment by our proxy user
+    if (!rootBody.includes(COMMENT_MARKER_PREFIX)) return
+    if (rootAuthor !== proxyUsername) return
+
+    // Authorization: only org members (or at least repo collaborators)
+    const orgLogin =
+      payload.organization?.login ||
+      ((payload.repository.owner as unknown as { login: string; type?: string })
+        .type === 'Organization'
+        ? payload.repository.owner.login
+        : undefined)
+
+    const fallbackToRepo =
+      (process.env.AUTHZ_FALLBACK_TO_REPO || '').toLowerCase() === 'true'
+
+    if (fallbackToRepo) {
+      logSystemWarning(
+        'Authorization fallback to repo collaborators is enabled',
+        {
+          repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+          pr_number: payload.pull_request.number,
+          context_msg:
+            'AUTHZ_FALLBACK_TO_REPO=true - using repo collaborator permission when org membership is not available'
+        }
+      )
+    }
+
+    const allowed = await isUserAllowedForRepo(context.octokit, {
+      org: orgLogin,
+      owner: payload.repository.owner.login,
+      repo: payload.repository.name,
+      username: payload.sender.login,
+      fallbackToRepo
+    })
+    if (!allowed) return
+
+    // Rate limiting - protect from abuse before expensive operations
+    try {
+      const rate = await checkAndConsumeRateLimit({
+        owner: payload.repository.owner.login,
+        repo: payload.repository.name,
+        prNumber: payload.pull_request.number,
+        username: payload.sender.login
+      })
+      if (!rate.allowed) {
+        logSystemWarning(
+          `Rate limit exceeded for ${payload.sender.login}: ${rate.count}/${rate.limit}`,
+          {
+            repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+            pr_number: payload.pull_request.number,
+            context_msg: 'Discussion reply skipped due to rate limiting'
+          }
+        )
+        return
+      }
+    } catch (error) {
+      logSystemWarning(error, {
+        repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+        pr_number: payload.pull_request.number,
+        context_msg:
+          'Rate limiting check failed - proceeding without enforcement'
+      })
+    }
+
+    // Prepare platform context using installation token
+    let installationAccessToken: string | undefined
+    try {
+      installationAccessToken = await context.octokit.rest.apps
+        .createInstallationAccessToken({
+          installation_id: payload.installation.id
+        })
+        .then((r) => r.data.token)
+    } catch (error) {
+      logSystemError(error, {
+        pr_number: payload.pull_request.number,
+        repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+        context_msg: 'Failed to create installation access token for discussion'
+      })
+      return
+    }
+
+    let platformContext: PlatformContext
+    try {
+      platformContext = createPlatformContextFromGitHub(
+        context,
+        payload.pull_request.number,
+        payload.pull_request.title,
+        payload.pull_request.body || undefined,
+        installationAccessToken
+      )
+    } catch (error) {
+      logSystemError(error, {
+        pr_number: payload.pull_request.number,
+        repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+        context_msg: 'Failed to create platform context for discussion'
+      })
+      return
+    }
+
+    const repositoryUrl = `https://github.com/${payload.repository.owner.login}/${payload.repository.name}.git`
+    const branch = payload.pull_request.head.ref
+
+    try {
+      await handleDiscussionReply({
+        platformContext,
+        prNumber: payload.pull_request.number,
+        repositoryUrl,
+        branch,
+        // Use true root comment for identification/caching
+        parentCommentId: root.data.id,
+        parentCommentBody: rootBody,
+        rootCommentId: root.data.id,
+        // Scope prompt to the relevant file and hunk if available
+
+        relevantFilePath: root.data?.path,
+
+        diffHunk: root.data?.diff_hunk,
+        userReplyCommentId: payload.comment.id,
+        userReplyBody: payload.comment.body,
+        owner: payload.repository.owner.login,
+        repo: payload.repository.name,
+        // Version for cache and race-condition guard
+        replyVersion:
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (payload as any)?.comment?.updated_at ||
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (payload as any)?.comment?.created_at
+      })
+    } catch (error) {
+      logSystemError(error, {
+        pr_number: payload.pull_request.number,
+        repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+        context_msg: 'Failed to handle discussion reply'
+      })
+    }
+  })
+
+  // Listen for edits to user replies to handle cache invalidation
+  app.on(['pull_request_review_comment.edited'], async (context) => {
+    const payload = context.payload as {
+      comment: { id: number; in_reply_to_id?: number | null }
+      pull_request: { number: number }
+      repository: { name: string; owner: { login: string } }
+    }
+
+    // Only consider edits to replies (not root comments)
+    if (!payload.comment?.in_reply_to_id) return
+
+    try {
+      await evictDiscussionCacheByReply({
+        owner: payload.repository.owner.login,
+        repo: payload.repository.name,
+        prNumber: payload.pull_request.number,
+        replyId: payload.comment.id
+      })
+    } catch (error) {
+      logSystemError(error, {
+        pr_number: payload.pull_request.number,
+        repository: `${payload.repository.owner.login}/${payload.repository.name}`,
+        context_msg: 'Failed to evict discussion cache on comment edit'
+      })
+    }
   })
 
   // Listen for PR opens to add bot as reviewer
