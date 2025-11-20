@@ -11,14 +11,12 @@ function getRedis(): RedisClient | null {
   const url = process.env.REDIS_URL
   if (!url) return null
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    redisClient = new (IORedis as any)(url, {
+    redisClient = new Redis(url, {
       db:
         process.env.REDIS_DB && !Number.isNaN(Number(process.env.REDIS_DB))
           ? Number(process.env.REDIS_DB)
           : undefined,
       password: process.env.REDIS_PASSWORD || undefined,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ...(process.env.REDIS_TLS === 'true' ? ({ tls: {} } as any) : {})
     })
     return redisClient
