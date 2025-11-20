@@ -33,26 +33,83 @@ function getRedis(): RedisClient | null {
 }
 
 const MAX_MEMORY_BUCKETS = 10000
-const memoryBuckets = new Map<string, { count: number; expiresAt: number }>()
-function sweepExpiredBuckets(): void {
-  const now = Date.now()
-  for (const [key, rec] of memoryBuckets.entries()) {
-    if (rec.expiresAt <= now) {
-      memoryBuckets.delete(key)
+const CLEANUP_INTERVAL_MS = 300_000 // 5 minutes
+
+type MemoryBucket = {
+  count: number
+  expiresAt: number
+  lastAccess: number
+}
+
+class RateLimitMemoryStore {
+  private buckets = new Map<string, MemoryBucket>()
+  private cleanupInterval: ReturnType<typeof setInterval>
+
+  constructor(private readonly maxSize: number = MAX_MEMORY_BUCKETS) {
+    this.cleanupInterval = setInterval(
+      () => this.sweepExpired(),
+      CLEANUP_INTERVAL_MS
+    )
+    // Do not keep the Node.js process alive just for cleanup
+    ;(this.cleanupInterval as any).unref?.()
+  }
+
+  private sweepExpired(): void {
+    const now = Date.now()
+    for (const [key, rec] of this.buckets.entries()) {
+      if (rec.expiresAt <= now) {
+        this.buckets.delete(key)
+      }
     }
   }
-}
-function enforceBucketLimit(): void {
-  if (memoryBuckets.size <= MAX_MEMORY_BUCKETS) return
-  // Remove oldest keys first
-  const over = memoryBuckets.size - MAX_MEMORY_BUCKETS
-  let removed = 0
-  for (const key of memoryBuckets.keys()) {
-    memoryBuckets.delete(key)
-    removed++
-    if (removed >= over) break
+
+  private evictLRU(): void {
+    if (this.buckets.size <= this.maxSize) return
+
+    let oldestKey: string | null = null
+    let oldestAccess = Infinity
+
+    for (const [key, rec] of this.buckets.entries()) {
+      if (rec.lastAccess < oldestAccess) {
+        oldestAccess = rec.lastAccess
+        oldestKey = key
+      }
+    }
+
+    if (oldestKey !== null) {
+      this.buckets.delete(oldestKey)
+    }
+  }
+
+  increment(key: string, windowSeconds: number, now: number): number {
+    const existing = this.buckets.get(key)
+    let rec: MemoryBucket
+
+    if (!existing || existing.expiresAt <= now) {
+      rec = {
+        count: 1,
+        expiresAt: now + windowSeconds * 1000,
+        lastAccess: now
+      }
+    } else {
+      rec = {
+        ...existing,
+        count: existing.count + 1,
+        lastAccess: now
+      }
+    }
+
+    this.buckets.set(key, rec)
+
+    if (this.buckets.size > this.maxSize) {
+      this.evictLRU()
+    }
+
+    return rec.count
   }
 }
+
+const memoryStore = new RateLimitMemoryStore()
 
 export function getRateLimitConfig(): {
   maxCount: number
@@ -104,27 +161,8 @@ export async function checkAndConsumeRateLimit(params: {
     return { allowed: count <= maxCount, count, limit: maxCount }
   }
 
-  // In-memory fallback
+  // In-memory fallback with bounded LRU cache
   const now = Date.now()
-  const rec = memoryBuckets.get(key)
-  if (!rec || rec.expiresAt <= now) {
-    memoryBuckets.set(key, {
-      count: 1,
-      expiresAt: now + windowSeconds * 1000
-    })
-    // Opportunistic cleanup to prevent unbounded growth
-    if (memoryBuckets.size > MAX_MEMORY_BUCKETS * 1.2) {
-      sweepExpiredBuckets()
-      enforceBucketLimit()
-    }
-    return { allowed: 1 <= maxCount, count: 1, limit: maxCount }
-  }
-  rec.count += 1
-  memoryBuckets.set(key, rec)
-  // Opportunistic cleanup to prevent unbounded growth
-  if (memoryBuckets.size > MAX_MEMORY_BUCKETS * 1.2) {
-    sweepExpiredBuckets()
-    enforceBucketLimit()
-  }
-  return { allowed: rec.count <= maxCount, count: rec.count, limit: maxCount }
+  const count = memoryStore.increment(key, windowSeconds, now)
+  return { allowed: count <= maxCount, count, limit: maxCount }
 }
