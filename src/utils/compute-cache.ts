@@ -1,4 +1,4 @@
-import * as IORedis from 'ioredis'
+import { Redis } from 'ioredis'
 import { createHash } from 'node:crypto'
 import { logSystemWarning } from './logger.ts'
 
