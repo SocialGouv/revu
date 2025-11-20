@@ -51,6 +51,26 @@ type ReviewCommentSnapshot = {
 const MAX_REPLY_PROMPT_CHARS = 4000
 const MAX_REPLY_HASH_CHARS = 8192
 
+function isExploitableDiscussionReply(
+  reply: string,
+  userReplyBody: string
+): boolean {
+  const trimmed = reply.trim()
+  if (!trimmed) return false
+
+  // Require a minimum length so we avoid trivial or one-word replies
+  if (trimmed.length < 40) return false
+
+  // Avoid replies that simply echo the user message
+  const normalize = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase()
+  if (normalize(trimmed) === normalize(userReplyBody)) return false
+
+  // Heuristic: require at least one period to hint at a full sentence
+  if (!trimmed.includes('.')) return false
+
+  return true
+}
+
 export async function handleDiscussionReply(params: DiscussionHandlerParams) {
   const {
     platformContext,
@@ -324,14 +344,41 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
       return 'stale_skipped'
     }
 
+    const trimmedReply = reply?.trim() ?? ''
+
+    if (!isExploitableDiscussionReply(trimmedReply, userReplyBody)) {
+      const fallbackReply =
+        'I could not generate a confident, useful automated reply for this discussion message. '
+        + 'Please clarify your question or add more context if you would like a more detailed follow-up.'
+
+      logSystemWarning(
+        'Non-exploitable discussion reply generated - using fallback',
+        {
+          pr_number: prNumber,
+          repository: `${owner}/${repo}`,
+          context_msg:
+            'Discussion LLM reply was too short, uninformative, or echoed the user; posting generic fallback instead.'
+        }
+      )
+
+      await platformContext.client.replyToReviewComment(
+        prNumber,
+        userReplyCommentId,
+        fallbackReply
+      )
+
+      await cache.set(cacheKey, fallbackReply, cacheTtlSeconds)
+      return fallbackReply
+    }
+
     await platformContext.client.replyToReviewComment(
       prNumber,
       userReplyCommentId,
-      reply
+      trimmedReply
     )
 
     // Store in cache only after confirming the reply is not stale
-    await cache.set(cacheKey, reply, cacheTtlSeconds)
+    await cache.set(cacheKey, trimmedReply, cacheTtlSeconds)
   } catch (error) {
     logSystemError(error, {
       pr_number: prNumber,

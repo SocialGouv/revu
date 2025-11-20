@@ -72,6 +72,18 @@ export function buildDiscussionPromptSegments(input: {
     type: 'text',
     text: 'If clarification is needed, ask at most one targeted question.'
   })
+  stableParts.push({
+    type: 'text',
+    text: 'Your reply MUST directly move the discussion forward. Do not reply with only acknowledgements, only questions, or by restating the user message.'
+  })
+  stableParts.push({
+    type: 'text',
+    text: 'Reply format (plain markdown): 1) One or two sentences that directly answer the latest user reply. 2) Optionally, one short clarification question OR one concrete suggestion block (not both).'
+  })
+  stableParts.push({
+    type: 'text',
+    text: 'You must always produce at least one full sentence of explanation; do NOT respond with an empty message, only code, only JSON, or only emojis.'
+  })
 
   stableParts.push({
     type: 'text',
