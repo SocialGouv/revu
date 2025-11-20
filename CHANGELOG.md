@@ -1,3 +1,10 @@
+## [1.37.3](https://github.com/SocialGouv/revu/compare/v1.37.2...v1.37.3) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** wip ([2f2e027](https://github.com/SocialGouv/revu/commit/2f2e027e365f7db6e9179ce6f14c54d6f49e9b51))
+
 ## [1.37.2](https://github.com/SocialGouv/revu/compare/v1.37.1...v1.37.2) (2025-11-20)
 
 
