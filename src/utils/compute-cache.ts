@@ -123,9 +123,7 @@ class RedisComputeCache implements ComputeCache {
     const password = process.env.REDIS_PASSWORD || undefined
 
     // ioredis can take URL + options (tls/password/db override URL settings if provided)
-    // Support ESM/CJS interop by treating module as a constructor via any cast
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.client = new (IORedis as any)(url, {
+    this.client = new Redis(url, {
       ...(tls ? ({ tls } as any) : {}),
       db,
       password,
