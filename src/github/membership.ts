@@ -58,6 +58,7 @@ export async function hasAtLeastReadPermission(
  *
  * @param org Optional organization login. If provided, org membership is required.
  * @param fallbackToRepo If true, fallback to checking repo collaborator permissions.
+ * Defaults to false for a stricter authorization posture; callers must explicitly opt in.
  */
 export async function isUserAllowedForRepo(
   octokit: Octokit | any,
@@ -69,7 +70,7 @@ export async function isUserAllowedForRepo(
     fallbackToRepo?: boolean
   }
 ): Promise<boolean> {
-  const { org, owner, repo, username, fallbackToRepo = true } = params
+  const { org, owner, repo, username, fallbackToRepo = false } = params
 
   if (org) {
     const member = await isUserOrgMember(octokit, org, username)
