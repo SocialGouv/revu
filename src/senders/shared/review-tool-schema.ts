@@ -1,6 +1,9 @@
 /**
  * Shared constants and JSON schema for the structured code review tool/function.
  * Used by both Anthropic and OpenAI senders to keep parity and avoid duplication.
+ *
+ * Note: For OpenAI Structured Outputs (Responses API), all objects in this schema
+ * must set `additionalProperties: false` to be accepted.
  */
 
 export const REVIEW_TOOL_NAME = 'provide_code_review' as const
@@ -62,17 +65,20 @@ export const REVIEW_PARAMETERS_SCHEMA = {
                     'New code content to replace the search content with.'
                 }
               },
-              required: ['search', 'replace']
+              required: ['search', 'replace'],
+              additionalProperties: false as const
             },
             description:
               'SEARCH/REPLACE blocks for precise code modifications. Each search block must match existing code exactly.'
           }
         },
-        required: ['path', 'line', 'body']
+        required: ['path', 'line', 'body'],
+        additionalProperties: false as const
       }
     }
   },
-  required: ['summary']
+  required: ['summary'],
+  additionalProperties: false as const
 }
 
 /**
