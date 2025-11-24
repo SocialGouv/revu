@@ -4,5 +4,5 @@ metadata:
   name: app
 data:
   LLM_PROVIDER: openai
-  OPENAI_MODEL: gpt-5
+  OPENAI_MODEL: gpt-5.1
   # ANTHROPIC_MODEL: 'claude-sonnet-4-5-20250929'

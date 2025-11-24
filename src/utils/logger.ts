@@ -146,6 +146,8 @@ interface SystemErrorContext {
   pr_number?: number
   repository?: string
   context_msg?: string
+  // Allow additional structured diagnostics (e.g., LLM reply previews)
+  [key: string]: unknown
 }
 
 export function logSystemError(

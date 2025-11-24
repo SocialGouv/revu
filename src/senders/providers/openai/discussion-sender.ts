@@ -7,6 +7,9 @@ import { computeSegmentsPrefixHash } from '../../../utils/prompt-prefix.ts'
 import { logSystemWarning } from '../../../utils/logger.ts'
 import { getRuntimeConfig } from '../../../core/utils/runtime-config.ts'
 
+const MAX_OPENAI_PROMPT_CHARS =
+  Number(process.env.MAX_OPENAI_PROMPT_CHARS) || 120_000
+
 export async function discussionSender(
   promptOrSegments: string | DiscussionPromptSegments,
   enableThinking: boolean = false
@@ -15,7 +18,42 @@ export async function discussionSender(
   const client = new OpenAI({ apiKey: runtime.llm.openai.apiKey })
 
   const hasSegments = Array.isArray((promptOrSegments as any)?.stableParts)
+
   const model = runtime.llm.openai.model
+  
+  // For discussions, allow enough budget for both reasoning and answer,
+  // but keep reasoning effort lower when thinking is disabled.
+  const maxOutputTokens = enableThinking ? 2048 : 1024
+
+  function extractText(value: unknown): string {
+    if (typeof value === 'string') return value
+    if (Array.isArray(value)) {
+      return value.map((v) => extractText(v)).join('')
+    }
+    if (value && typeof value === 'object') {
+      const obj = value as Record<string, unknown>
+
+      // Prefer common text-bearing fields
+      if (obj.text !== undefined) {
+        const t = extractText(obj.text)
+        if (t) return t
+      }
+      if (obj.content !== undefined) {
+        const c = extractText(obj.content)
+        if (c) return c
+      }
+
+      // Fallback: scan all values
+      return Object.values(obj)
+        .map((v) => extractText(v))
+        .join('')
+    }
+    return ''
+  }
+
+  function normalizeContent(raw: unknown): string {
+    return extractText(raw)
+  }
 
   let prefixHash: string | undefined
   // Normalize to a single user message string (deterministic join)
@@ -31,7 +69,9 @@ export async function discussionSender(
         ).map((p) => p.text)
       ].join('\n')
     : String(promptOrSegments)
+
   const maxChars = runtime.llm.openai.maxPromptChars
+
   const content =
     rawContent.length > maxChars
       ? `${rawContent.slice(0, maxChars)}\n... (truncated)`
@@ -44,26 +84,78 @@ export async function discussionSender(
     )
   }
 
-  const completion = await client.chat.completions.create({
-    model,
-    messages: [{ role: 'user', content }],
-    temperature: 0,
-    max_tokens: enableThinking ? 2048 : 1024
-  })
-
-  if (runtime.discussion.promptCache.debug && hasSegments && prefixHash) {
-    const usage = (completion as any)?.usage ?? {}
-    const metrics = {
-      prefix_hash: prefixHash,
-      prompt_tokens: usage.prompt_tokens,
-      completion_tokens: usage.completion_tokens,
-      total_tokens: usage.total_tokens
+  async function callOnce(
+    inputContent: string,
+    options?: {
+      maxTokens?: number
+      reasoningEffort?: 'low' | 'medium' | 'high'
     }
-    logSystemWarning('OpenAI discussion cache context', {
-      context_msg: JSON.stringify(metrics)
-    })
+  ) {
+    const response = await client.responses.create({
+      model,
+      input: [{ role: 'user', content: inputContent }],
+      max_output_tokens: options?.maxTokens ?? maxOutputTokens,
+      reasoning: {
+        effort: options?.reasoningEffort ?? (enableThinking ? 'medium' : 'low')
+      },
+      text: {
+        format: { type: 'text' },
+        verbosity: 'low'
+      }
+    } as any)
+
+    const rawFromHelper = (response as any).output_text
+    const raw = rawFromHelper ?? (response as any).output ?? ''
+    const text = normalizeContent(raw)
+    const trimmed = text.trim()
+
+    if (
+      process.env.PROMPT_CACHE_DEBUG === 'true' &&
+      hasSegments &&
+      prefixHash
+    ) {
+      const usage = (response as any)?.usage ?? {}
+      const metrics = {
+        prefix_hash: prefixHash,
+        prompt_tokens: usage.prompt_tokens,
+        completion_tokens: usage.completion_tokens,
+        total_tokens: usage.total_tokens
+      }
+      logSystemWarning('OpenAI discussion cache context', {
+        context_msg: JSON.stringify(metrics)
+      })
+    }
+
+    return { text, trimmed, response }
   }
 
-  const text = completion.choices?.[0]?.message?.content
-  return typeof text === 'string' ? text : JSON.stringify(completion)
+  // First attempt
+  const first = await callOnce(content)
+  if (first.trimmed.length > 0) {
+    return first.trimmed
+  }
+
+  // If we exhausted the budget on hidden reasoning (no visible text),
+  // try a smaller, focused follow-up with low reasoning effort.
+  const status = (first.response as any).status
+  const incompleteReason = (first.response as any).incomplete_details?.reason
+
+  if (status === 'incomplete' && incompleteReason === 'max_output_tokens') {
+    const followupContent =
+      content +
+      '\n\nAssistant note: In one or two short sentences, directly answer the latest user reply. Do NOT leave this blank, and do not spend time on extended reasoning.'
+
+    const followup = await callOnce(followupContent, {
+      maxTokens: 256,
+      reasoningEffort: 'low'
+    })
+
+    if (followup.trimmed.length > 0) {
+      return followup.trimmed
+    }
+  }
+
+  // Still no usable text; let the discussion handler decide whether to
+  // fall back to a generic message based on the empty reply.
+  return ''
 }

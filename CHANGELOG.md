@@ -1,3 +1,92 @@
+## [1.37.12](https://github.com/SocialGouv/revu/compare/v1.37.11...v1.37.12) (2025-11-24)
+
+
+### Bug Fixes
+
+* **up:** go to gpt-5.1 on preprod ([88c6c0e](https://github.com/SocialGouv/revu/commit/88c6c0e4fc76e1ff8a34f59df238370915557a18))
+
+## [1.37.11](https://github.com/SocialGouv/revu/compare/v1.37.10...v1.37.11) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** wip ([77693f5](https://github.com/SocialGouv/revu/commit/77693f54b2071a01d8b9c0c364dec8f5629093e2))
+
+## [1.37.10](https://github.com/SocialGouv/revu/compare/v1.37.9...v1.37.10) (2025-11-20)
+
+
+### Bug Fixes
+
+* **openai:** migrate to responses ([963c8d4](https://github.com/SocialGouv/revu/commit/963c8d4313442f214e2723567d4104eb299e07ef))
+
+## [1.37.9](https://github.com/SocialGouv/revu/compare/v1.37.8...v1.37.9) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** wip ([c3c0435](https://github.com/SocialGouv/revu/commit/c3c04358c5f550bd3130b7018674201ae52c648d))
+
+## [1.37.8](https://github.com/SocialGouv/revu/compare/v1.37.7...v1.37.8) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** wip ([11dca9e](https://github.com/SocialGouv/revu/commit/11dca9eae4dc6998c02d712855d2adbfc425486f))
+
+## [1.37.7](https://github.com/SocialGouv/revu/compare/v1.37.6...v1.37.7) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** wip ([2903ab3](https://github.com/SocialGouv/revu/commit/2903ab35e04ef410375770bf738f1f95a739fadb))
+
+
+### Reverts
+
+* Revert "chore(cleanup): remove DISCUSSION_LLM_DEBUG" ([6a1e09e](https://github.com/SocialGouv/revu/commit/6a1e09e4b54a7f31e702b8e379b02710258278eb))
+
+## [1.37.6](https://github.com/SocialGouv/revu/compare/v1.37.5...v1.37.6) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** wip ([4bbb856](https://github.com/SocialGouv/revu/commit/4bbb856a59967e75211e965487ad3f5fb8e008b8))
+
+## [1.37.5](https://github.com/SocialGouv/revu/compare/v1.37.4...v1.37.5) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** wip ([eca193c](https://github.com/SocialGouv/revu/commit/eca193cfd43430f3f0ba486a1c8537f0303d1051))
+
+## [1.37.4](https://github.com/SocialGouv/revu/compare/v1.37.3...v1.37.4) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** wip ([866f560](https://github.com/SocialGouv/revu/commit/866f5603d7f3321ae9ad318920537a1ea80eed59))
+
+## [1.37.3](https://github.com/SocialGouv/revu/compare/v1.37.2...v1.37.3) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** wip ([2f2e027](https://github.com/SocialGouv/revu/commit/2f2e027e365f7db6e9179ce6f14c54d6f49e9b51))
+
+## [1.37.2](https://github.com/SocialGouv/revu/compare/v1.37.1...v1.37.2) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** wip ([4830040](https://github.com/SocialGouv/revu/commit/4830040b4d532287f5c31821bb1112d587b5d477))
+
+## [1.37.1](https://github.com/SocialGouv/revu/compare/v1.37.0...v1.37.1) (2025-11-20)
+
+
+### Bug Fixes
+
+* **discussion:** openai parameters ([162b8e6](https://github.com/SocialGouv/revu/commit/162b8e65b8f5e10bccc5659375e50f74fb4762b7))
+
 # [1.37.0](https://github.com/SocialGouv/revu/compare/v1.36.2...v1.37.0) (2025-11-20)
 
 
