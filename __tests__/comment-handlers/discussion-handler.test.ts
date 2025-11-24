@@ -114,6 +114,8 @@ describe('handleDiscussionReply', () => {
     expect(client.replyToReviewComment).toHaveBeenCalledTimes(1)
     const [[, , body]] = (client.replyToReviewComment as Mock).mock.calls
     expect(typeof body).toBe('string')
-    expect(body).toContain('I could not generate a confident, useful automated reply')
+    expect(body).toContain(
+      'I could not generate a confident, useful automated reply'
+    )
   })
 })

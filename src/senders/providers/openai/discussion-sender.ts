@@ -7,9 +7,6 @@ import { computeSegmentsPrefixHash } from '../../../utils/prompt-prefix.ts'
 import { logSystemWarning } from '../../../utils/logger.ts'
 import { getRuntimeConfig } from '../../../core/utils/runtime-config.ts'
 
-const MAX_OPENAI_PROMPT_CHARS =
-  Number(process.env.MAX_OPENAI_PROMPT_CHARS) || 120_000
-
 export async function discussionSender(
   promptOrSegments: string | DiscussionPromptSegments,
   enableThinking: boolean = false
@@ -20,7 +17,7 @@ export async function discussionSender(
   const hasSegments = Array.isArray((promptOrSegments as any)?.stableParts)
 
   const model = runtime.llm.openai.model
-  
+
   // For discussions, allow enough budget for both reasoning and answer,
   // but keep reasoning effort lower when thinking is disabled.
   const maxOutputTokens = enableThinking ? 2048 : 1024
