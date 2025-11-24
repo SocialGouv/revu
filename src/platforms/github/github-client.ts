@@ -27,7 +27,7 @@ import { attachOctokitRetry } from '../../github/retry-hook.ts'
  */
 const validateCommentParams = (params: {
   line: number
-  startLine?: number
+  startLine?: number | null
 }): void => {
   if (params.line <= 0) {
     throw new Error(
@@ -35,18 +35,23 @@ const validateCommentParams = (params: {
     )
   }
 
-  if (params.startLine !== undefined) {
-    if (params.startLine <= 0) {
-      throw new Error(
-        `Invalid start_line number: ${params.startLine}. Line numbers must be positive.`
-      )
-    }
-    if (params.startLine > params.line) {
-      throw new Error(
-        `Invalid line range: start_line (${params.startLine}) must be <= line (${params.line}). ` +
-          `GitHub API requires start_line to precede or equal the end line for multi-line comments.`
-      )
-    }
+  const start = params.startLine
+
+  // Treat null/undefined startLine as "no start_line" (single-line comment)
+  if (start == null) {
+    return
+  }
+
+  if (start <= 0) {
+    throw new Error(
+      `Invalid start_line number: ${start}. Line numbers must be positive.`
+    )
+  }
+  if (start > params.line) {
+    throw new Error(
+      `Invalid line range: start_line (${start}) must be <= line (${params.line}). ` +
+        `GitHub API requires start_line to precede or equal the end line for multi-line comments.`
+    )
   }
 }
 
@@ -63,15 +68,15 @@ const buildCommentParams = (
     commitSha: string
     path: string
     line: number
-    startLine?: number
+    startLine?: number | null
     body: string
   },
   includeStartLine: boolean = true
 ) => {
+  const start = params.startLine
+
   const shouldIncludeStartLine =
-    includeStartLine &&
-    params.startLine !== undefined &&
-    params.startLine < params.line
+    includeStartLine && start != null && start < params.line
 
   return {
     owner,
@@ -83,7 +88,7 @@ const buildCommentParams = (
     body: params.body,
     side: 'RIGHT' as const,
     ...(shouldIncludeStartLine && {
-      start_line: params.startLine,
+      start_line: start,
       start_side: 'RIGHT' as const
     })
   }
@@ -98,8 +103,18 @@ const analyzeGitHubError = (
   error: unknown,
   params: { path: string; line: number; startLine?: number }
 ): { errorMessage: string; shouldAttemptFallback: boolean } => {
-  if (!(error && typeof error === 'object' && 'status' in error)) {
-    return { errorMessage: 'Unknown error', shouldAttemptFallback: false }
+  if (!(error && typeof error === 'object')) {
+    return {
+      errorMessage: `Unknown GitHub error: ${String(error)}`,
+      shouldAttemptFallback: false
+    }
+  }
+
+  if (!('status' in error)) {
+    return {
+      errorMessage: `Unknown GitHub error shape: ${JSON.stringify(error)}`,
+      shouldAttemptFallback: false
+    }
   }
 
   const apiError = error as {
