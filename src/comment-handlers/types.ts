@@ -16,14 +16,19 @@ const CommentSchema = z
   .object({
     path: z.string().min(1),
     line: z.number().int().positive(),
-    start_line: z.number().int().positive().optional(),
+    // start_line and search_replace_blocks are always present in the OpenAI
+    // Structured Outputs schema, but may be null when not applicable.
+    start_line: z.number().int().positive().nullable().optional(),
     body: z.string().min(1),
-    search_replace_blocks: z.array(SearchReplaceBlockSchema).optional()
+    search_replace_blocks: z
+      .array(SearchReplaceBlockSchema)
+      .nullable()
+      .optional()
   })
   .refine(
     (data) => {
-      // If start_line is provided, it must be <= line
-      if (data.start_line !== undefined) {
+      // If start_line is provided (not null/undefined), it must be <= line
+      if (data.start_line != null) {
         return data.start_line <= data.line
       }
       return true
