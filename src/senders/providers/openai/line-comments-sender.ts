@@ -1,9 +1,7 @@
 import OpenAI from 'openai'
 import { REVIEW_PARAMETERS_SCHEMA } from '../../shared/review-tool-schema.ts'
-import { getOpenAITemperature } from '../../shared/line-comments-common.ts'
-import { computePromptHash } from '../../../utils/prompt-prefix.ts'
-import { logSystemWarning } from '../../../utils/logger.ts'
 import { getRuntimeConfig } from '../../../core/utils/runtime-config.ts'
+import { prepareLineCommentsPayload } from '../../shared/line-comments-common.ts'
 
 /**
  * Line comments OpenAI sender.
@@ -31,7 +29,6 @@ export async function openaiLineCommentsSender(
 
   const client = new OpenAI({ apiKey })
 
-
   const model = runtime.llm.openai.model
   // Prepare shared payload parts (tools, messages, temperature)
   // Pass model to enable model-specific parameter handling (e.g., GPT-5 requires temperature=1)
@@ -42,12 +39,10 @@ export async function openaiLineCommentsSender(
     model
   )
 
-  const promptHash = computePromptHash(prompt, model)
-
   const response = await client.responses.create({
     model,
     input: prompt,
-    temperature,
+    temperature: prepared.temperature,
     text: {
       format: {
         type: 'json_schema',
@@ -57,19 +52,6 @@ export async function openaiLineCommentsSender(
       }
     }
   })
-
-  if (runtime.discussion.promptCache.debug) {
-    const usage = (completion as any)?.usage ?? {}
-    const metrics = {
-      prompt_hash: promptHash,
-      prompt_tokens: usage.prompt_tokens,
-      completion_tokens: usage.completion_tokens,
-      total_tokens: usage.total_tokens
-    }
-    logSystemWarning('OpenAI line-comments cache context', {
-      context_msg: JSON.stringify(metrics)
-    })
-  }
 
   const raw = (response as any).output_text
   if (typeof raw !== 'string' || !raw.trim()) {

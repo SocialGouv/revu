@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { openaiLineCommentsSender } from '../../src/senders/providers/openai/line-comments-sender.ts'
-import { REVIEW_TOOL_NAME } from '../../src/senders/shared/review-tool-schema.ts'
 import { _resetRuntimeConfigCacheForTests } from '../../src/core/utils/runtime-config.ts'
 
 // Mock the OpenAI SDK
