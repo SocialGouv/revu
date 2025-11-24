@@ -15,19 +15,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@anthropic-ai/sdk@npm:^0.63.0":
-  version: 0.63.0
-  resolution: "@anthropic-ai/sdk@npm:0.63.0"
+"@anthropic-ai/sdk@npm:^0.71.0":
+  version: 0.71.0
+  resolution: "@anthropic-ai/sdk@npm:0.71.0"
   dependencies:
     json-schema-to-ts: "npm:^3.1.1"
   peerDependencies:
-    zod: ^4.0.0
+    zod: ^3.25.0 || ^4.0.0
   peerDependenciesMeta:
     zod:
       optional: true
   bin:
     anthropic-ai-sdk: bin/cli
-  checksum: 10c0/c10dad95250e4a787037e3c0c803058ce19380c031a08d6eb359f9836697a6761cde048b9c74e485da8c7b7d1e360b2381c9ff2becc063a0a6b4e5b0f54445f9
+  checksum: 10c0/25649abd4e08e6e274e9ea55848d18294260deb4020db0531d66da75c08535edfe4c4a865736a60399b45efac3413cf911f346486d0b9e015d6fcbec07cd51e1
   languageName: node
   linkType: hard
 
@@ -4338,7 +4338,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "revu@workspace:."
   dependencies:
-    "@anthropic-ai/sdk": "npm:^0.63.0"
+    "@anthropic-ai/sdk": "npm:^0.71.0"
     "@eslint/eslintrc": "npm:^3.3.1"
     "@eslint/js": "npm:^9.25.1"
     "@octokit/auth-app": "npm:^8.0.0"
