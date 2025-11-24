@@ -1,3 +1,17 @@
+## [1.37.14](https://github.com/SocialGouv/revu/compare/v1.37.13...v1.37.14) (2025-11-24)
+
+
+### Bug Fixes
+
+* **openai:** pr review wip ([833ea9f](https://github.com/SocialGouv/revu/commit/833ea9f43b956910ed9938ec6b83cf1faae5f775))
+
+## [1.37.13](https://github.com/SocialGouv/revu/compare/v1.37.12...v1.37.13) (2025-11-24)
+
+
+### Bug Fixes
+
+* **openai:** pr review ([250b110](https://github.com/SocialGouv/revu/commit/250b11061e62f07d81f20dec202dab3497aad360))
+
 ## [1.37.12](https://github.com/SocialGouv/revu/compare/v1.37.11...v1.37.12) (2025-11-24)
 
 

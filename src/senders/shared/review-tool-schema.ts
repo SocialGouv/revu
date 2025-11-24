@@ -1,6 +1,9 @@
 /**
  * Shared constants and JSON schema for the structured code review tool/function.
  * Used by both Anthropic and OpenAI senders to keep parity and avoid duplication.
+ *
+ * Note: For OpenAI Structured Outputs (Responses API), all objects in this schema
+ * must set `additionalProperties: false` to be accepted.
  */
 
 export const REVIEW_TOOL_NAME = 'provide_code_review' as const
@@ -37,9 +40,9 @@ export const REVIEW_PARAMETERS_SCHEMA = {
               'End line number for the comment (or single line if start_line not provided)'
           },
           start_line: {
-            type: 'integer' as const,
+            type: ['integer', 'null'] as const,
             description:
-              'Start line number for multi-line comments (optional). Must be <= line.'
+              'Start line number for multi-line comments. Use null when not applicable. Must be <= line when provided.'
           },
           body: {
             type: 'string' as const,
@@ -47,7 +50,7 @@ export const REVIEW_PARAMETERS_SCHEMA = {
               'Detailed comment about the issue. Supports GitHub-flavored Markdown (headings, lists, tables, code fences, suggestion blocks).'
           },
           search_replace_blocks: {
-            type: 'array' as const,
+            type: ['array', 'null'] as const,
             items: {
               type: 'object' as const,
               properties: {
@@ -62,17 +65,26 @@ export const REVIEW_PARAMETERS_SCHEMA = {
                     'New code content to replace the search content with.'
                 }
               },
-              required: ['search', 'replace']
+              required: ['search', 'replace'],
+              additionalProperties: false as const
             },
             description:
-              'SEARCH/REPLACE blocks for precise code modifications. Each search block must match existing code exactly.'
+              'SEARCH/REPLACE blocks for precise code modifications. Each search block must match existing code exactly. Use null when no changes are suggested.'
           }
         },
-        required: ['path', 'line', 'body']
+        required: [
+          'path',
+          'line',
+          'start_line',
+          'body',
+          'search_replace_blocks'
+        ],
+        additionalProperties: false as const
       }
     }
   },
-  required: ['summary']
+  required: ['summary', 'comments'],
+  additionalProperties: false as const
 }
 
 /**
