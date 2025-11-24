@@ -1,3 +1,10 @@
+## [1.37.12](https://github.com/SocialGouv/revu/compare/v1.37.11...v1.37.12) (2025-11-24)
+
+
+### Bug Fixes
+
+* **up:** go to gpt-5.1 on preprod ([88c6c0e](https://github.com/SocialGouv/revu/commit/88c6c0e4fc76e1ff8a34f59df238370915557a18))
+
 ## [1.37.11](https://github.com/SocialGouv/revu/compare/v1.37.10...v1.37.11) (2025-11-20)
 
 
