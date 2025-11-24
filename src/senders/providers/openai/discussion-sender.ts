@@ -5,16 +5,17 @@ import type {
 } from '../../../prompt-strategies/build-discussion-prompt-segments.ts'
 import { computeSegmentsPrefixHash } from '../../../utils/prompt-prefix.ts'
 import { logSystemWarning } from '../../../utils/logger.ts'
-const MAX_OPENAI_PROMPT_CHARS = Number(process.env.MAX_OPENAI_PROMPT_CHARS) || 120_000
+import { getRuntimeConfig } from '../../../core/utils/runtime-config.ts'
 
 export async function discussionSender(
   promptOrSegments: string | DiscussionPromptSegments,
   enableThinking: boolean = false
 ): Promise<string> {
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  const runtime = await getRuntimeConfig()
+  const client = new OpenAI({ apiKey: runtime.llm.openai.apiKey })
 
   const hasSegments = Array.isArray((promptOrSegments as any)?.stableParts)
-  const model = process.env.OPENAI_MODEL || 'gpt-5'
+  const model = runtime.llm.openai.model
 
   let prefixHash: string | undefined
   // Normalize to a single user message string (deterministic join)
@@ -30,9 +31,10 @@ export async function discussionSender(
         ).map((p) => p.text)
       ].join('\n')
     : String(promptOrSegments)
+  const maxChars = runtime.llm.openai.maxPromptChars
   const content =
-    rawContent.length > MAX_OPENAI_PROMPT_CHARS
-      ? `${rawContent.slice(0, MAX_OPENAI_PROMPT_CHARS)}\n... (truncated)`
+    rawContent.length > maxChars
+      ? `${rawContent.slice(0, maxChars)}\n... (truncated)`
       : rawContent
 
   if (hasSegments) {
@@ -49,7 +51,7 @@ export async function discussionSender(
     max_tokens: enableThinking ? 2048 : 1024
   })
 
-  if (process.env.PROMPT_CACHE_DEBUG === 'true' && hasSegments && prefixHash) {
+  if (runtime.discussion.promptCache.debug && hasSegments && prefixHash) {
     const usage = (completion as any)?.usage ?? {}
     const metrics = {
       prefix_hash: prefixHash,

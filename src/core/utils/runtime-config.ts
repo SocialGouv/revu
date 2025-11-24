@@ -1,5 +1,5 @@
 import { getAppConfig } from './config-loader.ts'
-import type { RevuAppConfig } from '../../types/config.ts'
+import { DEFAULT_APP_CONFIG, type RevuAppConfig } from '../../types/config.ts'
 import { logSystemWarning } from '../../utils/logger.ts'
 
 export interface LlmRuntimeConfig {
@@ -55,6 +55,9 @@ export interface SystemRuntimeConfig {
   port: number
   gitPath: string
   authzFallbackToRepo: boolean
+  // Test/runtime flags (env-only; not configurable via config.json)
+  isTest: boolean
+  pRetryRetries?: number
 }
 
 export interface RuntimeConfig {
@@ -88,7 +91,30 @@ function parseBooleanEnv(raw: string | undefined, fallback: boolean): boolean {
 
 function buildRuntimeConfig(app: RevuAppConfig): RuntimeConfig {
   // LLM / models
-  const provider: 'anthropic' | 'openai' = app.llmProvider ?? 'anthropic'
+  // Resolve provider with precedence:
+  // 1) Explicit config.json llmProvider
+  // 2) Valid LLM_PROVIDER env var ("anthropic" | "openai")
+  // 3) Built-in default ("anthropic")
+  let provider: 'anthropic' | 'openai' = 'anthropic'
+
+  const envProviderRaw = process.env.LLM_PROVIDER?.toLowerCase()
+  let envProvider: 'anthropic' | 'openai' | undefined
+  if (envProviderRaw === 'anthropic' || envProviderRaw === 'openai') {
+    envProvider = envProviderRaw
+  } else if (envProviderRaw != null) {
+    logSystemWarning(
+      new Error(
+        'Invalid LLM_PROVIDER env var, expected "anthropic" or "openai"'
+      ),
+      { context_msg: `value="${process.env.LLM_PROVIDER}"` }
+    )
+  }
+
+  if (app.llmProvider) {
+    provider = app.llmProvider
+  } else if (envProvider) {
+    provider = envProvider
+  }
 
   const anthropicModel =
     process.env.ANTHROPIC_MODEL ||
@@ -181,6 +207,19 @@ function buildRuntimeConfig(app: RevuAppConfig): RuntimeConfig {
 
   const port = parseNumber(process.env.PORT, app.port ?? 3000)
 
+  // Test / retry-related envs
+  const nodeEnv = process.env.NODE_ENV
+  const vitestWorkerId = process.env.VITEST_WORKER_ID
+  const isTest = nodeEnv === 'test' || vitestWorkerId != null
+
+  const pRetryRaw = process.env.P_RETRY_RETRIES
+  const pRetryRetries =
+    pRetryRaw != null &&
+    !Number.isNaN(Number(pRetryRaw)) &&
+    Number(pRetryRaw) >= 0
+      ? Number(pRetryRaw)
+      : undefined
+
   // GitHub App & proxy secrets remain env-only but are surfaced via config
   const github: GithubAppRuntimeConfig = {
     appId: process.env.APP_ID,
@@ -232,7 +271,9 @@ function buildRuntimeConfig(app: RevuAppConfig): RuntimeConfig {
       host,
       port,
       gitPath,
-      authzFallbackToRepo
+      authzFallbackToRepo,
+      isTest,
+      pRetryRetries
     }
   }
 }
@@ -242,6 +283,26 @@ export async function getRuntimeConfig(): Promise<RuntimeConfig> {
 
   const appConfig = await getAppConfig()
   cachedRuntimeConfig = buildRuntimeConfig(appConfig)
+  return cachedRuntimeConfig
+}
+
+/**
+ * Synchronous accessor for runtime configuration.
+ *
+ * This assumes that `getRuntimeConfig()` was already called once during
+ * application startup to initialize the cached configuration. It is
+ * primarily intended for use in synchronous utility modules (e.g. compute
+ * cache, rate limiting) that cannot easily perform async initialization.
+ */
+export function getRuntimeConfigSync(): RuntimeConfig {
+  if (!cachedRuntimeConfig) {
+    // Fallback to building a runtime config from defaults + env only.
+    // This avoids requiring an async initialization step in purely
+    // synchronous modules. Config from config.json will not be
+    // reflected in this rare path.
+    const appConfig: RevuAppConfig = { ...DEFAULT_APP_CONFIG }
+    cachedRuntimeConfig = buildRuntimeConfig(appConfig)
+  }
   return cachedRuntimeConfig
 }
 

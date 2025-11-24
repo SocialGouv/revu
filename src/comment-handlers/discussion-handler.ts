@@ -8,6 +8,7 @@ import {
   simpleHash
 } from '../utils/compute-cache.ts'
 import { logSystemError, logSystemWarning } from '../utils/logger.ts'
+import { getRuntimeConfig } from '../core/utils/runtime-config.ts'
 
 export interface ThreadMessage {
   author: string
@@ -100,11 +101,14 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
       ? userReplyBody.slice(0, MAX_REPLY_HASH_CHARS)
       : userReplyBody
   const bodyHash = simpleHash(truncatedForHash, 16)
-  const provider = process.env.LLM_PROVIDER || 'anthropic'
+
+  const runtime = await getRuntimeConfig()
+  const provider = runtime.llm.provider
   const modelForKey =
     provider === 'openai'
-      ? process.env.OPENAI_MODEL || 'gpt-5'
-      : process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
+      ? runtime.llm.openai.model
+      : runtime.llm.anthropic.model
+
   const cacheKey = buildDiscussionCacheKey({
     owner,
     repo,
@@ -181,7 +185,7 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
 
   let acquired = false
   if (hasLockSupport) {
-    const lockTtl = Number(process.env.DISCUSSION_LOCK_TTL_SECONDS || 240)
+    const lockTtl = runtime.discussion.lockTtlSeconds
     acquired = await cacheAny.tryAcquireLock(lockKey, lockTtl)
   }
 
@@ -269,7 +273,8 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
     userReplyBody: replyForPrompt,
     history,
     relevantFilePath,
-    diffHunk
+    diffHunk,
+    maxCharsPerFile: runtime.discussion.maxFileContentChars
   })
 
   // Generate assistant reply (concise)
