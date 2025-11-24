@@ -1,3 +1,10 @@
+## [1.37.15](https://github.com/SocialGouv/revu/compare/v1.37.14...v1.37.15) (2025-11-24)
+
+
+### Bug Fixes
+
+* github interaction error + improve debugging ([5e9b43b](https://github.com/SocialGouv/revu/commit/5e9b43b4f63051d5a23ee85fd1294ee46ca93ef9))
+
 ## [1.37.14](https://github.com/SocialGouv/revu/compare/v1.37.13...v1.37.14) (2025-11-24)
 
 
