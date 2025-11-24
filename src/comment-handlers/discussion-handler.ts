@@ -290,17 +290,6 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
   try {
     const sender = await getDiscussionSender()
     reply = await sender(segments)
-
-    if (process.env.DISCUSSION_LLM_DEBUG === 'true') {
-      const raw = typeof reply === 'string' ? reply : String(reply)
-      logSystemWarning('Discussion handler received LLM reply', {
-        pr_number: prNumber,
-        repository: `${owner}/${repo}`,
-        context_msg: 'Pre-trim discussion reply',
-        llm_reply_raw_preview: raw.slice(0, 300),
-        llm_reply_raw_length: raw.length
-      })
-    }
   } catch (error) {
     if (acquired && hasLockSupport) {
       await cacheAny.releaseLock!(lockKey).catch(() => {})
@@ -352,8 +341,8 @@ export async function handleDiscussionReply(params: DiscussionHandlerParams) {
 
     if (!isExploitableDiscussionReply(trimmedReply, userReplyBody)) {
       const fallbackReply =
-        'I could not generate a confident, useful automated reply for this discussion message. '
-        + 'Please clarify your question or add more context if you would like a more detailed follow-up.'
+        'I could not generate a confident, useful automated reply for this discussion message. ' +
+        'Please clarify your question or add more context if you would like a more detailed follow-up.'
 
       logSystemWarning(
         'Non-exploitable discussion reply generated - using fallback',

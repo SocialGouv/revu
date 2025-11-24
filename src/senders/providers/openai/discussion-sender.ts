@@ -102,46 +102,6 @@ export async function discussionSender(
     const text = normalizeContent(raw)
     const trimmed = text.trim()
 
-    if (process.env.DISCUSSION_LLM_DEBUG === 'true') {
-      const preview = text.slice(0, 300)
-      const length = text.length
-
-      let rawDump: string | undefined
-      try {
-        rawDump = JSON.stringify(raw)
-      } catch {
-        rawDump = '[unserializable]'
-      }
-      if (rawDump && rawDump.length > 800) {
-        rawDump = rawDump.slice(0, 800) + '... (truncated)'
-      }
-
-      let responseDump: string | undefined
-      try {
-        responseDump = JSON.stringify(response)
-      } catch {
-        responseDump = '[unserializable]'
-      }
-      if (responseDump && responseDump.length > 1200) {
-        responseDump =
-          responseDump.slice(0, 1200) + '... (truncated full response)'
-      }
-
-      logSystemWarning('OpenAI discussion raw reply', {
-        context_msg: 'Raw OpenAI discussion completion',
-        repository: process.env.GITHUB_REPOSITORY,
-        pr_number: undefined,
-        provider: 'openai',
-        model,
-        raw_reply_preview: preview,
-        raw_reply_length: length,
-        raw_type: typeof raw,
-        raw_is_array: Array.isArray(raw),
-        raw_dump: rawDump,
-        completion_dump: responseDump
-      })
-    }
-
     if (
       process.env.PROMPT_CACHE_DEBUG === 'true' &&
       hasSegments &&
