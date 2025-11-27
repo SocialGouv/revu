@@ -34,6 +34,7 @@ RUN yarn install --immutable
 # Copy source code (including templates needed for PR review prompts)
 COPY --chown=1001:1001 src/ src/
 COPY --chown=1001:1001 templates/ templates/
+COPY --chown=1001:1001 .revuignore .revuignore
 
 # Create repository directory for cloning with appropriate permissions
 RUN mkdir -p /app/repos && \
