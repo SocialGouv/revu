@@ -1,5 +1,8 @@
 import { Redis } from 'ioredis'
 import { logSystemWarning } from './logger.ts'
+import { getRuntimeConfigSync } from '../core/utils/runtime-config.ts'
+
+const runtime = getRuntimeConfigSync()
 
 type RedisClient = // eslint-disable-next-line @typescript-eslint/no-explicit-any
   any
@@ -8,16 +11,13 @@ let redisClient: RedisClient | null = null
 
 function getRedis(): RedisClient | null {
   if (redisClient !== null) return redisClient
-  const url = process.env.REDIS_URL
+  const { url, db, password, tls } = runtime.redis
   if (!url) return null
   try {
     redisClient = new Redis(url, {
-      db:
-        process.env.REDIS_DB && !Number.isNaN(Number(process.env.REDIS_DB))
-          ? Number(process.env.REDIS_DB)
-          : undefined,
-      password: process.env.REDIS_PASSWORD || undefined,
-      ...(process.env.REDIS_TLS === 'true' ? ({ tls: {} } as any) : {})
+      db,
+      password,
+      ...(tls ? ({ tls: {} } as any) : {})
     })
     return redisClient
   } catch (error) {
@@ -113,11 +113,10 @@ export function getRateLimitConfig(): {
   maxCount: number
   windowSeconds: number
 } {
-  const max = Number(process.env.REPLIES_PER_WINDOW || '10')
-  const win = Number(process.env.RATE_WINDOW_SECONDS || '3600')
+  const { repliesPerWindow, windowSeconds } = runtime.rateLimit
   return {
-    maxCount: Number.isNaN(max) ? 10 : max,
-    windowSeconds: Number.isNaN(win) ? 3600 : win
+    maxCount: repliesPerWindow,
+    windowSeconds
   }
 }
 

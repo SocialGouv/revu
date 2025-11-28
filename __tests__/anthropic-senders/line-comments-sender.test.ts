@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { anthropicLineCommentsSender } from '../../src/senders/providers/anthropic/line-comments-sender.ts'
+import { _resetRuntimeConfigCacheForTests } from '../../src/core/utils/runtime-config.ts'
 
 // Mock the Anthropic SDK
 vi.mock('@anthropic-ai/sdk', () => {
@@ -127,6 +128,7 @@ describe('anthropicLineCommentsSender', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks()
+    _resetRuntimeConfigCacheForTests()
 
     // Get the mocked Anthropic constructor
     const AnthropicConstructor = (await import('@anthropic-ai/sdk'))

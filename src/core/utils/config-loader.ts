@@ -2,7 +2,6 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { DEFAULT_APP_CONFIG, type RevuAppConfig } from '../../types/config.ts'
 import { logSystemWarning } from '../../utils/logger.ts'
-import { applyRevuAppEnvOverrides } from './env-config.ts'
 /**
  * Reads the application configuration from config.json
  */
@@ -23,49 +22,14 @@ export async function getAppConfig(): Promise<RevuAppConfig> {
       ...fileConfig
     }
 
-    applyRevuAppEnvOverrides(merged, fileConfig, [
-      {
-        key: 'llmProvider',
-        envVar: 'LLM_PROVIDER',
-        parse: (raw) => raw.toLowerCase() as RevuAppConfig['llmProvider'],
-        validate: (value) => value === 'anthropic' || value === 'openai',
-        onInvalid: (raw) => {
-          logSystemWarning(
-            new Error(
-              'Invalid LLM_PROVIDER env var, expected "anthropic" or "openai"'
-            ),
-            { context_msg: `value="${raw}"` }
-          )
-        }
-      }
-    ])
-
     cachedConfig = merged
     return cachedConfig
   } catch (error) {
     logSystemWarning('Failed to read config.json, using defaults:', error)
 
-    const fileConfig: Partial<RevuAppConfig> = {}
     const merged: RevuAppConfig = {
       ...DEFAULT_APP_CONFIG
     }
-
-    applyRevuAppEnvOverrides(merged, fileConfig, [
-      {
-        key: 'llmProvider',
-        envVar: 'LLM_PROVIDER',
-        parse: (raw) => raw.toLowerCase() as RevuAppConfig['llmProvider'],
-        validate: (value) => value === 'anthropic' || value === 'openai',
-        onInvalid: (raw) => {
-          logSystemWarning(
-            new Error(
-              'Invalid LLM_PROVIDER env var, expected "anthropic" or "openai"'
-            ),
-            { context_msg: `value="${raw}"` }
-          )
-        }
-      }
-    ])
 
     cachedConfig = merged
     return cachedConfig
