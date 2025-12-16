@@ -1,3 +1,10 @@
+## [1.37.16](https://github.com/SocialGouv/revu/compare/v1.37.15...v1.37.16) (2025-12-16)
+
+
+### Bug Fixes
+
+* bump version ([ba4dbcd](https://github.com/SocialGouv/revu/commit/ba4dbcd1bd4ad311db03f9af8d30990b42e9a3da))
+
 ## [1.37.15](https://github.com/SocialGouv/revu/compare/v1.37.14...v1.37.15) (2025-11-24)
 
 
