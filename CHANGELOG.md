@@ -1,3 +1,10 @@
+## [1.37.18](https://github.com/SocialGouv/revu/compare/v1.37.17...v1.37.18) (2025-12-29)
+
+
+### Bug Fixes
+
+* pre commit tsc ([#269](https://github.com/SocialGouv/revu/issues/269)) ([b0f6025](https://github.com/SocialGouv/revu/commit/b0f602583edd3f9ed545e0b9ad10f4da2926920d))
+
 ## [1.37.17](https://github.com/SocialGouv/revu/compare/v1.37.16...v1.37.17) (2025-12-29)
 
 

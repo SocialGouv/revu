@@ -1,6 +1,6 @@
 {
   "name": "revu",
-  "version": "1.37.17",
+  "version": "1.37.18",
   "description": "Automated PR reviews using Claude Sonnet API",
   "private": true,
   "type": "module",
@@ -58,11 +58,6 @@
     "prettier": "^3.5.1",
     "typescript": "^5.9.2",
     "vitest": "^3.2.3"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
   },
   "pnpm": {
     "onlyBuiltDependencies": [
