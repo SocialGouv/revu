@@ -224,6 +224,29 @@ branches:
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+### Pre-commit checks
+
+This repo uses Husky + lint-staged to run checks on the **staged snapshot**.
+
+On `git commit`, the pre-commit hook runs:
+
+- `eslint --fix` on staged `ts/tsx/js/jsx` files
+- `prettier --write` on staged `json/yaml/yml/md` files
+- a single `tsc` typecheck **only when at least one TS/TSX file is staged**
+  - the command is defined in [`lint-staged.config.cjs`](lint-staged.config.cjs:1)
+  - `tsc` is invoked without filenames, so it always uses [`tsconfig.build.json`](tsconfig.build.json:1)
+  - incremental build info is cached under `.tsbuildinfo/` (gitignored)
+
+Manual runs:
+
+- Typecheck: `pnpm typecheck`
+- Run lint-staged (what pre-commit runs): `pnpm lint-staged`
+
+Emergency bypass:
+
+- `git commit --no-verify` skips the hook. Use only when necessary (e.g. to
+  unblock an urgent hotfix), and follow up by running checks locally/CI.
+
 ## License
 
 MIT License - see LICENSE file for details.

@@ -1,9 +1,4 @@
 #!/usr/bin/env sh
-# Husky pre-commit hook
-set -e
+. "$(dirname -- "$0")/_/husky.sh"
 
-# Lint staged files and fix where possible
 corepack pnpm lint-staged
-
-# Run a full project typecheck to catch missing identifiers and other TS errors
-corepack pnpm typecheck

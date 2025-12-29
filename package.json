@@ -59,12 +59,9 @@
     "typescript": "^5.9.2",
     "vitest": "^3.2.3"
   },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix"
-    ],
-    "*.{json,yaml,yml,md}": [
-      "prettier --write"
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
     ]
   },
   "pnpm": {
