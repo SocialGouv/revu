@@ -38,7 +38,11 @@ USER 1001:1001
 FROM base AS deps
 
 # Only copy manifests first
-COPY --chown=1001:1001 --chmod=755 pnpm-lock.yaml .npmrc ./
+# Avoid over-permissive/executable bits on non-executable files.
+# - lockfile: readable by the runtime user
+# - .npmrc: may contain registry credentials -> keep it private
+COPY --chown=1001:1001 --chmod=644 pnpm-lock.yaml ./
+COPY --chown=1001:1001 --chmod=600 .npmrc ./
 
 # Prefetch production dependencies into the store
 RUN pnpm fetch --prod
@@ -47,9 +51,10 @@ RUN pnpm fetch --prod
 FROM base AS runner
 
 # Reuse the fetched store for an offline install
-COPY --from=deps --chown=1001:1001 --chmod=755 /pnpm/store /pnpm/store
+COPY --from=deps --chown=1001:1001 /pnpm/store /pnpm/store
 
-COPY --chown=1001:1001 --chmod=755 package.json pnpm-lock.yaml .npmrc ./
+COPY --chown=1001:1001 --chmod=644 package.json pnpm-lock.yaml ./
+COPY --chown=1001:1001 --chmod=600 .npmrc ./
 
 RUN pnpm install --prod --offline --frozen-lockfile
 
