@@ -16,11 +16,26 @@ Revu is a GitHub App that leverages LLMs to provide intelligent, context-aware c
 
 ```bash
 # Use the correct Node.js version
-nvm use v23.7.0
+nvm use v24
 
 # Install dependencies
-yarn install
+corepack enable
+pnpm install
 ```
+
+Notes:
+
+- pnpm is managed via Corepack (ships with Node.js). This repo pins pnpm via the [`packageManager`](package.json:1) field.
+
+## Supply-chain security (pnpm)
+
+This repo enables pnpm supply-chain hardening via [`.npmrc`](.npmrc:1):
+
+- `blockExoticSubdeps=true` (prevents exotic transitive dependency sources)
+- `minimumReleaseAge=103680` (requires packages to be at least 72 days old before install)
+- `trustPolicy=no-downgrade` (prevents installing a package if its trust level decreased)
+
+pnpm v10 blocks dependency build scripts by default. This repo explicitly allows only known-safe packages to run build scripts via [`package.json`](package.json:1) `pnpm.onlyBuiltDependencies`.
 
 ### GitHub App Setup
 
@@ -134,17 +149,17 @@ OPENAI_MODEL=gpt-5
 
 ```bash
 # Dry-run review of a PR using the current local version of Revu
-yarn review-pr https://github.com/owner/repo/pull/123
+pnpm review-pr https://github.com/owner/repo/pull/123
 # Submit comments to GitHub after analysis
-yarn review-pr https://github.com/owner/repo/pull/123 --submit
+pnpm review-pr https://github.com/owner/repo/pull/123 --submit
 ```
 
 ### Production
 
 ```bash
 # Local machine
-yarn build
-yarn start
+pnpm build
+pnpm start
 ```
 
 ## Usage

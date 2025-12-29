@@ -87,9 +87,8 @@ describe('handleDiscussionReply', () => {
     }))
 
     // Re-import the handler with mocks applied
-    const { handleDiscussionReply: mockedHandleDiscussionReply } = await import(
-      '../../src/comment-handlers/discussion-handler.ts'
-    )
+    const { handleDiscussionReply: mockedHandleDiscussionReply } =
+      await import('../../src/comment-handlers/discussion-handler.ts')
 
     const result = await mockedHandleDiscussionReply({
       platformContext,
@@ -114,6 +113,8 @@ describe('handleDiscussionReply', () => {
     expect(client.replyToReviewComment).toHaveBeenCalledTimes(1)
     const [[, , body]] = (client.replyToReviewComment as Mock).mock.calls
     expect(typeof body).toBe('string')
-    expect(body).toContain('I could not generate a confident, useful automated reply')
+    expect(body).toContain(
+      'I could not generate a confident, useful automated reply'
+    )
   })
 })

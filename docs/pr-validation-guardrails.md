@@ -28,7 +28,7 @@ The following file types are **filtered out during review** using the `.revuigno
 
 #### Generated Files
 
-- `*.lock` files (package-lock.json, yarn.lock, etc.)
+- `*.lock` files (pnpm-lock.yaml, package-lock.json, etc.)
 - `*.generated.*` and `*-generated.*` files
 - Build directories: `dist/`, `build/`, `coverage/`, `target/`
 - Dependency directories: `node_modules/`, `.next/`, `.nuxt/`
@@ -68,6 +68,7 @@ When a PR is skipped, the bot will:
 **Suggestion:** Consider breaking this PR into smaller, more focused changes. Large PRs are harder to review effectively and may contain unrelated changes.
 
 ### PR Metrics
+
 - **Total files changed:** 150
 - **Reviewable files:** 45
 - **Diff size:** 8,500 lines
@@ -76,7 +77,8 @@ When a PR is skipped, the bot will:
 - **Addition/Deletion ratio:** 4.2
 
 ---
-*This validation helps ensure the bot focuses on PRs where automated review provides the most value. You can adjust these limits in your `.revu.yml` configuration file.*
+
+_This validation helps ensure the bot focuses on PRs where automated review provides the most value. You can adjust these limits in your `.revu.yml` configuration file._
 ```
 
 ## Configuration
@@ -91,19 +93,19 @@ validation:
   maxIndividualFileSize: 3000
 
   # Addition/deletion ratio limits
-  minAdditionDeletionRatio: 0.1  # Skip mostly-deletion PRs
-  maxAdditionDeletionRatio: 10   # Skip mostly-addition PRs
+  minAdditionDeletionRatio: 0.1 # Skip mostly-deletion PRs
+  maxAdditionDeletionRatio: 10 # Skip mostly-addition PRs
 
   # Content type settings
   skipDocumentationOnly: true
 
   # Documentation file extensions
   documentationExtensions:
-    - ".md"
-    - ".txt"
-    - ".rst"
-    - ".adoc"
-    - ".tex"
+    - '.md'
+    - '.txt'
+    - '.rst'
+    - '.adoc'
+    - '.tex'
 
 # Note: Binary and generated files are automatically filtered using .revuignore
 # This provides better file filtering without skipping entire PRs
@@ -116,7 +118,7 @@ Binary and generated files are filtered using the `.revuignore` file (similar to
 ```gitignore
 # Lock files and package management
 *.lock
-yarn.lock
+pnpm-lock.yaml
 package-lock.json
 
 # Generated files and build artifacts

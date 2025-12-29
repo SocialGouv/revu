@@ -2,24 +2,28 @@ name: 🧪 Run tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '23.7.0'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
 
-    - name: Install dependencies
-      run: yarn install --frozen-lockfile
+      - name: Enable Corepack
+        run: corepack enable
 
-    - name: Run tests with coverage
-      run: yarn test:coverage --exclude="__tests__/analyze-existing-pr.test.ts"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests with coverage
+        run: pnpm test:coverage --exclude="__tests__/analyze-existing-pr.test.ts"

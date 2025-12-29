@@ -7,10 +7,5 @@ coverage
 codebase.md
 chunks/
 
-# yarn berry
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/sdks
-!.yarn/versions
+# pnpm
+.pnpm-store
