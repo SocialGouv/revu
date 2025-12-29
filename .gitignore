@@ -6,9 +6,5 @@ output
 coverage
 codebase.md
 chunks/
-
-# TypeScript incremental build info (used by pre-commit typecheck)
 .tsbuildinfo/
-
-# pnpm
 .pnpm-store

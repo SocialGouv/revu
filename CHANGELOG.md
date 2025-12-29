@@ -1,3 +1,10 @@
+## [1.37.17](https://github.com/SocialGouv/revu/compare/v1.37.16...v1.37.17) (2025-12-29)
+
+
+### Bug Fixes
+
+* pnpm migration ([#268](https://github.com/SocialGouv/revu/issues/268)) ([2d38842](https://github.com/SocialGouv/revu/commit/2d38842ef50e70c01e0be046d0c6ce7eb70515c5))
+
 ## [1.37.16](https://github.com/SocialGouv/revu/compare/v1.37.15...v1.37.16) (2025-12-16)
 
 
