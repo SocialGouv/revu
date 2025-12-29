@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ⏬ Checkout code repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 📌 Extract metadata (tags, labels) for Docker
         id: meta
@@ -32,21 +32,21 @@ jobs:
       - name: 📦 Build and push Docker image for app
         uses: socialgouv/workflows/actions/buildkit@v1
         with:
-          context: "."
-          dockerfile: "Dockerfile"
+          context: '.'
+          dockerfile: 'Dockerfile'
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          registry: "${{ vars.REGISTRY_URL }}"
-          registry-username: "${{ secrets.REGISTRY_USERNAME }}"
-          registry-password: "${{ secrets.REGISTRY_PASSWORD }}"
-          buildkit-cert-ca: "${{ secrets.BUILDKIT_CERT_CA }}"
-          buildkit-cert: "${{ secrets.BUILDKIT_CERT }}"
-          buildkit-cert-key: "${{ secrets.BUILDKIT_CERT_KEY }}"
+          registry: '${{ vars.REGISTRY_URL }}'
+          registry-username: '${{ secrets.REGISTRY_USERNAME }}'
+          registry-password: '${{ secrets.REGISTRY_PASSWORD }}'
+          buildkit-cert-ca: '${{ secrets.BUILDKIT_CERT_CA }}'
+          buildkit-cert: '${{ secrets.BUILDKIT_CERT }}'
+          buildkit-cert-key: '${{ secrets.BUILDKIT_CERT_KEY }}'
           buildkit-svc-count: ${{ vars.BUILDKIT_SVC_COUNT }}
           buildkit-daemon-address: ${{ vars.BUILDKIT_DAEMON_ADDRESS }}
 
   kontinuous:
     needs: [build-app]
-    name: "Deploy on Kubernetes 🐳"
+    name: 'Deploy on Kubernetes 🐳'
     uses: socialgouv/workflows/.github/workflows/use-ks-gh-production-atlas.yaml@v1
     secrets: inherit

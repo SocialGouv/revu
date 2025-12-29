@@ -120,9 +120,7 @@ async function fetchPrDetails(context: CliReviewContext): Promise<PrDetails> {
       body: prResponse.data.body
     }
   } catch (error) {
-    console.warn(
-      chalk.yellow(`⚠ Could not fetch PR details: ${error.message}`)
-    )
+    console.warn(chalk.yellow(`⚠ Could not fetch PR details: ${error.message}`))
     return {
       title: '',
       body: null

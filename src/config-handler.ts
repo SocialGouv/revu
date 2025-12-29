@@ -155,9 +155,8 @@ export async function getValidationConfig(
     const config = await readConfig(configPath)
 
     // Import the default validation config dynamically to avoid circular dependency
-    const { DEFAULT_VALIDATION_CONFIG } = await import(
-      './core/services/pr-validation-service.ts'
-    )
+    const { DEFAULT_VALIDATION_CONFIG } =
+      await import('./core/services/pr-validation-service.ts')
 
     // Merge user validation config with defaults
     if (config.validation) {
@@ -174,9 +173,8 @@ export async function getValidationConfig(
     })
 
     // Import default config as fallback
-    const { DEFAULT_VALIDATION_CONFIG } = await import(
-      './core/services/pr-validation-service.ts'
-    )
+    const { DEFAULT_VALIDATION_CONFIG } =
+      await import('./core/services/pr-validation-service.ts')
     return DEFAULT_VALIDATION_CONFIG
   }
 }

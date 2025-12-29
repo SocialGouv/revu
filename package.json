@@ -12,8 +12,8 @@
     "dev": "tsx src/index.ts",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
-    "prepare": "husky",
-    "lint": "eslint --config eslint.config.mjs \"**/*.ts\" --fix && yarn typecheck",
+    "prepare": "husky || true",
+    "lint": "eslint --config eslint.config.mjs \"**/*.ts\" --fix && pnpm typecheck",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "review-pr": "tsx src/cli/review-pr.ts"
   },
@@ -67,5 +67,10 @@
       "prettier --write"
     ]
   },
-  "packageManager": "yarn@4.10.0"
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "packageManager": "pnpm@10.0.0"
 }

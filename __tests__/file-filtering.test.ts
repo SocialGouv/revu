@@ -8,6 +8,7 @@ describe('file filtering', () => {
       // Create a mock client that returns .revuignore content
       const revuIgnoreContent = `
 *.lock
+pnpm-lock.yaml
 dist/
 node_modules/
 *.min.js
@@ -19,7 +20,7 @@ node_modules/
       const filePaths = [
         'src/index.ts',
         'package.json',
-        'yarn.lock',
+        'pnpm-lock.yaml',
         'dist/bundle.js',
         'dist/styles.css',
         'node_modules/react/index.js',
@@ -51,7 +52,7 @@ node_modules/
         getFileContent: vi.fn().mockRejectedValue(new Error('File not found'))
       } as unknown as PlatformClient
 
-      const filePaths = ['src/index.ts', 'package.json', 'yarn.lock']
+      const filePaths = ['src/index.ts', 'package.json', 'pnpm-lock.yaml']
 
       // This will fall back to the default .revuignore in the project root
       const filteredFiles = await filterIgnoredFiles(
@@ -60,7 +61,7 @@ node_modules/
         'abc123'
       )
 
-      // yarn.lock should be filtered out by the default .revuignore
+      // lockfiles should be filtered out by the default .revuignore
       expect(filteredFiles).toEqual(['src/index.ts', 'package.json'])
 
       expect(mockClient.getFileContent).toHaveBeenCalledWith(

@@ -3,7 +3,7 @@
 set -e
 
 # Lint staged files and fix where possible
-yarn lint-staged
+corepack pnpm lint-staged
 
 # Run a full project typecheck to catch missing identifiers and other TS errors
-yarn typecheck
+corepack pnpm typecheck
