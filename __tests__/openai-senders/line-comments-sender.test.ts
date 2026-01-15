@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { openaiLineCommentsSender } from '../../src/senders/providers/openai/line-comments-sender.ts'
+import { _resetRuntimeConfigCacheForTests } from '../../src/core/utils/runtime-config.ts'
 
 // Mock the OpenAI SDK
 const createMock = vi.fn()
@@ -17,6 +18,7 @@ describe('openaiLineCommentsSender', () => {
   beforeEach(async () => {
     vi.resetModules()
     createMock.mockReset()
+    _resetRuntimeConfigCacheForTests()
     // Ensure env is set for tests
     process.env.OPENAI_API_KEY = 'test-openai-key'
     delete process.env.OPENAI_MODEL
