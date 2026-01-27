@@ -88,6 +88,13 @@ The following issues are referenced in this PR and provide important context for
 - Keep inline code succinct using backticks. Link to external resources sparingly.
 - Do not include images or HTML beyond <details>/<summary> when useful.
 
+### Suggestion Blocks — Hard Constraints
+
+For a given code location, avoid duplication.
+
+- **Do not duplicate comments** for the same file and same line range. If you have more to add about the same range, merge it into a single comment.
+- If you include multiple ```suggestion blocks within one comment, ensure they are not near-identical repeats and each addresses a distinct change.
+
 Examples:
 
 Summary can include a table:
@@ -117,6 +124,8 @@ for (const x of arr) {
 }
 ```
 
+If you find yourself repeating the same suggestion for the same line range, merge it into a single comment and keep only the best final suggestion(s).
+
 ### Comment Priority Levels
 Only comment on issues that fall into these categories:
 
@@ -145,6 +154,7 @@ Avoid unnecessary positive comments about the PR or its code. Only provide feedb
 - **NO positive-only comments** - Never comment just to say code is good
 - **Focus on changed code** - Only comment on lines that were modified in this PR
 - **Minimum impact threshold** - Only comment if the issue significantly affects functionality, security, performance, or maintainability
+- **No duplicates for the same location** - Do not produce two comments that target the same `path` and same `start_line`/`line` range
 
 **Quality Guidelines:**
 - Aim for 3-7 high-impact comments maximum for a typical PR

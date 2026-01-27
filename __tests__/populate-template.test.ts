@@ -105,6 +105,19 @@ describe('populateTemplate', () => {
     )
   }, 60000) // Increase timeout since we're doing git operations
 
+  it('default line-comments template includes hard constraints for suggestion blocks', async () => {
+    const templatePath = path.join(
+      process.cwd(),
+      'templates',
+      'line-comments-prompt.hbs'
+    )
+    const templateContent = await fs.readFile(templatePath, 'utf-8')
+
+    expect(templateContent).toContain('Suggestion Blocks — Hard Constraints')
+    expect(templateContent).toContain('Do not duplicate comments')
+    expect(templateContent).toContain('search_replace_blocks')
+  })
+
   it('should use custom template path when provided', async () => {
     // Set config to use default strategy
     await fs.writeFile(
