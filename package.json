@@ -1,6 +1,6 @@
 {
   "name": "revu",
-  "version": "1.37.18",
+  "version": "1.37.19",
   "description": "Automated PR reviews using Claude Sonnet API",
   "private": true,
   "type": "module",

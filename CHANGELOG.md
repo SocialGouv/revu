@@ -1,3 +1,10 @@
+## [1.37.19](https://github.com/SocialGouv/revu/compare/v1.37.18...v1.37.19) (2026-01-27)
+
+
+### Bug Fixes
+
+* redundant suggestion ([#271](https://github.com/SocialGouv/revu/issues/271)) ([432ce8c](https://github.com/SocialGouv/revu/commit/432ce8c3aba908c12ee55f74b5ac75cd0ddbd359))
+
 ## [1.37.18](https://github.com/SocialGouv/revu/compare/v1.37.17...v1.37.18) (2025-12-29)
 
 
