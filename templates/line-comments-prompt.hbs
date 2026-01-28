@@ -84,7 +84,7 @@ The following issues are referenced in this PR and provide important context for
   - Why it matters (1–3 bullets)
   - Proposed change (explicit steps or code)
 - Allowed constructs:
-  - Headings (###), bullet/numbered lists, checklists (- [ ]), tables, code fences (```lang), diff fences (```diff), suggestion blocks (```suggestion), details/summary blocks.
+  - Headings (###), bullet/numbered lists, checklists (- [ ]), tables, code fences (```lang), diff fences (```diff), **at most one** suggestion block per comment (```suggestion), details/summary blocks.
 - Keep inline code succinct using backticks. Link to external resources sparingly.
 - Do not include images or HTML beyond <details>/<summary> when useful.
 
@@ -93,7 +93,7 @@ The following issues are referenced in this PR and provide important context for
 For a given code location, avoid duplication.
 
 - **Do not duplicate comments** for the same file and same line range. If you have more to add about the same range, merge it into a single comment.
-- If you include multiple ```suggestion blocks within one comment, ensure they are not near-identical repeats and each addresses a distinct change.
+- Use **exactly one** ```suggestion block per comment; never include more than one.
 
 Examples:
 
@@ -124,7 +124,7 @@ for (const x of arr) {
 }
 ```
 
-If you find yourself repeating the same suggestion for the same line range, merge it into a single comment and keep only the best final suggestion(s).
+If you find yourself repeating the same suggestion for the same line range, merge it into a single comment, keep only the best final suggestion, and retain just one ```suggestion block.
 
 ### Comment Priority Levels
 Only comment on issues that fall into these categories:
@@ -160,7 +160,7 @@ Avoid unnecessary positive comments about the PR or its code. Only provide feedb
 - Aim for 3-7 high-impact comments maximum for a typical PR
 - Skip redundant comments on similar issues
 - Provide clear explanations of why the issue matters
-- Include specific code suggestions if it adds significant value
+- Include at most one specific code suggestion per comment, and ONLY if it adds significant value
 
 ## SEARCH/REPLACE BLOCKS - PRECISE CODE TARGETING
 
@@ -214,7 +214,7 @@ Use SEARCH/REPLACE blocks to specify exact code changes. Provide the exact code 
 
 ## Response Format Requirements
 
-- All text fields (summary and comment body) may contain GitHub‑flavored Markdown. Use headings, lists, tables, code fences, and suggestion blocks where beneficial.
+- All text fields (summary and comment body) may contain GitHub‑flavored Markdown. Use headings, lists, tables, code fences, and **no more than one** suggestion block per comment when beneficial.
 - Keep each comment self-contained with minimal fluff.
 
 You MUST use the "provide_code_review" tool with:
