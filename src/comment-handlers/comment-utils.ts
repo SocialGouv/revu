@@ -3,6 +3,10 @@ import {
   generateGitHubSuggestion,
   processSearchReplaceBlocks
 } from '../core/services/search-replace-processor.ts'
+import {
+  containsEquivalentSuggestionBlock,
+  dedupeSuggestionBlocks
+} from '../utils/markdown.ts'
 import { logSystemWarning } from '../utils/logger.ts'
 import {
   COMMENT_MARKER_PREFIX,
@@ -189,7 +193,13 @@ async function processSearchReplaceForComment(
     if (result.success && result.replacementContent) {
       // Generate GitHub suggestion block from the replacement content
       const suggestion = generateGitHubSuggestion(result.replacementContent)
-      let updatedCommentBody = commentBody + '\n\n' + suggestion
+      // Avoid duplicating a suggestion if the model already included an equivalent block.
+      let updatedCommentBody = containsEquivalentSuggestionBlock(
+        commentBody,
+        suggestion
+      )
+        ? commentBody
+        : commentBody + '\n\n' + suggestion
 
       // Update comment positioning with precise line ranges from SEARCH/REPLACE processing
       if (
@@ -271,8 +281,12 @@ export async function prepareCommentContent(
     hash
   )
 
+  // Final hardening: dedupe repeated suggestion fences inside one comment body.
+  // This protects against LLM self-duplication and model+auto-suggestion duplication.
+  const deduped = dedupeSuggestionBlocks(result.updatedCommentBody)
+
   return {
-    content: result.updatedCommentBody,
+    content: deduped.markdown,
     updatedComment: result.updatedComment
   }
 }

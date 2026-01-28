@@ -273,6 +273,57 @@ describe('prepareCommentContent', () => {
     vi.clearAllMocks()
   })
 
+  it('should dedupe identical ```suggestion blocks inside a single comment body', async () => {
+    const comment: Comment = {
+      path: 'src/file.ts',
+      line: 10,
+      body: 'This is a comment',
+      search_replace_blocks: [
+        {
+          search: 'const x = 1;',
+          replace: 'const x = 2;'
+        }
+      ]
+    }
+    const fileContent = 'const x = 1;\nconst y = 2;'
+
+    // Model already duplicated suggestion blocks in its body.
+    comment.body =
+      'This is a comment\n\n```suggestion\nconst x = 2;\n```\n\nSome text\n\n```suggestion\nconst x = 2;\n```'
+
+    // SEARCH/REPLACE would also generate the same suggestion.
+    vi.mocked(processSearchReplaceBlocks).mockResolvedValue({
+      success: true,
+      errors: [],
+      appliedBlocks: 1,
+      replacementContent: 'const x = 2;'
+    })
+
+    const result = await prepareCommentContent(comment, fileContent)
+
+    const suggestionCount = (result.content.match(/```suggestion/g) || [])
+      .length
+    expect(suggestionCount).toBe(1)
+    expect(result.content).toContain('```suggestion\nconst x = 2;\n```')
+  })
+
+  it('should keep multiple distinct ```suggestion blocks', async () => {
+    const comment: Comment = {
+      path: 'src/file.ts',
+      line: 10,
+      body: 'Text\n\n```suggestion\nconst a = 1;\n```\n\nMore\n\n```suggestion\nconst b = 2;\n```'
+    }
+    const fileContent = 'const a = 0;\nconst b = 0;'
+
+    const result = await prepareCommentContent(comment, fileContent)
+
+    const suggestionCount = (result.content.match(/```suggestion/g) || [])
+      .length
+    expect(suggestionCount).toBe(2)
+    expect(result.content).toContain('```suggestion\nconst a = 1;\n```')
+    expect(result.content).toContain('```suggestion\nconst b = 2;\n```')
+  })
+
   it('should prepare basic comment content without search/replace blocks', async () => {
     const comment: Comment = {
       path: 'src/file.ts',
