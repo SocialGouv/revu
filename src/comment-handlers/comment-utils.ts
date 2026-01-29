@@ -192,8 +192,6 @@ async function processSearchReplaceForComment(
       return { updatedCommentBody: commentBody, updatedComment: comment }
     }
 
-    // SEARCH/REPLACE is used for line positioning; suggested code changes should be
-    // expressed in `comment.body` (e.g. via GitHub ```suggestion``` blocks).
     if (
       result.originalStartLine === undefined ||
       result.originalEndLine === undefined
