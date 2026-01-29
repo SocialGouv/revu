@@ -1,3 +1,10 @@
+## [1.37.20](https://github.com/SocialGouv/revu/compare/v1.37.19...v1.37.20) (2026-01-29)
+
+
+### Bug Fixes
+
+* redundant suggestion blocks by remvoving concat of search and re… ([#274](https://github.com/SocialGouv/revu/issues/274)) ([ee87556](https://github.com/SocialGouv/revu/commit/ee875569b6f183f4d2ef7147c8588e6743ab84ad))
+
 ## [1.37.19](https://github.com/SocialGouv/revu/compare/v1.37.18...v1.37.19) (2026-01-27)
 
 
