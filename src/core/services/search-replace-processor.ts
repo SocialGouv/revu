@@ -464,16 +464,3 @@ function blockAnchorFallbackMatch(
 
   return false
 }
-
-/**
- * Generates a GitHub suggestion block from replacement content
- * Simply formats the replacement content as a GitHub suggestion
- */
-export function generateGitHubSuggestion(replacementContent: string): string {
-  // Remove trailing newline if present to avoid double newlines in suggestion
-  const content = replacementContent.endsWith('\n')
-    ? replacementContent.slice(0, -1)
-    : replacementContent
-
-  return '```suggestion\n' + content + '\n```'
-}

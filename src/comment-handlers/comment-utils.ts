@@ -1,8 +1,5 @@
 import type { DiffHunk } from '../core/models/diff-types.ts'
-import {
-  generateGitHubSuggestion,
-  processSearchReplaceBlocks
-} from '../core/services/search-replace-processor.ts'
+import { processSearchReplaceBlocks } from '../core/services/search-replace-processor.ts'
 import { logSystemWarning } from '../utils/logger.ts'
 import {
   COMMENT_MARKER_PREFIX,
@@ -186,52 +183,43 @@ async function processSearchReplaceForComment(
       comment.search_replace_blocks
     )
 
-    if (result.success && result.replacementContent) {
-      // Generate GitHub suggestion block from the replacement content
-      const suggestion = generateGitHubSuggestion(result.replacementContent)
-      let updatedCommentBody = commentBody + '\n\n' + suggestion
-
-      // Update comment positioning with precise line ranges from SEARCH/REPLACE processing
-      if (
-        result.originalStartLine !== undefined &&
-        result.originalEndLine !== undefined
-      ) {
-        const positioningResult = updateCommentLinePositioning(
-          comment,
-          result.originalStartLine,
-          result.originalEndLine,
-          hash
-        )
-
-        if (positioningResult) {
-          // Update the marker ID to reflect the new line positioning
-          updatedCommentBody = updatedCommentBody.replace(
-            `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}`,
-            `${COMMENT_MARKER_PREFIX}${positioningResult.updatedMarkerId}${COMMENT_MARKER_SUFFIX}`
-          )
-
-          return {
-            updatedCommentBody,
-            updatedComment: positioningResult.updatedComment
-          }
-        }
-      }
-
-      // If positioning update failed, return with suggestion but original comment
-      return {
-        updatedCommentBody,
-        updatedComment: comment
-      }
-    } else {
+    if (!result.success) {
       logSearchReplaceMatchingError(
         comment,
         result.errors,
         result.appliedBlocks
       )
-      return {
-        updatedCommentBody: commentBody,
-        updatedComment: comment
-      }
+      return { updatedCommentBody: commentBody, updatedComment: comment }
+    }
+
+    // SEARCH/REPLACE is used for line positioning; suggested code changes should be
+    // expressed in `comment.body` (e.g. via GitHub ```suggestion``` blocks).
+    if (
+      result.originalStartLine === undefined ||
+      result.originalEndLine === undefined
+    ) {
+      return { updatedCommentBody: commentBody, updatedComment: comment }
+    }
+
+    const positioningResult = updateCommentLinePositioning(
+      comment,
+      result.originalStartLine,
+      result.originalEndLine,
+      hash
+    )
+
+    if (!positioningResult) {
+      return { updatedCommentBody: commentBody, updatedComment: comment }
+    }
+
+    const updatedCommentBody = commentBody.replace(
+      `${COMMENT_MARKER_PREFIX}${markerId}${COMMENT_MARKER_SUFFIX}`,
+      `${COMMENT_MARKER_PREFIX}${positioningResult.updatedMarkerId}${COMMENT_MARKER_SUFFIX}`
+    )
+
+    return {
+      updatedCommentBody,
+      updatedComment: positioningResult.updatedComment
     }
   } catch (error) {
     logSearchReplaceError(comment, error)
