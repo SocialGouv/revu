@@ -1,3 +1,10 @@
+## [1.37.21](https://github.com/SocialGouv/revu/compare/v1.37.20...v1.37.21) (2026-01-29)
+
+
+### Bug Fixes
+
+* start end line discrepancy ([f67d6f4](https://github.com/SocialGouv/revu/commit/f67d6f42944d38fcef6af2eae9d33b244903b920))
+
 ## [1.37.20](https://github.com/SocialGouv/revu/compare/v1.37.19...v1.37.20) (2026-01-29)
 
 
