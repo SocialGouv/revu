@@ -356,7 +356,9 @@ describe('prepareCommentContent', () => {
       fileContent,
       comment.search_replace_blocks
     )
-    expect(result.content).toContain('```suggestion\nconst x = 2;\n```')
+    // We should NOT auto-append a generated ```suggestion``` block; suggestion content
+    // must be provided directly in comment.body to avoid duplicates.
+    expect(result.content).not.toContain('```suggestion')
     expect(result.updatedComment.start_line).toBe(1) // 0 + 1 (converted to 1-based)
     expect(result.updatedComment.line).toBe(1) // 0 + 1 (converted to 1-based)
 
@@ -389,6 +391,8 @@ describe('prepareCommentContent', () => {
 
     const result = await prepareCommentContent(comment, fileContent)
 
+    // Should NOT auto-append a generated ```suggestion``` block
+    expect(result.content).not.toContain('```suggestion')
     expect(result.updatedComment.start_line).toBe(6) // 5 + 1 (converted to 1-based)
     expect(result.updatedComment.line).toBe(9) // 8 + 1 (converted to 1-based)
     expect(result.content).toContain('<!-- REVU-AI-COMMENT src_file.ts:6-9 -->')
@@ -496,9 +500,8 @@ describe('prepareCommentContent', () => {
       fileContent,
       comment.search_replace_blocks
     )
-    expect(result.content).toContain(
-      '```suggestion\nconst x = 2;\nconst y = 2;\n```'
-    )
+    // We should NOT auto-append a generated ```suggestion``` block.
+    expect(result.content).not.toContain('```suggestion')
 
     // Verify that the original comment positioning is preserved
     expect(result.updatedComment.line).toBe(comment.line) // Should remain 10
@@ -541,6 +544,8 @@ describe('prepareCommentContent', () => {
 
     const result = await prepareCommentContent(comment, fileContent)
 
+    // Should NOT auto-append a generated ```suggestion``` block
+    expect(result.content).not.toContain('```suggestion')
     expect(result.content).toContain(
       '<!-- REVU-AI-COMMENT src_components__types_api.d.ts:3-5 -->'
     )

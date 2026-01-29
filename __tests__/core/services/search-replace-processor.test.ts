@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import type { SearchReplaceBlock } from '../../../src/comment-handlers/types.ts'
 import {
   findMatchWithFallbacks,
-  generateGitHubSuggestion,
   processSearchReplaceBlocks
 } from '../../../src/core/services/search-replace-processor.ts'
 
@@ -331,31 +330,5 @@ const third = true`
 
     // Should fail because middle line similarity is below 50%
     expect(result.found).toBe(false)
-  })
-})
-
-describe('generateGitHubSuggestion', () => {
-  it('should generate suggestion for simple replacement', () => {
-    const suggestion = generateGitHubSuggestion('  const improved = true')
-
-    expect(suggestion).toBe('```suggestion\n  const improved = true\n```')
-  })
-
-  it('should handle multi-line changes', () => {
-    const suggestion = generateGitHubSuggestion(
-      'const improved = true\nconst extra = false\nreturn improved'
-    )
-
-    expect(suggestion).toContain('```suggestion')
-    expect(suggestion).toContain('const improved = true')
-    expect(suggestion).toContain('const extra = false')
-    expect(suggestion).toContain('return improved')
-    expect(suggestion).toContain('```')
-  })
-
-  it('should handle trailing newlines correctly', () => {
-    const suggestion = generateGitHubSuggestion('const test = true\n')
-
-    expect(suggestion).toBe('```suggestion\nconst test = true\n```')
   })
 })
