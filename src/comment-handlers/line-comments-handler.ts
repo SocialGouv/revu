@@ -19,6 +19,7 @@ import {
   constrainCommentToHunk,
   createCommentMarkerId,
   isCommentValidForDiff,
+  normalizeCommentRange,
   prepareCommentContent
 } from './comment-utils.ts'
 import { errorCommentHandler } from './error-comment-handler.ts'
@@ -84,6 +85,26 @@ async function processAnalysis(
 ): Promise<ValidatedAnalysis> {
   // Parse the JSON response first
   const rawParsedAnalysis = JSON.parse(analysis)
+
+  if (Array.isArray(rawParsedAnalysis?.comments)) {
+    rawParsedAnalysis.comments = rawParsedAnalysis.comments.map(
+      (comment: Comment) => {
+        const { normalized, wasNormalized } = normalizeCommentRange(comment)
+        if (wasNormalized) {
+          logSystemWarning(
+            new Error(
+              `Normalized reversed line range for ${comment.path}:${comment.start_line}-${comment.line}`
+            ),
+            {
+              pr_number: prNumber,
+              repository: repoName
+            }
+          )
+        }
+        return normalized
+      }
+    )
+  }
 
   // Validate the structure with Zod
   const analysisValidationResult = AnalysisSchema.safeParse(rawParsedAnalysis)

@@ -7,6 +7,39 @@ import {
   type Comment
 } from './types.ts'
 
+type RangeLike = {
+  line?: number
+  start_line?: number | null
+}
+
+type RangeNormalizationResult<T> = {
+  normalized: T
+  wasNormalized: boolean
+}
+
+export function normalizeCommentRange<T extends RangeLike>(
+  comment: T
+): RangeNormalizationResult<T> {
+  const { line, start_line } = comment
+
+  if (
+    typeof line === 'number' &&
+    typeof start_line === 'number' &&
+    start_line > line
+  ) {
+    return {
+      normalized: {
+        ...comment,
+        start_line: Math.min(start_line, line),
+        line: Math.max(start_line, line)
+      },
+      wasNormalized: true
+    }
+  }
+
+  return { normalized: comment, wasNormalized: false }
+}
+
 /**
  * Creates a unique marker ID for a specific comment
  */

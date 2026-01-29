@@ -232,3 +232,4 @@ You MUST use the "provide_code_review" tool with:
 - **Clear problem description**: Explain what's wrong and why it matters
 - **Actionable solutions**: Provide concrete steps to fix the issue
 - **SEARCH/REPLACE blocks**: Include when you can provide exact code fixes (the system will handle precise positioning)
+- **Line range rules**: `line` is the end line for the comment range; `start_line` is the first line. Ensure `start_line <= line`. Use `null` for `start_line` on single-line comments.

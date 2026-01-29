@@ -3,6 +3,7 @@ import {
   createCommentMarkerId,
   extractMarkerIdFromComment,
   isCommentValidForDiff,
+  normalizeCommentRange,
   prepareCommentContent
 } from '../../src/comment-handlers/comment-utils.ts'
 import type { Comment } from '../../src/comment-handlers/types.ts'
@@ -265,6 +266,52 @@ describe('isCommentValidForDiff', () => {
     })
 
     expect(isCommentValidForDiff(comment, diffMap)).toBe(false)
+  })
+})
+
+describe('normalizeCommentRange', () => {
+  it('should swap start_line and line when start_line is greater', () => {
+    const comment: Comment = {
+      path: 'src/file.ts',
+      line: 5,
+      start_line: 12,
+      body: 'Multi-line comment'
+    }
+
+    const result = normalizeCommentRange(comment)
+
+    expect(result.wasNormalized).toBe(true)
+    expect(result.normalized.start_line).toBe(5)
+    expect(result.normalized.line).toBe(12)
+    expect(result.normalized.path).toBe(comment.path)
+    expect(result.normalized.body).toBe(comment.body)
+  })
+
+  it('should keep range unchanged when start_line is less than line', () => {
+    const comment: Comment = {
+      path: 'src/file.ts',
+      line: 12,
+      start_line: 5,
+      body: 'Multi-line comment'
+    }
+
+    const result = normalizeCommentRange(comment)
+
+    expect(result.wasNormalized).toBe(false)
+    expect(result.normalized).toEqual(comment)
+  })
+
+  it('should not normalize single-line comments', () => {
+    const comment: Comment = {
+      path: 'src/file.ts',
+      line: 5,
+      body: 'Single-line comment'
+    }
+
+    const result = normalizeCommentRange(comment)
+
+    expect(result.wasNormalized).toBe(false)
+    expect(result.normalized).toEqual(comment)
   })
 })
 
