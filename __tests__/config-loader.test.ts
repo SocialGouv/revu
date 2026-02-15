@@ -45,12 +45,14 @@ describe('getAppConfig / LLM provider resolution', () => {
     expect(cfg.llmProvider).toBe('anthropic')
   })
 
-  it('uses LLM_PROVIDER when config.json is missing', async () => {
+  it('ignores LLM_PROVIDER when config.json is missing (provider resolved at runtime layer)', async () => {
     process.env.LLM_PROVIDER = 'openai'
     vi.mocked(fs.readFile).mockRejectedValueOnce(new Error('no file'))
 
     const cfg = await getAppConfig()
-    expect(cfg.llmProvider).toBe('openai')
+    // getAppConfig now only reflects config.json + defaults; provider env
+    // resolution is handled in the runtime-config layer.
+    expect(cfg.llmProvider).toBe('anthropic')
   })
 
   it('prefers config.json llmProvider over env', async () => {
@@ -65,7 +67,7 @@ describe('getAppConfig / LLM provider resolution', () => {
     expect(cfg.llmProvider).toBe('anthropic')
   })
 
-  it('falls back to env when config.json omits llmProvider', async () => {
+  it('does not fall back to env when config.json omits llmProvider (runtime layer handles env)', async () => {
     process.env.LLM_PROVIDER = 'openai'
 
     const fileCfg: Partial<RevuAppConfig> = {
@@ -74,7 +76,9 @@ describe('getAppConfig / LLM provider resolution', () => {
     vi.mocked(fs.readFile).mockResolvedValueOnce(JSON.stringify(fileCfg))
 
     const cfg = await getAppConfig()
-    expect(cfg.llmProvider).toBe('openai')
+    // getAppConfig remains config.json + defaults; env-based provider
+    // fallback is handled by runtime-config.
+    expect(cfg.llmProvider).toBe('anthropic')
   })
 
   it('logs a warning and ignores invalid LLM_PROVIDER', async () => {

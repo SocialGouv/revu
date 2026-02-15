@@ -14,13 +14,16 @@ import type {
 } from '../../../prompt-strategies/build-discussion-prompt-segments.ts'
 import { computeSegmentsPrefixHash } from '../../../utils/prompt-prefix.ts'
 import { logSystemWarning } from '../../../utils/logger.ts'
+import { getRuntimeConfig } from '../../../core/utils/runtime-config.ts'
 
 export async function discussionSender(
   promptOrSegments: string | DiscussionPromptSegments,
   enableThinking: boolean = false
 ): Promise<string> {
+  const runtime = await getRuntimeConfig()
+
   const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY
+    apiKey: runtime.llm.anthropic.apiKey
   })
 
   const thinkingConfig = enableThinking
@@ -33,18 +36,14 @@ export async function discussionSender(
     : {}
 
   const maxTokens = enableThinking ? 4096 : 1024
-  const useExtendedContext = process.env.ANTHROPIC_EXTENDED_CONTEXT !== 'false'
+  const useExtendedContext = runtime.llm.anthropic.extendedContext
 
   // Build content blocks: if string, single text block; if segments, stitch stable+dynamic
   const isSegments = Array.isArray((promptOrSegments as any)?.stableParts)
-  const enablePromptCache =
-    (process.env.ENABLE_PROMPT_CACHE || 'true') !== 'false'
-  const ttlSeconds = (() => {
-    const v = Number(process.env.PROMPT_CACHE_TTL)
-    return Number.isFinite(v) && v > 0 ? v : 172_800
-  })()
+  const enablePromptCache = runtime.discussion.promptCache.enabled
+  const ttlSeconds = runtime.discussion.promptCache.ttlSeconds
 
-  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
+  const model = runtime.llm.anthropic.model
 
   let prefixHash: string | undefined
   if (isSegments) {
@@ -102,7 +101,7 @@ export async function discussionSender(
       : await anthropic.messages.create(messageParams)
 
     const usage = (message as any)?.usage ?? {}
-    if (process.env.PROMPT_CACHE_DEBUG === 'true' && isSegments && prefixHash) {
+    if (runtime.discussion.promptCache.debug && isSegments && prefixHash) {
       const metrics = {
         prefix_hash: prefixHash,
         cache_creation_input_tokens: usage.cache_creation_input_tokens,
