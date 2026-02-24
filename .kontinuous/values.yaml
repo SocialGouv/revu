@@ -5,11 +5,15 @@ app:
   volumes:
     - name: repos
       emptyDir: {}
+    - name: tmp
+      emptyDir: {}
   volumeMounts:
     - mountPath: /app/repos
       name: repos
+    - mountPath: /tmp
+      name: tmp
   envFrom:
-  - secretRef:
-      name: app
-  - configMapRef:
-      name: app
+    - secretRef:
+        name: app
+    - configMapRef:
+        name: app
