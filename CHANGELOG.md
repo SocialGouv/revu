@@ -1,3 +1,10 @@
+## [1.37.24](https://github.com/SocialGouv/revu/compare/v1.37.23...v1.37.24) (2026-02-26)
+
+
+### Bug Fixes
+
+* Update ANTHROPIC_MODEL version in configmap ([e3351b3](https://github.com/SocialGouv/revu/commit/e3351b397d637e8bcc40983bdfcd4bcc13cf4930))
+
 ## [1.37.23](https://github.com/SocialGouv/revu/compare/v1.37.22...v1.37.23) (2026-02-26)
 
 
