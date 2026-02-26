@@ -227,8 +227,7 @@ const submitComments = async (
       repository: repository,
       context_msg: '⚠ Error submitting line comments'
     })
-    const errorMessage = `Error processing line comments: ${error.message || String(error)}`
-    await errorCommentHandler(platformContext, prNumber, errorMessage)
+    await errorCommentHandler(platformContext, prNumber)
     throw new Error(`Comment submission failed: ${error.message}`)
   }
 }
@@ -266,7 +265,7 @@ export const performCompleteReview = async (
       const validationMessage = createValidationMessage(validationResult)
 
       if (options.submitComments) {
-        await errorCommentHandler(platformContext, prNumber, validationMessage)
+        await platformContext.client.createReview(prNumber, validationMessage)
       }
 
       return {
@@ -318,7 +317,7 @@ export const performCompleteReview = async (
     // Try to post error comment if submitting
     if (options.submitComments) {
       try {
-        await errorCommentHandler(platformContext, prNumber, errorMessage)
+        await errorCommentHandler(platformContext, prNumber)
       } catch (commentError) {
         logSystemError(
           `Failed to post error comment: ${commentError.message || String(commentError)}`,
