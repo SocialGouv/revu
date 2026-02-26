@@ -40,12 +40,7 @@ describe('errorCommentHandler', () => {
   })
 
   it('should create an error comment with correct content', async () => {
-    const errorMessage = 'Test error message'
-    const result = await errorCommentHandler(
-      mockPlatformContext,
-      123,
-      errorMessage
-    )
+    const result = await errorCommentHandler(mockPlatformContext, 123)
 
     // Verify createReview was called with the correct parameters
     expect(mockClient.createReview).toHaveBeenCalledWith(
@@ -53,10 +48,12 @@ describe('errorCommentHandler', () => {
       expect.stringContaining('<!-- REVU-AI-ERROR -->')
     )
 
-    // Verify the error message is included in the comment
+    // Verify generic message is shown and raw error details are not leaked
     expect(mockClient.createReview).toHaveBeenCalledWith(
       123,
-      expect.stringContaining('An error occurred: Test error message')
+      expect.stringContaining(
+        'An internal error occurred. Please check the logs for details.'
+      )
     )
 
     // Verify the Grafana logs URL includes the correct timestamps
@@ -72,7 +69,7 @@ describe('errorCommentHandler', () => {
   })
 
   it('should generate a Grafana logs URL with dynamic timestamps', async () => {
-    await errorCommentHandler(mockPlatformContext, 456, 'Test error')
+    await errorCommentHandler(mockPlatformContext, 456)
 
     // Verify the Grafana logs URL includes the correct timestamps
     expect(mockClient.createReview).toHaveBeenCalledWith(
@@ -87,18 +84,14 @@ describe('errorCommentHandler', () => {
     const error = new Error('Network error')
     mockClient.createReview.mockRejectedValue(error)
 
-    const result = await errorCommentHandler(
-      mockPlatformContext,
-      123,
-      'Test error'
-    )
+    const result = await errorCommentHandler(mockPlatformContext, 123)
 
     // Verify the error is handled and a failure message is returned
     expect(result).toBe('Failed to post error comment: Network error')
   })
 
   it('should include the error marker in the comment', async () => {
-    await errorCommentHandler(mockPlatformContext, 123, 'Test error')
+    await errorCommentHandler(mockPlatformContext, 123)
 
     // Verify the comment includes the error marker
     expect(mockClient.createReview).toHaveBeenCalledWith(
@@ -108,7 +101,7 @@ describe('errorCommentHandler', () => {
   })
 
   it('should include the Grafana logs link in the comment', async () => {
-    await errorCommentHandler(mockPlatformContext, 123, 'Test error')
+    await errorCommentHandler(mockPlatformContext, 123)
 
     // Verify the comment includes the Grafana logs link
     expect(mockClient.createReview).toHaveBeenCalledWith(

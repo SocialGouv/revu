@@ -577,10 +577,6 @@ export async function lineCommentsHandler(
       context_msg:
         'Error parsing or creating line comments, falling back to error comment'
     })
-    return errorCommentHandler(
-      platformContext,
-      prNumber,
-      `Error processing line comments: ${error.message || String(error)}`
-    )
+    return errorCommentHandler(platformContext, prNumber)
   }
 }

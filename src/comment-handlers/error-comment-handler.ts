@@ -52,11 +52,11 @@ function generateGrafanaLogsUrl(): string {
   return `${baseUrl}?${queryString}`
 }
 
-const createFormattedError = (errorMessage: string): string => {
+const createFormattedError = (): string => {
   const grafanaLogsUrl = generateGrafanaLogsUrl()
   return `${ERROR_COMMENT_MARKER}
 
-An error occurred: ${errorMessage}
+An internal error occurred. Please check the logs for details.
 
 [Revu logs](${grafanaLogsUrl})`
 }
@@ -67,10 +67,9 @@ An error occurred: ${errorMessage}
  */
 export async function errorCommentHandler(
   platformContext: PlatformContext,
-  prNumber: number,
-  errorMessage: string
+  prNumber: number
 ): Promise<string> {
-  const formattedError = createFormattedError(errorMessage)
+  const formattedError = createFormattedError()
 
   try {
     await platformContext.client.createReview(prNumber, formattedError)
