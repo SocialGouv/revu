@@ -1,3 +1,10 @@
+## [1.37.25](https://github.com/SocialGouv/revu/compare/v1.37.24...v1.37.25) (2026-04-14)
+
+
+### Bug Fixes
+
+* Update sealed-secrets for preprod ([#277](https://github.com/SocialGouv/revu/issues/277)) ([cd88ac9](https://github.com/SocialGouv/revu/commit/cd88ac9f7b774669144580c0321f62f8252f346d))
+
 ## [1.37.24](https://github.com/SocialGouv/revu/compare/v1.37.23...v1.37.24) (2026-02-26)
 
 
