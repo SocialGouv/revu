@@ -39,9 +39,12 @@ FROM base AS deps
 
 # Only copy manifests first
 # Avoid over-permissive/executable bits on non-executable files.
+# - package.json: needed so corepack honours packageManager — without it the fetch
+#   runs on corepack's "latest" pnpm, whose store isn't readable by the pinned
+#   pnpm doing the offline install in the runner stage (ERR_PNPM_NO_OFFLINE_TARBALL)
 # - lockfile: readable by the runtime user
 # - .npmrc: may contain registry credentials -> keep it private
-COPY --chown=1001:1001 --chmod=644 pnpm-lock.yaml ./
+COPY --chown=1001:1001 --chmod=644 package.json pnpm-lock.yaml ./
 COPY --chown=1001:1001 --chmod=600 .npmrc ./
 
 # Prefetch production dependencies into the store
