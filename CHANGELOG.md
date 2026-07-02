@@ -1,3 +1,11 @@
+## [1.37.26](https://github.com/SocialGouv/revu/compare/v1.37.25...v1.37.26) (2026-07-02)
+
+
+### Bug Fixes
+
+* **docker:** pin pnpm in the deps stage by copying package.json before fetch ([a0f10fe](https://github.com/SocialGouv/revu/commit/a0f10fe67ef04a0f1d371874b028385bd422fdef))
+* **kontinuous:** reseal app secrets for preprod and prod ([77d0931](https://github.com/SocialGouv/revu/commit/77d0931f0513f21945c2a24706c329de783caf57))
+
 ## [1.37.25](https://github.com/SocialGouv/revu/compare/v1.37.24...v1.37.25) (2026-04-14)
 
 
