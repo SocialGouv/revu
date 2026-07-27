@@ -1,8 +1,9 @@
 import pRetry, { AbortError, type Options as PRetryOptions } from 'p-retry'
 import { logSystemWarning } from './logger.ts'
+import { getRuntimeConfigSync } from '../core/utils/runtime-config.ts'
 
-const isTest =
-  process.env.NODE_ENV === 'test' || process.env.VITEST_WORKER_ID != null
+const runtime = getRuntimeConfigSync()
+const isTest = runtime.system.isTest
 
 type RetryLogContext = {
   operation: string
@@ -17,11 +18,8 @@ export interface WithRetryOptions extends Partial<PRetryOptions> {
 
 const defaultOptions: Partial<PRetryOptions> = {
   retries:
-    process.env.P_RETRY_RETRIES != null
-      ? (() => {
-          const val = Number(process.env.P_RETRY_RETRIES)
-          return Number.isFinite(val) && val >= 0 ? val : 5
-        })()
+    runtime.system.pRetryRetries != null
+      ? runtime.system.pRetryRetries
       : isTest
         ? 1
         : 5,

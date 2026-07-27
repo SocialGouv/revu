@@ -5,6 +5,7 @@ import { prepareLineCommentsPayload } from '../../shared/line-comments-common.ts
 import { withRetryAnthropic } from '../../../utils/retry.ts'
 import { computePromptHash } from '../../../utils/prompt-prefix.ts'
 import { logSystemWarning } from '../../../utils/logger.ts'
+import { getRuntimeConfig } from '../../../core/utils/runtime-config.ts'
 
 /**
  * Line comments Anthropic sender.
@@ -21,13 +22,15 @@ export async function anthropicLineCommentsSender(
   prompt: string,
   enableThinking: boolean = false
 ): Promise<string> {
+  const runtime = await getRuntimeConfig()
+
   // Initialize Anthropic client
   const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY
+    apiKey: runtime.llm.anthropic.apiKey
   })
 
   // Get model to enable model-specific parameter handling
-  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
+  const model = runtime.llm.anthropic.model
 
   // Prepare shared payload parts (tools, messages, temperature, tokens, thinking)
   const prepared = prepareLineCommentsPayload(
@@ -37,7 +40,7 @@ export async function anthropicLineCommentsSender(
     model
   )
   // Determine if extended context should be used (opt-out: enabled by default)
-  const useExtendedContext = process.env.ANTHROPIC_EXTENDED_CONTEXT !== 'false'
+  const useExtendedContext = runtime.llm.anthropic.extendedContext
 
   const promptHash = computePromptHash(prompt, model)
 
@@ -69,7 +72,7 @@ export async function anthropicLineCommentsSender(
       )
     }
 
-    if (process.env.PROMPT_CACHE_DEBUG === 'true') {
+    if (runtime.discussion.promptCache.debug) {
       const usage = (message as any)?.usage ?? {}
       const metrics = {
         prompt_hash: promptHash,

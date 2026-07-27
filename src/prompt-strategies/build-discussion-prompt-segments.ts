@@ -7,8 +7,7 @@ export type DiscussionPromptSegments = {
 }
 
 // Match existing defaults used by buildPrompt in discussion-handler
-const DEFAULT_MAX_CHARS_PER_FILE =
-  Number(process.env.MAX_FILE_CONTENT_CHARS) || 50_000
+const DEFAULT_MAX_CHARS_PER_FILE = 50_000
 const DEFAULT_MAX_TOTAL_CHARS = 200_000
 
 export function buildDiscussionPromptSegments(input: {
